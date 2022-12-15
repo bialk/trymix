@@ -74,11 +74,6 @@
         <source>Conforming Delanay</source>
         <translation type="unfinished"></translation>
     </message>
-    <message>
-        <location filename="PolygonTests/PolygonTests_panel.ui" line="140"/>
-        <source>Quit</source>
-        <translation type="unfinished"></translation>
-    </message>
 </context>
 <context>
     <name>QObject</name>
