@@ -1,6 +1,7 @@
 #include "ProjectTree.h"
 #include "Projects_TreeItem.h"
 #include "PolygonTests/PolygonTests_TreeItem.h"
+#include "SFSBuilder/SFSBuilder_TreeItem.h"
 #include "CentralWidget.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -58,20 +59,34 @@ ProjectTree::gl(){
   return m_gl;
 }
 
+std::vector<std::pair<QString,std::function<ProjectTreeItem*()>>>
+ProjectTree::TreeItemFactoryList(){
+  return {
+    {QObject::tr("Polygon Test"), [](){ return new PolygonTests_TreeItem;}},
+    {QObject::tr("SFS Builder"),  [](){ return new SFSBuilder_TreeItem;}}
+  };
+}
+
+
 void ProjectTree::addContextMenuStandardItems(ProjectTreeItem* item){
-    auto newAct = new QAction(QIcon(":/Resource/warning32.ico"), QObject::tr("Polygon Test"));
-    newAct->setStatusTip(QObject::tr("Create new project item"));
-    newAct->connect(newAct, &QAction::triggered,
-      [=]()
-      {
-        auto p = item->parent();
-        auto newItem = new PolygonTests_TreeItem;
-        p->insertChild(p->indexOfChild(item)+1, newItem);
-        addContextMenuStandardItems(newItem);
-      }
-    );
-    item->actions().append(newAct);
-    newAct = new QAction(QIcon(":/Resource/warning32.ico"), QObject::tr("Remove \"Polygon Test\" item"));
+    for(auto& i: TreeItemFactoryList()){
+      auto newAct = new QAction(QIcon(":/Resource/warning32.ico"),
+                                QString(QObject::tr("Create new \"%1\" item")).arg(i.first));
+      newAct->setStatusTip(QObject::tr("Create new project item"));
+      newAct->connect(newAct, &QAction::triggered,
+        [=]()
+        {
+          auto p = item->parent();
+          auto newItem = i.second();
+          p->insertChild(p->indexOfChild(item)+1, newItem);
+          addContextMenuStandardItems(newItem);
+        }
+      );
+      item->actions().append(newAct);
+    }
+
+    auto newAct = new QAction(QIcon(":/Resource/warning32.ico"),
+                              QString(QObject::tr("Remove \"%1\" item")).arg(item->text(0)));
     newAct->setStatusTip(QObject::tr("Remove \"Polygon Test\" item"));
     newAct->connect(newAct, &QAction::triggered,
       [=]()

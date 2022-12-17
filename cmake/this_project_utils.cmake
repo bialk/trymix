@@ -35,10 +35,31 @@ function(add_target_dll tgt)
       )
 endfunction()
 
-function(add_dll_by_path tgt)
+function(add_dll_by_path path)
     add_custom_command(
       TARGET omi_triang
       POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different  "${GMP_DLL}" "$<TARGET_FILE_DIR:omi_triang>"
+      COMMAND "${CMAKE_COMMAND}" -E copy_if_different  "${path}" "$<TARGET_FILE_DIR:omi_triang>"
       )
 endfunction()
+
+# example:
+# find_path_by_regex(VARIABLE_TO_RETURN_FOUND_PATH "boost_*[0-9]_*[0-9]_*[0-9]"
+# PATHS ${LIST_OF_PATHS} )
+function(find_path_by_regex var_out regex_in)
+    foreach(item ${ARGN})
+        if(item STREQUAL "PATHS")
+            set(itemmode "PATHS")
+            continue()
+        endif()
+        if(itemmode STREQUAL "PATHS")
+           FILE(GLOB found_path "${item}/${regex_in}")
+           message(STATUS found_path:${found_path})
+           if(found_path)
+               set(${var_out} ${found_path} PARENT_SCOPE)
+               return()
+           endif()
+        endif()
+    endforeach()
+endfunction()
+

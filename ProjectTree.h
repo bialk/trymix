@@ -13,6 +13,8 @@ public:
   void showModel(QOpenGLWidget* gl);
   CentralWidget* gl();
   void addContextMenuStandardItems(ProjectTreeItem* item);
+  static std::vector<std::pair<QString,std::function<ProjectTreeItem*()>>>
+    TreeItemFactoryList();
 private:
   ProjectTreeItem* m_activeTreeItem = nullptr;
   CentralWidget* m_gl = nullptr;

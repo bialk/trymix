@@ -42,7 +42,7 @@ PolygonTests_TreeItem::PolygonTests_TreeItem()
 }
 
 PolygonTests_TreeItem::~PolygonTests_TreeItem(){
-  m_dockWidget->deleteLater();
+  //m_dockWidget->deleteLater();
 }
 
 void
