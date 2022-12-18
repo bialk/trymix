@@ -6,8 +6,9 @@
 //#include "PolygonTests/PolygonTestMonotonePartitioning.h"
 //#include "PolygonTests/PolygonTestConformingDelanay.h"
 
-#include <windows.h>
-#include <GL/GL.h>
+//#include <windows.h>
+//#include <GL/GL.h>
+//#include <QOpenGLFunctions>
 #include <QPainter>
 
 //void CentralWidget::tryConvexPartitioning(int polygonSize){

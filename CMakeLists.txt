@@ -18,8 +18,8 @@ include(this_project_utils)
 # path to thirdparty dirs
 set(WINDOWS_EXTERNAL_LIBS_PATH  "D:/trymix/test_omi" "D:/zero-devel")
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
 
 
 function(find_path_by_regex var_out regex_in)
@@ -42,6 +42,8 @@ endfunction()
 find_path_by_regex(BOOST_ROOT "boost_*[0-9]_*[0-9]_*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
 
 find_package(Boost REQUIRED)
+
+find_package(OpenGL REQUIRED)
 
 set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
 find_package(CGAL PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES "CGAL-5.5.1" COMPONENTS Core)
@@ -124,7 +126,16 @@ set(PROJECT_SOURCES
     SFSBuilder/SFSBuilder_panel.ui
     SFSBuilder/shapefromshade.cpp SFSBuilder/shapefromshade.h
     SFSBuilder/lineqsol.h SFSBuilder/lineqsol.cpp
-    SFSBuilder/lapackcpp.h SFSBuilder/eigenval.cpp SFSBuilder/leastsquare.cpp
+    SFSBuilder/mathlib/lapackcpp/lapackcpp.h
+    SFSBuilder/mathlib/lapackcpp/invert.cpp
+    SFSBuilder/mathlib/lapackcpp/eigenval.cpp
+    SFSBuilder/mathlib/lapackcpp/leastsquare.cpp
+    SFSBuilder/imageplane.h SFSBuilder/imageplane.cpp
+    SFSBuilder/editviewobj.h SFSBuilder/editviewobj.cpp
+    SFSBuilder/ImageTile.h SFSBuilder/ImageTile.cpp
+    SFSBuilder/editviewobj.h SFSBuilder/editviewobj.cpp
+    SFSBuilder/glhelper.h SFSBuilder/glhelper.cpp
+    SFSBuilder/eventhnd.h SFSBuilder/eventhnd.cpp
 
     ${TS_FILES}
 )
@@ -185,11 +196,14 @@ if(CMAKE_HOST_WIN32)
 endif()
 
 target_link_libraries(omi_triang PRIVATE
-    Qt${QT_VERSION_MAJOR}::Widgets CGAL::CGAL CGAL::CGAL_Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::OpenGL
+    CGAL::CGAL CGAL::CGAL_Core
     ${SPOOLES_LIB}
     ${pthread_LIB}
     ${LAPACK_LIB}
     ${BLAS_LIB}
+    OpenGL::GL
 )
 
 set_target_properties(omi_triang PROPERTIES

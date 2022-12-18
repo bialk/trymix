@@ -3,7 +3,7 @@
 
 #include <algorithm>
 #include <math.h>
-#include "lapackcpp.h"
+#include "mathlib/lapackcpp/lapackcpp.h"
 
 //======================================================================
 
