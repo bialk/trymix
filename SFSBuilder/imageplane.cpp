@@ -1,5 +1,5 @@
 #include "imageplane.h"
-//#include <FreeImage.h>
+#include <FreeImage.h>
 #include <QOpenGLFunctions>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -83,7 +83,6 @@ void ImagePlane::TreeScan(TSOCntx *cntx){
 
 
 void ImagePlane::Open(int slot){
-#ifdef off
   if(cache_slot==slot)  cache_slot = -1;
   
   img[slot].clear();
@@ -143,7 +142,6 @@ void ImagePlane::Open(int slot){
   */
   memcpy(img_ptr,pixeles,4*w*h);
   FreeImage_Unload(imagen);
- #endif //off
 }
 	
 void ImagePlane::LoadTxt(int slot){  

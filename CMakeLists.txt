@@ -21,32 +21,40 @@ set(WINDOWS_EXTERNAL_LIBS_PATH  "D:/trymix/test_omi" "D:/zero-devel")
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
 
-
-function(find_path_by_regex var_out regex_in)
-    foreach(item ${ARGN})
-        if(item STREQUAL "PATHS")
-            set(itemmode "PATHS")
-            continue()
-        endif()
-        if(itemmode STREQUAL "PATHS")
-           FILE(GLOB found_path "${item}/${regex_in}")
-           message(STATUS found_path:${found_path})
-           if(found_path)
-               set(${var_out} ${found_path} PARENT_SCOPE)
-               return()
-           endif()
-        endif()
-    endforeach()
-endfunction()
-
 find_path_by_regex(BOOST_ROOT "boost_*[0-9]_*[0-9]_*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
+
+################### Boost #######################
 
 find_package(Boost REQUIRED)
 
+################### OpenGL ######################
+
 find_package(OpenGL REQUIRED)
 
+##################### CGAL ######################
+
 set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
-find_package(CGAL PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES "CGAL-5.5.1" COMPONENTS Core)
+find_package(CGAL REQUIRED PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES "CGAL-5.5.1" COMPONENTS Core)
+string(REPLACE ".lib" ".dll" GMP_DLL "${GMP_LIBRARIES}")
+list(APPEND FOR_COPY_TO_BINARY_DIR ${GMP_DLL})
+
+################# FREEIMAGE_LIB #################
+
+IF(UNIX OR MINGW)
+  FIND_PATH(FREEIMAGE_INCLUDE_DIR FreeImage.h )
+  FIND_LIBRARY(FREEIMAGE_LIB NAMES freeimage FreeImage)
+ELSEIF(WIN32)
+#  FIND_PATH(FREEIMAGE_INCLUDE_DIR FreeImage.h PATH_SUFFIXES FreeImage/Dist)
+#  FIND_LIBRARY(FREEIMAGE_LIB FreeImage HINTS ${FREEIMAGE_INCLUDE_DIR} )
+#  FIND_FILE(FREEIMAGE_DLL FreeImage.dll HINTS ${FREEIMAGE_INCLUDE_DIR} )
+#  list(APPEND FOR_COPY_TO_BINARY_DIR ${FREEIMAGE_DLL})
+    FIND_PATH(FREEIMAGE_INCLUDE_DIR FreeImage.h REQUIRED
+        PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES "FreeImage/Dist/x64")
+    FIND_LIBRARY(FREEIMAGE_LIB FreeImage PATHS ${FREEIMAGE_INCLUDE_DIR})
+    FIND_FILE(FREEIMAGE_DLL FreeImage.dll HINTS ${FREEIMAGE_INCLUDE_DIR} )
+    list(APPEND FOR_COPY_TO_BINARY_DIR ${FREEIMAGE_DLL})
+ENDIF(UNIX OR MINGW)
+
 
 ####################### spooles ##################
 
@@ -79,9 +87,7 @@ elseif(WIN32)
       REQUIRED
     )
 
-    list(APPEND FOR_COPY_TO_BINARY_DIR ${pthread_DLL})
-
-    INCLUDE_DIRECTORIES( ${pthread_INCLUDE_DIR} )
+    list(APPEND FOR_COPY_TO_BINARY_DIR ${pthread_DLL})    
 endif(MINGW)
 
 ################# LAPACK #########################
@@ -91,18 +97,13 @@ if(UNIX OR MINGW)
 elseif(WIN32)
   FIND_LIBRARY(LAPACK_LIB lapack PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES lapack)
   FIND_LIBRARY(BLAS_LIB blas PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES lapack)
-  FIND_FILE(LAPACK_DLL liblapack.dll PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES lapack)
-  FIND_FILE(BLAS_DLL libblas.dll PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES lapack)
-  list(APPEND FOR_COPY_TO_BINARY_DIR ${LAPACK_DLL} ${BLAS_DLL})
+  find_path_by_regex(LAPACK_DLLS "lapack/*.dll" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH})
+  #FIND_FILE(LAPACK_DLL liblapack.dll PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES lapack)
+  #FIND_FILE(BLAS_DLL libblas.dll PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES lapack)
+  #message(FATAL_ERROR LAPACK_DLLS:${LAPACK_DLLS})
+  list(APPEND FOR_COPY_TO_BINARY_DIR ${LAPACK_DLLS})
 endif()
 
-if(NOT ${CGAL_FOUND})
-   message(SEND_ERROR "CGAL is not found, try to add -DCGAL_DIR=<path to CGAL dir> variable")
-endif()
-
-if(NOT ${BOOST_FOUND})
-   message(SEND_ERROR "BOOST is not found, try to add -DBOOST_ROOT=<path to BOOST dir> variable")
-endif()
 
 set(TS_FILES omi_triang_en_GB.ts)
 
@@ -145,6 +146,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
     )
+
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET omi_triang APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
@@ -167,10 +169,15 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-target_include_directories(omi_triang PRIVATE ${SPOOLES_INCLUDE_DIR})
+target_include_directories(omi_triang PRIVATE
+    ${SPOOLES_INCLUDE_DIR}
+    ${FREEIMAGE_INCLUDE_DIR}
+    ${pthread_INCLUDE_DIR}
+)
+
 target_compile_options(omi_triang PRIVATE "-D_TIMESPEC_DEFINED")
 
-#left for debugging
+#left example for debugging checking properties on target
 #print_target_properties(CGAL::CGAL)
 #print_target_properties(Qt5::windeployqt)
 
@@ -182,14 +189,14 @@ if(CMAKE_HOST_WIN32)
 
     # constructing path to windeployqt to copy dlls
     string(REPLACE qmake.exe "windeployqt" windeployqt ${QT_QMAKE_EXECUTABLE} )
-    message(STATUS "Found: ${windeployqt}")
-    add_custom_command(TARGET omi_triang POST_BUILD
-        COMMAND ${windeployqt} --list mapping  $<TARGET_FILE:omi_triang>
-    )
+    if(windeployqt)
+        message(STATUS "Found: ${windeployqt} distributing qt dlls")
+        add_custom_command(TARGET omi_triang POST_BUILD
+            COMMAND ${windeployqt} --list mapping  $<TARGET_FILE:omi_triang>
+        )
+    endif()
 
-    #copy some dlls from CGAL package
-    string(REPLACE ".lib" ".dll" GMP_DLL "${GMP_LIBRARIES}")
-    add_dll_by_path("${GMP_DLL}")
+    #copy dlls from other packages
     foreach(PATHITEM ${FOR_COPY_TO_BINARY_DIR})
       add_dll_by_path("${PATHITEM}")
     endforeach()
@@ -203,6 +210,7 @@ target_link_libraries(omi_triang PRIVATE
     ${pthread_LIB}
     ${LAPACK_LIB}
     ${BLAS_LIB}
+    ${FREEIMAGE_LIB}
     OpenGL::GL
 )
 
