@@ -1,47 +1,59 @@
 #include "CentralWidget.h"
 #include "ui_CentralWidget.h"
-#include "Projects_TreeItem.h"
 #include "ProjectTree.h"
-//#include "PolygonTests/PolygonTestConvexPartitioning.h"
-//#include "PolygonTests/PolygonTestMonotonePartitioning.h"
-//#include "PolygonTests/PolygonTestConformingDelanay.h"
+#include "ViewPortController.h"
 
-//#include <windows.h>
-//#include <GL/GL.h>
-//#include <QOpenGLFunctions>
 #include <QPainter>
+#include <QEvent>
+#include <QMouseEvent>
+#include <QDebug>
+#include <QObject>
 
-//void CentralWidget::tryConvexPartitioning(int polygonSize){
-//    polygentest.reset(new PolygonTestConvexPartitioning(polygonSize));
-//    update();
-//}
+#include <vector>
+#include <unordered_set>
+#include <stack>
 
-//void CentralWidget::tryMonotonePartitioning(int polygonSize){
-//    polygentest.reset(new PolygonTestMonotonePartitioning(polygonSize));
-//    update();
-//}
+class TreeEventFilter: public QObject{
+public:
+  TreeEventFilter(CentralWidget* cw)
+    :m_eventContext3D(cw)
+  {
+    connect(qApp, &QGuiApplication::applicationStateChanged,
+                     [](Qt::ApplicationState state){
+      if(state == Qt::ApplicationState::ApplicationActive){
+        //qDebug() << "Application state change to active" << Qt::endl;
+      }
+    });
+  }
+  bool eventFilter(QObject *obj, QEvent* e) override{
+    m_eventContext3D.setEvent(e);
+    if(!m_eventContext3D.tryProcessCapture())
+      m_handlerTree.handle(m_eventContext3D);
+    return QObject::event(e);
+  }
+  EventContext3D m_eventContext3D;
+  EventHandler3D m_handlerTree;
+};
 
-//void CentralWidget::tryConformingDelanay(int polygonSize, float meshCellSize){
-//    polygentest.reset(new PolygonTestConformingDelanay(polygonSize, meshCellSize));
-//    update();
-//}
 
-//void CentralWidget::setActiveTreeItem(ProjectTreeItem *ti){
-//  // m_activeTreeItem = ti;
-//}
-
-
-CentralWidget::CentralWidget(QWidget *parent) :
-    QOpenGLWidget(parent),
-//    polygentest(new PolygonTestConvexPartitioning(50)),
-    ui(new Ui::CentralWidget)
+CentralWidget::CentralWidget(QWidget *parent)
+    : QOpenGLWidget(parent)
+    , ui(new Ui::CentralWidget)
 {
-    ui->setupUi(this);        
+  ui->setupUi(this);
+  setMouseTracking(true);
+  setFocusPolicy (Qt::StrongFocus);
+  m_treeEventFilter = new TreeEventFilter(this);
+  installEventFilter(m_treeEventFilter);
+}
+
+EventHandler3D&
+CentralWidget::eventHandler(){
+  return m_treeEventFilter->m_handlerTree;
 }
 
 void
 CentralWidget::initializeGL(){
-
 }
 
 void
@@ -49,25 +61,13 @@ CentralWidget::resizeGL(int w, int h){}
 
 void
 CentralWidget::paintGL(){
-
-//  if(m_activeTreeItem)
-//    m_activeTreeItem->showModel(this);
-
   m_projectTree->showModel(this);
-#ifdef off
-    QPainter p(this);
-    p.setWindow(0, height(), width(), -height());
-    p.setPen(QPen(Qt::white, 3));
-    QTransform t;
-    t.translate(width()/2,height()/2);
-    float scale = 0.45/600;
-    scale = min(width()*scale, height()*scale);
-    t.scale(scale, scale);
-    p.setTransform(t);
-    p.drawPolyline(polygentest->getPolyline());
-    p.setPen(QPen(Qt::red, 2, Qt::DotLine));
-    p.drawLines(polygentest->getEdges());
-#endif
+}
+
+void
+CentralWidget::enterEvent(QEvent *event){
+  QOpenGLWidget::enterEvent(event);
+  setFocus(Qt::MouseFocusReason);
 }
 
 void
