@@ -1,7 +1,6 @@
 #ifndef CENTRALWIDGET_H
 #define CENTRALWIDGET_H
 
-#include "EventHandling.h"
 #include <QOpenGLWidget>
 
 namespace Ui {
@@ -10,6 +9,8 @@ class CentralWidget;
 
 class ProjectTree;
 class TreeEventFilter;
+class EventContext3D;
+class EventHandler3D;
 class QEvent;
 
 class CentralWidget : public QOpenGLWidget
@@ -27,6 +28,7 @@ public:
     void setProjectTree(ProjectTree *pt);
 
     EventHandler3D& eventHandler();
+    EventContext3D& eventContext();
 private:
     Ui::CentralWidget *ui;
     ProjectTree* m_projectTree = nullptr;

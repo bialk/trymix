@@ -195,11 +195,13 @@ PolygonTests_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate)
     m_dockWidget->activateWindow();
     m_dockWidget->show();
     m_dockWidget->raise();
-    cw->eventHandler().addChild(m_vpceh.get());
+    //cw->eventHandler().addChild(m_vpceh.get());
+    cw->eventContext().pushHandler(m_vpceh.get());
   }
   else{
     m_dockWidget->hide();
-    cw->eventHandler().removeChild(m_vpceh.get());
+    //cw->eventHandler().removeChild(m_vpceh.get());
+    cw->eventContext().popHandler();
   }
 }
 

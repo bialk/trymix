@@ -11,7 +11,14 @@
 EventContext3D::EventContext3D(CentralWidget* cw)
   :m_glWidget(cw){}
 
-EventContext3D::~EventContext3D(){}
+EventContext3D::~EventContext3D(){
+  // removing captured handlers from context
+  while(!m_captureHandlers.empty()){
+    auto eh = m_captureHandlers.top();
+    eh->pushedInContext(nullptr);
+    m_captureHandlers.pop();
+  }
+}
 
 void
 EventContext3D::setEvent(QEvent* e) {
@@ -101,11 +108,14 @@ EventContext3D::isMatched(QString const& eventstring){
 void
 EventContext3D::pushHandler(EventHandler3D* eh){
   m_captureHandlers.push(eh);
+  eh->pushedInContext(this);
 }
 
 void EventContext3D::popHandler(){
-  if(!m_captureHandlers.empty())
-    m_captureHandlers.pop();
+  assert(!m_captureHandlers.empty());
+  auto eh = m_captureHandlers.top();
+  eh->popedInContext(this);
+  m_captureHandlers.pop();
 }
 
 int EventContext3D::x(){
@@ -120,17 +130,16 @@ void EventContext3D::update(){
   glWidget()->update();
 }
 
-
-
-
-
-
 EventHandler3D::~EventHandler3D(){
   for(auto& i: m_children){
     i->m_parents.erase(this);
   }
   for(auto& i: m_parents){
     i->m_children.remove(this);
+  }
+  while(!m_inContextStack.empty()){
+    auto cx = m_inContextStack.top();
+    cx->popHandler();
   }
 }
 
@@ -169,3 +178,16 @@ EventHandler3D::addReact(QString const & event){
   return m_reacts.back().second;
 }
 
+void
+EventHandler3D::pushedInContext(EventContext3D* ecntx){
+  assert(ecntx);
+  m_inContextStack.push(ecntx);
+}
+
+void
+EventHandler3D::popedInContext(EventContext3D* ecntx){
+  assert(ecntx);
+  assert(!m_inContextStack.empty());
+  assert(ecntx == m_inContextStack.top());
+  m_inContextStack.pop();
+}

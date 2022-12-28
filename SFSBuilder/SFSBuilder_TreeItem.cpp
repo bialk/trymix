@@ -100,9 +100,6 @@ SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}
 void
 SFSBuilder_TreeItem::showModel(QOpenGLWidget* gl)
 {
-//  QPainter p(gl);
-//  p.beginNativePainting();
-
   glViewport(0,0,gl->width(),gl->height());
 
   glClearDepth(1.0);
@@ -152,7 +149,8 @@ SFSBuilder_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
     m_dockWidget->activateWindow();
     m_dockWidget->show();
     m_dockWidget->raise();
-    cw->eventHandler().addChild(m_viewCtrlEH.get());
+    //cw->eventHandler().addChild(m_viewCtrlEH.get());
+    cw->eventContext().pushHandler(m_viewCtrlEH.get());
 
     // update viewport size if it was changed before
     m_viewCtrl->mssh.wndw=cw->width(); m_viewCtrl->mssh.wndh=cw->height();
@@ -160,6 +158,7 @@ SFSBuilder_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
   }
   else{
     m_dockWidget->hide();
-    cw->eventHandler().removeChild(m_viewCtrlEH.get());
+    //cw->eventHandler().removeChild(m_viewCtrlEH.get());
+    cw->eventContext().popHandler();
   }
 }

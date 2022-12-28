@@ -29,6 +29,7 @@ public:
   void update();
 
 private:
+
   CentralWidget *m_glWidget;
   QEvent* m_event = nullptr;
   std::stack<EventHandler3D*> m_captureHandlers;
@@ -48,7 +49,10 @@ public:
 
   std::function<void(EventContext3D& ecntx)>& addReact(QString const & event);
 
+  void pushedInContext(EventContext3D* ecntx);
+  void popedInContext(EventContext3D* ecntx);
 private:
+  std::stack<EventContext3D*> m_inContextStack;
   std::list<EventHandler3D*> m_children;
   std::unordered_set<EventHandler3D*> m_parents;
   std::list<std::pair<QString, std::function<void(EventContext3D& ecntx)> > > m_reacts;

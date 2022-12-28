@@ -52,6 +52,11 @@ CentralWidget::eventHandler(){
   return m_treeEventFilter->m_handlerTree;
 }
 
+EventContext3D&
+CentralWidget::eventContext(){
+  return m_treeEventFilter->m_eventContext3D;
+}
+
 void
 CentralWidget::initializeGL(){
 }
