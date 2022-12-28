@@ -1,3 +1,4 @@
+#include "SFSBuilder/mathlib/lapackcpp/lapackcpp.h"
 #include "dispview.h"
 #include <fstream>
 #include <math.h>
@@ -93,7 +94,7 @@ ViewCtrl::ViewCtrl()
 
   // initialize model view matrix as identity matrix 
   int i;
-  for(i=0; i<16; i++) InitialModelMatrix[i]=(i%4==i/4)?1.0:0.0;
+  for(i=0; i<16; i++) InitialModelMatrix[i]=(i%5)?0.0:1.0;
   memcpy(InvMVMat,InitialModelMatrix,sizeof(InvMVMat));
   glInvMat(InvMVMat);
 }
@@ -119,10 +120,67 @@ void ViewCtrl::TreeScan(TSOCntx *cntx){
     glInvMat(InvMVMat);
   }
   if(cntx==&TSOCntx::TSO_Init){
-    dv->toolpanel->show=1;
+    //dv->toolpanel->show=1;
   }
 }
 
+namespace{
+  void glOrthoCPU(float* matrix,
+                  GLdouble left, GLdouble right,
+                  GLdouble bottom, GLdouble top,
+                  GLdouble nearv, GLdouble farv)
+  {
+
+    auto tx = -(right+left)/(right-left);
+    auto ty = -(top+bottom)/(top-bottom);
+    auto tz = -(farv+nearv)/(farv-nearv);
+
+    float m[16] = { 2./(right - left),0,0,0,
+                    0,2./(top - bottom),0,0,
+                    0,0,-2./(farv - nearv),0,
+                    tx,ty,tx,1};
+    memcpy(matrix,m,sizeof(m));
+  }
+
+  void glFrustumCPU(float* matrix,
+                 GLdouble left, GLdouble right,
+                 GLdouble bottom, GLdouble top,
+                 GLdouble nearv, GLdouble farv)
+  {
+    double const A = (right+left)/(right-left);
+    double const B = (top+bottom)/(top-bottom);
+    double const C = (farv+nearv)/(farv-nearv);
+    double const D = (2*farv*nearv)/(farv-nearv);
+
+
+    float m[16] = { 2*nearv/(right - left),0,0,0,
+                    0,2*nearv/(top - bottom),0,0,
+                    A,B,C,-1,
+                    0,0,D,0};
+    memcpy(matrix,m,sizeof(m));
+  }
+
+  void glTranslateCPU(float* matrix,
+                 GLfloat x ,GLfloat y,GLfloat z )
+  {
+    float m[16] = { 1,0,0,0,
+                    0,1,0,0,
+                    0,0,1,0,
+                    x,y,z,1};
+    memcpy(matrix,m,sizeof(m));
+  }
+
+  void glRotateCPU (float* matrix, GLfloat angle, GLfloat x, GLfloat y, GLfloat z){
+
+    float m[16] = { 1,0,0,0,
+                    0,1,0,0,
+                    0,0,1,0,
+                    0,0,0,1};
+    memcpy(matrix,m,sizeof(m));
+  }
+}
+
+#ifdef off
 void ViewCtrl::SetProjectionMatrix(){
 
   glMatrixMode(GL_PROJECTION);
@@ -138,13 +196,13 @@ void ViewCtrl::SetProjectionMatrix(){
 
     glLoadIdentity();
     glScaled(zoom,zoom,1);
-    x=(mssh.sx0-mssh.wndw/2)/zoom; 
+    x=(mssh.sx0-mssh.wndw/2)/zoom;
     y=(mssh.wndh/2-mssh.sy0)/zoom;
     glOrtho(-5+x,5+x,-5+y,5+y,-300,300);
     glGetFloatv(GL_PROJECTION_MATRIX,PrjMtrxSelect);
 
-    break;  
-    
+    break;
+
   case 1: //frustrum
 
     float k=2500; // distance from camera to the centre of the object
@@ -156,7 +214,7 @@ void ViewCtrl::SetProjectionMatrix(){
 
     glLoadIdentity();
     glScaled(zoom*(k/(k-300)),zoom*(k/(k-300)),1);
-    x=(mssh.sx0-mssh.wndw/2)/(zoom*(k/(k-300))); 
+    x=(mssh.sx0-mssh.wndw/2)/(zoom*(k/(k-300)));
     y=(mssh.wndh/2-mssh.sy0)/(zoom*(k/(k-300)));
     glFrustum(-5+x,5+x,-5+y,5+y,-300+k,300+k);
     glTranslated(0,0,-k);
@@ -174,6 +232,112 @@ void ViewCtrl::SetProjectionMatrix(){
 
 }
 
+#else
+void ViewCtrl::SetProjectionMatrix(){
+
+#ifdef off
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+#endif
+
+  define_MtxCalc(mc, float, 4*4*16);
+
+  switch(prjtype){
+    float x,y;
+  case 0: //orthogonal
+
+
+#ifdef off //
+      glLoadIdentity();
+      glScaled(zoom,zoom,1);
+      glOrtho(-mssh.wndw/2,mssh.wndw/2,-mssh.wndh/2,mssh.wndh/2,-300,300);
+      glGetFloatv(GL_PROJECTION_MATRIX,PrjMtrxRender);
+#endif
+
+      {
+        float scalev[4] = { zoom,zoom,1,1};
+        float orthov[16];
+        glOrthoCPU(orthov, -mssh.wndw/2,mssh.wndw/2, -mssh.wndh/2,mssh.wndh/2, -300,300);
+        mc.start(); (mc.diag(4,4,scalev)*mc(orthov,4,4)).finish(PrjMtrxRender);
+      }
+
+
+#ifdef off
+      glLoadIdentity();
+      glScaled(zoom,zoom,1);
+      x=(mssh.sx0-mssh.wndw/2)/zoom;
+      y=(mssh.wndh/2-mssh.sy0)/zoom;
+      glOrtho(-5+x,5+x,-5+y,5+y,-300,300);
+      glGetFloatv(GL_PROJECTION_MATRIX,PrjMtrxSelect);
+#endif
+      {
+        float scalev[4] = { zoom,zoom,1,1};
+        float orthov[16];
+        x=(mssh.sx0-mssh.wndw/2)/zoom;
+        y=(mssh.wndh/2-mssh.sy0)/zoom;
+        glOrthoCPU(orthov, -5+x,5+x,-5+y,5+y,-300,300);
+        mc.start(); (mc.diag(4,4,scalev)*mc(orthov,4,4)).finish(PrjMtrxSelect);
+      }
+
+      break;
+    
+  case 1: //frustrum
+
+    float k=2500; // distance from camera to the centre of the object
+#ifdef off
+    glLoadIdentity();
+    glScaled(zoom*(k/(k-300)),zoom*(k/(k-300)),1);
+    glFrustum(-mssh.wndw/2,mssh.wndw/2,-mssh.wndh/2,mssh.wndh/2,-300+k,300+k);
+    glTranslated(0,0,-k);
+    glGetFloatv(GL_PROJECTION_MATRIX,PrjMtrxRender);
+#endif
+
+      {
+        float scalev[4] = { zoom*(k/(k-300)),zoom*(k/(k-300)),1,1};
+        float frustumv[16];
+        glFrustumCPU(frustumv, -mssh.wndw/2,mssh.wndw/2,-mssh.wndh/2,mssh.wndh/2,-300+k,300+k);
+        float translatev[16];
+        glTranslateCPU(translatev,0,0,-k);
+        mc.start(); (mc.diag(4,4,scalev)*mc(frustumv,4,4)*mc(translatev,4,4)).finish(PrjMtrxRender);
+      }
+
+#ifdef off
+    glLoadIdentity();
+    glScaled(zoom*(k/(k-300)),zoom*(k/(k-300)),1);
+    x=(mssh.sx0-mssh.wndw/2)/(zoom*(k/(k-300))); 
+    y=(mssh.wndh/2-mssh.sy0)/(zoom*(k/(k-300)));
+    glFrustum(-5+x,5+x,-5+y,5+y,-300+k,300+k);
+    glTranslated(0,0,-k);
+    glGetFloatv(GL_PROJECTION_MATRIX,PrjMtrxSelect );
+#endif
+
+
+      {
+        float scalev[4] = { zoom*(k/(k-300)),zoom*(k/(k-300)),1,1};
+        float frustumv[16];
+        x=(mssh.sx0-mssh.wndw/2)/(zoom*(k/(k-300)));
+        y=(mssh.wndh/2-mssh.sy0)/(zoom*(k/(k-300)));
+        glFrustumCPU(frustumv, -5+x,5+x,-5+y,5+y,-300+k,300+k);
+        float translatev[16];
+        glTranslateCPU(translatev,0,0,-k);
+        mc.start(); (mc.diag(4,4,scalev)*mc(frustumv,4,4)*mc(translatev,4,4)).finish(PrjMtrxSelect);
+      }
+
+    break;
+  }
+
+#ifdef off
+  // calculate inverse matrix
+  glLoadMatrixf(PrjMtrxRender);
+  glMultMatrixf(InitialModelMatrix);
+  glGetFloatv(GL_PROJECTION_MATRIX,InvMVMat);
+  glInvMat(InvMVMat);
+  glPopMatrix();
+#endif
+
+  mc.start(); (mc(PrjMtrxRender,4,4)*mc(InitialModelMatrix,4,4)).inv().finish(InvMVMat);
+}
+#endif
 
 void ViewCtrl::hitscene(float &x, float &y, float &z){  
 
@@ -210,6 +374,7 @@ void ViewCtrl::BackScreenTransform(float &x, float &y, float &z){
 
 }
 
+
 void ViewCtrl::Draw(DrawCntx *cntx){
 
   
@@ -242,10 +407,10 @@ void ViewCtrl::Draw(DrawCntx *cntx){
 
   glMatrixMode(GL_PROJECTION);
   GLint mode;
-  glGetIntegerv(GL_RENDER_MODE,&mode);  
-  switch (mode){ 
-  case GL_RENDER:    
-    glLoadMatrixf(PrjMtrxRender); 
+  glGetIntegerv(GL_RENDER_MODE,&mode);
+  switch (mode){
+  case GL_RENDER:
+    glLoadMatrixf(PrjMtrxRender);
     break;
   case GL_SELECT:
     glLoadMatrixf(PrjMtrxSelect);
@@ -268,15 +433,15 @@ void ViewCtrl::movestart(int oper, int x, int y){
   opercode=oper;
   switch(oper){
   case 1:
-      dv->drawsimple=drawsimple;
+      //dv->drawsimple=drawsimple;
       mssh.StartMove(x,y);  
       break;
   case 2:
-      dv->drawsimple=drawsimple;
+      //dv->drawsimple=drawsimple;
       mssh.StartRotate(x,y);
       break;
   case 3:
-      dv->drawsimple=drawsimple;
+      //dv->drawsimple=drawsimple;
       zoom0=zoom; zoomy=y;
       break;
   }
@@ -297,7 +462,7 @@ void ViewCtrl::movecont(int x, int y){
 void ViewCtrl::movestop(int x, int y){
   
   glGetFloatv(GL_MODELVIEW_MATRIX,InitialModelMatrix);
-  dv->drawsimple=0;
+  //dv->drawsimple=0;
   mssh.StopMOper();
   memcpy(InvMVMat, InitialModelMatrix, sizeof(InvMVMat));    
   glInvMat(InvMVMat);
@@ -308,7 +473,7 @@ void ViewCtrl::movestop(int x, int y){
 void ViewCtrl::reset(){
   Zoom(1.0);
   int i;
-  for(i=0; i<16; i++) InitialModelMatrix[i]=(i%4==i/4)?1.0:0.0;
+  for(i=0; i<16; i++) InitialModelMatrix[i]=(i%5)?0.0:1.0;
   memcpy(InvMVMat,InitialModelMatrix,sizeof(InvMVMat));
   glInvMat(InvMVMat);
 }
@@ -322,7 +487,7 @@ void ViewCtrl::SelectObj2(int x, int y) {
   glSelectBuffer (1024, selectBuf); 
   glRenderMode (GL_SELECT); 
   glInitNames(); 
-  dv->Draw(0);
+  //dv->Draw(0);
   hits = glRenderMode (GL_RENDER);
   if(hits==-1){
   	printf("ViewCtrl::SelectObj2 \"Selection Buffer overflow\"\n");

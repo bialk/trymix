@@ -135,7 +135,20 @@ set(PROJECT_SOURCES
     SFSBuilder/glhelper.h SFSBuilder/glhelper.cpp
     SFSBuilder/eventhnd.h SFSBuilder/eventhnd.cpp
 
-    ViewPortController.h ViewPortController.cpp
+    SFSBuilder/lights.h SFSBuilder/lights.cpp
+    SFSBuilder/dispview.h SFSBuilder/dispview.cpp
+    SFSBuilder/toolspanel.h SFSBuilder/toolspanel.cpp
+    SFSBuilder/savejpeg.h SFSBuilder/savejpeg.cpp
+    SFSBuilder/mousectrl.h SFSBuilder/mousectrl.cpp
+    SFSBuilder/viewctrl.h SFSBuilder/viewctrl.cpp
+    SFSBuilder/mathstruct.h SFSBuilder/mathstruct.cpp
+
+    SFSBuilder/apputil/AppSysSet.h SFSBuilder/apputil/AppSysSet.cpp
+
+    EventHandling.h EventHandling.cpp
+    EventParser.h EventParser.cpp
+
+
     ${TS_FILES}
 )
 

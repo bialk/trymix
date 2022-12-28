@@ -1,7 +1,7 @@
 #include "CentralWidget.h"
 #include "ui_CentralWidget.h"
 #include "ProjectTree.h"
-#include "ViewPortController.h"
+#include "EventHandling.h"
 
 #include <QPainter>
 #include <QEvent>

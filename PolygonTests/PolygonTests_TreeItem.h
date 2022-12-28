@@ -6,7 +6,7 @@
 
 class QDockWidget;
 class PolygonTest;
-class EventHandler_PositionController;
+class EventHandler3D;
 
 class PolygonTests_TreeItem : public ProjectTreeItem
 {
@@ -24,7 +24,7 @@ private:
   QScopedPointer<QDockWidget> m_dockWidget;
   Ui::PolygonTests_panel m_panel;
   std::unique_ptr<PolygonTest> polygentest;
-  std::unique_ptr<EventHandler_PositionController> m_eh_pc;
+  std::unique_ptr<EventHandler3D> m_vpceh;
 };
 
 #endif // POLYGONTESTS_TREEITEM_H

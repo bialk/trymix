@@ -1,7 +1,7 @@
 #ifndef CENTRALWIDGET_H
 #define CENTRALWIDGET_H
 
-#include "ViewPortController.h"
+#include "EventHandling.h"
 #include <QOpenGLWidget>
 
 namespace Ui {

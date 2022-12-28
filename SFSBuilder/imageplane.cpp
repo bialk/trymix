@@ -15,19 +15,34 @@
 //#include "mathlib/mathutl/imageandfft.h"
 
 ImagePlane::ImagePlane():
-  eh(this),
   w(0),h(0),
   curslot(0),
   image_mode(image_mode_image),
   shape_mode(shape_mode_off),
   edit_mode(edit_mode_off),
+  eh(this),
   cache_slot(-1),
   glsel_lightcur(0)
 {
-    lights[0][0]=-1; lights[0][1]=-1; lights[0][2]=0;
-    lights[1][0]= 1; lights[1][1]=-1; lights[1][2]=0;
-    lights[2][0]= 1; lights[2][1]= 1; lights[2][2]=0;
-    lights[3][0]=-1; lights[3][1]= 1; lights[3][2]=0;
+    imagefname[0] = "D:/zero-devel/research/pmetrics/data/bej1x4.ppm";
+    imagefname[1] = "D:/zero-devel/research/pmetrics/data/bej2x4.ppm";
+    imagefname[2] = "D:/zero-devel/research/pmetrics/data/bej3x4.ppm";
+    imagefname[3] = "D:/zero-devel/research/pmetrics/data/bej4x4.ppm";
+
+//    light_vect1=  -0.5   0.4    2
+//    light_vect2=   0.5   0.4    2
+//    light_vect3=   0.5  -0.4    2
+//    light_vect4=  -0.5  -0.4    2
+
+    lights[0][0]=-0.5f; lights[0][1]= 0.4f; lights[0][2]=2.f;
+    lights[1][0]= 0.5f; lights[1][1]= 0.4f; lights[1][2]=2.f;
+    lights[2][0]= 0.5f; lights[2][1]=-0.4f; lights[2][2]=2.f;
+    lights[3][0]=-0.5f; lights[3][1]=-0.4f; lights[3][2]=2.f;
+
+//    lights[0][0]=-1; lights[0][1]=-1; lights[0][2]=4.;
+//    lights[1][0]= 1; lights[1][1]=-1; lights[1][2]=4.;
+//    lights[2][0]= 1; lights[2][1]= 1; lights[2][2]=4.;
+//    lights[3][0]=-1; lights[3][1]= 1; lights[3][2]=4.;
 }
 
 ImagePlane::~ImagePlane(){}

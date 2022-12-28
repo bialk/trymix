@@ -2,9 +2,9 @@
 #include <windows.h>
 #endif
 
-#include <FL/gl.h>
+#include <QOpenGLFunctions>
 
-#include "eventlog.h"
+//#include "eventlog.h"
 #include "mathstruct.h"
 
 
