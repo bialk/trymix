@@ -1,3 +1,4 @@
+#define QT_NO_DEBUG_OUTPUT
 #include "EventHandling.h"
 #include "CentralWidget.h"
 #include <EventParser.h>
@@ -15,7 +16,7 @@ EventContext3D::~EventContext3D(){
   // removing captured handlers from context
   while(!m_captureHandlers.empty()){
     auto eh = m_captureHandlers.top();
-    eh->pushedInContext(nullptr);
+    eh->popedInContext(this);
     m_captureHandlers.pop();
   }
 }
@@ -74,7 +75,7 @@ EventContext3D::event() {return m_event;}
 
 bool
 EventContext3D::tryProcessCapture(){
-  //qDebug() << "total capture list size: " << m_capture.size() << Qt::endl;
+  qDebug() << "total capture list size: " << m_captureHandlers.size() << Qt::endl;
   if(!m_captureHandlers.empty()){
     m_captureHandlers.top()->handle(*this);
     return true;
@@ -94,7 +95,7 @@ EventContext3D::isMatched(QString const& eventstring){
   if(eventstring.isEmpty())
     return false;
   auto items = eventstring.split("+");
-  qDebug() << eventstring << m_keyHistory << m_mouseHistory << endl;
+  qDebug() << eventstring << m_keyHistory << m_mouseHistory << Qt::endl;
   for(auto& i:items){
     if(m_keyHistory.endsWith(i))
       continue;
@@ -171,7 +172,6 @@ EventHandler3D::removeChild(EventHandler3D* ev){
   m_children.remove(ev);
 }
 
-// proposal
 std::function<void(EventContext3D& ecntx)>&
 EventHandler3D::addReact(QString const & event){
   m_reacts.push_back({event, {}});
