@@ -12,6 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     connect(ui->actionQuit, &QAction::triggered, [](bool){ qApp->quit();});
     setCentralWidget(ui->treeWidget_project->gl());
+    setWindowIcon(QIcon(":/system/images/zeroapp-icon.png"));
 }
 
 Ui::MainWindow* MainWindow::UI(){

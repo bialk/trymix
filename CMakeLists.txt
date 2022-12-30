@@ -148,14 +148,21 @@ set(PROJECT_SOURCES
     EventHandling.h EventHandling.cpp
     EventParser.h EventParser.cpp
 
+    omi_triang.qrc
 
     ${TS_FILES}
 )
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    enable_language("RC")
+    set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/omi_triang.rc")
+endif()
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(omi_triang
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        ${APP_ICON_RESOURCE_WINDOWS}
     )
 
 # Define target properties for Android with Qt 6 as:
@@ -174,6 +181,7 @@ else()
     else()
         add_executable(omi_triang
             ${PROJECT_SOURCES}
+            ${APP_ICON_RESOURCE_WINDOWS}
         )
     endif()
 
