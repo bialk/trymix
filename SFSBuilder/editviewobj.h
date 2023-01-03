@@ -3,10 +3,13 @@
 //#include "eventlog.h"
 #include <iostream>
 
+
 #define GL3DFIND(name) ((name *)dv->gl3dfind(#name))
 
 class DispView;
 class Serializer;
+class ViewCtrl;
+class CentralWidget;
 
 #define SRLZ_LAYOUT   1
 #define SRLZ_PROJECT  2
@@ -35,7 +38,20 @@ class TSOCntx{
 
 class DrawCntx{
  public:
-  virtual ~DrawCntx();  
+  DrawCntx(CentralWidget* cw);
+  virtual ~DrawCntx();
+
+
+  ViewCtrl* viewCtrl();
+  void setViewCtrl(ViewCtrl* vc);
+  void trySetGLName(int& glname);
+
+  CentralWidget* glWidget();
+
+private:
+  CentralWidget* m_centralWidget;
+  ViewCtrl* m_viewCtrl = nullptr;
+  int m_glnamecount = 0;
 };
 
 class EditViewObj{

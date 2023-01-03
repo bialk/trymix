@@ -13,7 +13,7 @@ class PolygonTests_TreeItem : public ProjectTreeItem
 public:
   PolygonTests_TreeItem();
   ~PolygonTests_TreeItem();
-  void showModel(QOpenGLWidget* gl) override;
+  void showModel(DrawCntx* cx) override;
   void activateProjectTreeItem(QDockWidget* dock, bool activate = true) override;
 
   void tryConvexPartitioning(int polygonSize);

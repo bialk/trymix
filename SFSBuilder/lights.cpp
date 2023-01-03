@@ -1,5 +1,5 @@
 #include "dispview.h"
-#include "toolspanel.h"
+//#include "toolspanel.h"
 #include "lights.h"
 #include "mathstruct.h"
 #include "viewctrl.h"
@@ -35,12 +35,13 @@ public:
 
 void Icon3DLight::TreeScan(TSOCntx *cntx) {
   if(cntx == &TSOCntx::TSO_Init){
-    glsel_name=dv->GetNewName();
+    //glsel_name=dv->GetNewName();
   }
 }
 
 void Icon3DLight::Draw(DrawCntx *cntx) { 
-  
+  cntx->trySetGLName(glsel_name);
+
   static IconD3DG1 torch;
   torch.ExecOnce();
 

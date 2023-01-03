@@ -1,12 +1,14 @@
 #ifndef PROJECTS_TREEITEM_H
 #define PROJECTS_TREEITEM_H
 
+#include "SFSBuilder/editviewobj.h"
 #include "qdockwidget.h"
 #include <QTreeWidgetItem>
 #include <QWidget>
 
 class CentralWidget;
 class QDockWidget;
+class DrawCntx;
 
 template<typename T>
 T* findParentOfType(QObject* p){
@@ -23,7 +25,7 @@ T* findParentOfType(QObject* p){
 class ProjectTreeItem : public QTreeWidgetItem{
 public:
   virtual QList<QAction*> contextMenuActions() {return m_actions; };
-  virtual void showModel(QOpenGLWidget* gl) {};
+  virtual void showModel(DrawCntx* gl) {};
   virtual void activateProjectTreeItem(QDockWidget* dock, bool activate = true) {}
   QList<QAction*>& actions(){return m_actions;}
 protected:

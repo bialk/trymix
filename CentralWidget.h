@@ -12,6 +12,8 @@ class TreeEventFilter;
 class EventContext3D;
 class EventHandler3D;
 class QEvent;
+class DrawCntx;
+
 
 class CentralWidget : public QOpenGLWidget
 {
@@ -29,6 +31,7 @@ public:
 
     EventHandler3D& eventHandler();
     EventContext3D& eventContext();
+    DrawCntx& drawContext();
 private:
     Ui::CentralWidget *ui;
     ProjectTree* m_projectTree = nullptr;

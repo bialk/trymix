@@ -2,6 +2,7 @@
 #include "ui_CentralWidget.h"
 #include "ProjectTree.h"
 #include "EventHandling.h"
+#include "SFSBuilder/editviewobj.h"
 
 #include <QPainter>
 #include <QEvent>
@@ -17,6 +18,7 @@ class TreeEventFilter: public QObject{
 public:
   TreeEventFilter(CentralWidget* cw)
     :m_eventContext3D(cw)
+    ,m_drawContext(cw)
   {
     connect(qApp, &QGuiApplication::applicationStateChanged,
                      [](Qt::ApplicationState state){
@@ -33,6 +35,7 @@ public:
   }
   EventContext3D m_eventContext3D;
   EventHandler3D m_handlerTree;
+  DrawCntx m_drawContext;
 };
 
 
@@ -57,6 +60,12 @@ CentralWidget::eventContext(){
   return m_treeEventFilter->m_eventContext3D;
 }
 
+DrawCntx&
+CentralWidget::drawContext(){
+  return m_treeEventFilter->m_drawContext;
+}
+
+
 void
 CentralWidget::initializeGL(){
 }
@@ -66,7 +75,7 @@ CentralWidget::resizeGL(int w, int h){}
 
 void
 CentralWidget::paintGL(){
-  m_projectTree->showModel(this);
+  m_projectTree->showModel(&m_treeEventFilter->m_drawContext);
 }
 
 void

@@ -10,6 +10,7 @@
 class QEvent;
 class CentralWidget;
 class EventHandler3D;
+class ViewCtrl;
 
 class EventContext3D{
 public:

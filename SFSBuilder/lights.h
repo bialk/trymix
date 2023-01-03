@@ -9,7 +9,7 @@
 
 class Icon3DLight: public  EditViewObj{  
 public:
-  int glsel_name;
+  int glsel_name = -1;
   float *rot;
   virtual void  Draw(DrawCntx *cntx);
   void  TreeScan(TSOCntx *cntx);

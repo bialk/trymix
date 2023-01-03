@@ -48,10 +48,10 @@ ProjectTree::ProjectTree(QWidget *parent)
 }
 
 void
-ProjectTree::showModel(QOpenGLWidget* gl)
+ProjectTree::showModel(DrawCntx* cx)
 {
   if(m_activeTreeItem)
-    m_activeTreeItem->showModel(gl);
+    m_activeTreeItem->showModel(cx);
 }
 
 CentralWidget*

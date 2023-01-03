@@ -131,6 +131,9 @@ void EventContext3D::update(){
   glWidget()->update();
 }
 
+
+
+
 EventHandler3D::~EventHandler3D(){
   for(auto& i: m_children){
     i->m_parents.erase(this);

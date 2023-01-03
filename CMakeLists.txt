@@ -100,6 +100,7 @@ elseif(WIN32)
   find_path_by_regex(LAPACK_DLLS "lapack/*.dll" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH})
   list(APPEND FOR_COPY_TO_BINARY_DIR ${LAPACK_DLLS})
 endif()
+  list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/omi_triang.ico)
 
 
 set(TS_FILES omi_triang_en_GB.ts)

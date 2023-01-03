@@ -9,6 +9,7 @@
 
 #include <QOpenGLWidget>
 #include <QPainter>
+#include <QDebug>
 
 namespace {
   class EventHandler_PositionController2: public EventHandler3D{
@@ -56,6 +57,40 @@ namespace {
         vpc->SetProjectionMatrix();
         cx.update();
       };
+      addReact("M:L:DOWN") = [=](EventContext3D& cx){
+        cx.glWidget()->makeCurrent();
+        vpc->mssh.sx0=cx.x(); vpc->mssh.sy0=cx.y();
+        vpc->SetProjectionMatrix();
+        glSelectBuffer (1024, vpc->selectBuf);
+        glRenderMode (GL_SELECT);
+        glInitNames();
+        cx.glWidget()->paintGL();
+        vpc->hits = glRenderMode (GL_RENDER);
+        if(vpc->hits==-1){
+              printf("ViewCtrl::SelectObj2 \"Selection Buffer overflow\"\n");
+          vpc->hits=0;
+        }
+        unsigned int stack[]={0};
+        int id = vpc->ProcessHits2(0, stack);
+
+
+//        int id = vpc->SelectObj(cx.x(),cx.y());
+        qDebug() << "Selected name: " << id << Qt::endl;
+        cx.glWidget()->update();
+
+//        if( glName(id) ) {
+
+//          gl->dv->reselect();
+//          gl->select();
+//          gl->lightrstart(eventball->x,eventball->y);
+//          eventball->genstate(state_drag);
+
+//          eventball->stop();
+//          gl->dv->redraw();
+
+//        }
+
+      };
     }
     EventHandler3D m_mouseDrag;
   };
@@ -98,9 +133,9 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
 SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}
 
 void
-SFSBuilder_TreeItem::showModel(QOpenGLWidget* gl)
+SFSBuilder_TreeItem::showModel(DrawCntx* cx)
 {
-  glViewport(0,0,gl->width(),gl->height());
+  glViewport(0,0,cx->glWidget()->width(),cx->glWidget()->height());
 
   glClearDepth(1.0);
   if(m_viewCtrl->background==0)
@@ -127,15 +162,15 @@ SFSBuilder_TreeItem::showModel(QOpenGLWidget* gl)
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_TEXTURE_2D);
 
-  m_viewCtrl->Draw(nullptr);
-  m_lights->Draw(nullptr);
+  m_viewCtrl->Draw(cx);
+  m_lights->Draw(cx);
 
   m_sfs->image_mode = ImagePlane::image_mode_image;
   m_sfs->shape_mode = ImagePlane::shape_mode_image;
   m_sfs->edit_mode = ImagePlane::edit_mode_off;
-  m_sfs->Draw(nullptr);
+  m_sfs->Draw(cx);
 
-  m_toolsPanel->Draw(nullptr);
+  m_toolsPanel->Draw(cx);
 }
 
 void

@@ -17,7 +17,7 @@ class SFSBuilder_TreeItem : public ProjectTreeItem
 public:
   SFSBuilder_TreeItem();
   ~SFSBuilder_TreeItem();
-  void showModel(QOpenGLWidget* gl) override;
+  void showModel(DrawCntx* gl) override;
   void activateProjectTreeItem(QDockWidget* dock, bool activate)  override;
 private:
   QScopedPointer<QDockWidget> m_dockWidget;

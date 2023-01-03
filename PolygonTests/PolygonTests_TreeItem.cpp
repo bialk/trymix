@@ -206,10 +206,10 @@ PolygonTests_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate)
 }
 
 void
-PolygonTests_TreeItem::showModel(QOpenGLWidget* gl){
+PolygonTests_TreeItem::showModel(DrawCntx* cx){
 
-  QPainter p(gl);
-  auto h = gl->height(); auto w = gl->width();
+  QPainter p(cx->glWidget());
+  auto h = cx->glWidget()->height(); auto w = cx->glWidget()->width();
   p.setWindow(0, h, w, -h);
   p.setPen(QPen(Qt::white, 3));
 

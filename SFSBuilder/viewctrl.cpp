@@ -377,7 +377,8 @@ void ViewCtrl::BackScreenTransform(float &x, float &y, float &z){
 
 void ViewCtrl::Draw(DrawCntx *cntx){
 
-  
+  cntx->setViewCtrl(this);
+
   glClearDepth(1.0);
   if(background==0)
     glClearColor(.0, .0, .0, 0.0);
