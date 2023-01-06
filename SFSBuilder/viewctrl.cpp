@@ -319,9 +319,9 @@ void ViewCtrl::movestop(int x, int y){
 //      glm::make_mat4(InitialModelMatrix);
 //  memcpy(InitialModelMatrix, glm::value_ptr(m), sizeof(InitialModelMatrix));
 
-  mssh.StopMOper();
   memcpy(InvMVMat, glm::value_ptr(glm::inverse(glm::make_mat4(InitialModelMatrix))), sizeof(InvMVMat));
-  
+
+  mssh.StopMOper();
   opercode=0;
 }
 
