@@ -18,6 +18,12 @@ include(this_project_utils)
 # path to thirdparty dirs
 set(WINDOWS_EXTERNAL_LIBS_PATH  "D:/trymix/test_omi" "D:/zero-devel")
 
+
+#set(glm_DIR <installation prefix>/lib/cmake/glm) # if necessary
+find_path_by_regex(glm_DIR "glm/install/lib/cmake/glm" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
+
+find_package(glm REQUIRED)
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
 
@@ -232,6 +238,7 @@ target_link_libraries(omi_triang PRIVATE
     ${BLAS_LIB}
     ${FREEIMAGE_LIB}
     OpenGL::GL
+    glm::glm
 )
 
 set_target_properties(omi_triang PROPERTIES

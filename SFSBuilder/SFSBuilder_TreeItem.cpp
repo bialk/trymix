@@ -25,7 +25,6 @@ namespace {
       };
 
       m_mouseDrag.addReact("M:L:UP") =  [this](EventContext3D& cx){
-        cx.glWidget()->makeCurrent();
         vpc->movestop(cx.x(),cx.y());
         cx.update();
         cx.popHandler();

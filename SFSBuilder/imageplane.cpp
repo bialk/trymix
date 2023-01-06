@@ -24,10 +24,14 @@ ImagePlane::ImagePlane():
   cache_slot(-1),
   glsel_lightcur(0)
 {
-    imagefname[0] = "D:/zero-devel/research/pmetrics/data/bej1x4.ppm";
-    imagefname[1] = "D:/zero-devel/research/pmetrics/data/bej2x4.ppm";
-    imagefname[2] = "D:/zero-devel/research/pmetrics/data/bej3x4.ppm";
-    imagefname[3] = "D:/zero-devel/research/pmetrics/data/bej4x4.ppm";
+//    imagefname[0] = "D:/zero-devel/research/pmetrics/data/bej1x4.ppm";
+//    imagefname[1] = "D:/zero-devel/research/pmetrics/data/bej2x4.ppm";
+//    imagefname[2] = "D:/zero-devel/research/pmetrics/data/bej3x4.ppm";
+//    imagefname[3] = "D:/zero-devel/research/pmetrics/data/bej4x4.ppm";
+      imagefname[0] = "D:/zero-devel/research/pmetrics/data/bln1x4.ppm";
+      imagefname[1] = "D:/zero-devel/research/pmetrics/data/bln2x4.ppm";
+      imagefname[2] = "D:/zero-devel/research/pmetrics/data/bln3x4.ppm";
+      imagefname[3] = "D:/zero-devel/research/pmetrics/data/bln4x4.ppm";
 
 //    light_vect1=  -0.5   0.4    2
 //    light_vect2=   0.5   0.4    2
