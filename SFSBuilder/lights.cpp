@@ -68,7 +68,7 @@ void Icon3DLight::Draw(DrawCntx *cntx) {
     }
   } 
 
-  glScalef(15,15,15);
+  glScalef(30,30,30);
   glMultMatrixf(rot);
   glRotatef(90,1,0,0);  
   glPushName(glsel_name);

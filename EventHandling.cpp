@@ -2,6 +2,7 @@
 #include "EventHandling.h"
 #include "CentralWidget.h"
 #include <EventParser.h>
+#include "SFSBuilder/editviewobj.h"
 
 #include <QMouseEvent>
 #include <QDebug>
@@ -141,7 +142,7 @@ int EventContext3D::select(){
   glSelectBuffer (1024, selectBuf);
   glRenderMode (GL_SELECT);
   glInitNames();
-  m_glWidget->paintGL();
+  m_glWidget->paintGL();  
   auto hits = glRenderMode (GL_RENDER);
   assert(hits != -1);
   if(hits==-1){

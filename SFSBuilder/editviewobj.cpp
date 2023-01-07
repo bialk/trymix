@@ -16,22 +16,24 @@ TSOCntx TSOCntx::TSO_ProjectLoad;
 TSOCntx TSOCntx::TSO_ProjectNew;
 
 
-ViewCtrl*
-DrawCntx::viewCtrl(){
-  return m_viewCtrl;
-}
-
-void
-DrawCntx::setViewCtrl(ViewCtrl* vc){
-  m_viewCtrl = vc;
-}
-
 void DrawCntx::trySetGLName(int& glname){
   if(glname<=0)
     glname = ++m_glnamecount;
 }
 
-CentralWidget* DrawCntx::glWidget(){
+int DrawCntx::w(){
+  return m_centralWidget->width();
+}
+
+int DrawCntx::h(){
+  return m_centralWidget->height();
+}
+
+void DrawCntx::update(){
+  m_centralWidget->update();
+}
+
+QOpenGLWidget* DrawCntx::glWidget(){
   return m_centralWidget;
 }
 

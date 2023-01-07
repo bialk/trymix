@@ -21,17 +21,6 @@ namespace {
       :m_vp(vc)
       ,m_lights(lights)
     {
-      m_mouseDrag.addReact("M:MOVE") = [this](EventContext3D& cx){
-        m_vp->movecont(cx.x(),cx.y());
-        cx.update();
-      };
-
-      m_mouseDrag.addReact("M:L:UP") =  [this](EventContext3D& cx){
-        m_vp->movestop(cx.x(),cx.y());
-        cx.update();
-        cx.popHandler();
-      };
-
       addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
       {
         m_vp->movestart(3,cx.x(),cx.y());
@@ -52,12 +41,25 @@ namespace {
         cx.update();
         cx.pushHandler(&m_mouseDrag);
       };
+
+      m_mouseDrag.addReact("M:MOVE") = [this](EventContext3D& cx){
+        m_vp->movecont(cx.x(),cx.y());
+        cx.update();
+      };
+
+      m_mouseDrag.addReact("M:L:UP") =  [this](EventContext3D& cx){
+        m_vp->movestop(cx.x(),cx.y());
+        cx.update();
+        cx.popHandler();
+      };
+
       addReact("S:RESIZE") = [=](EventContext3D& cx)
       {
         m_vp->mssh.wndw=cx.x(); vc->mssh.wndh=cx.y();
         m_vp->SetProjectionMatrix();
         cx.update();
       };
+
       addReact("M:L:DOWN") = [=](EventContext3D& cx){
       //addReact("M:MOVE") = [=](EventContext3D& cx){
         m_vp->mssh.sx0=cx.x(); m_vp->mssh.sy0=cx.y();
@@ -107,7 +109,7 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_lights->TreeScan(&TSOCntx::TSO_Init);
 
   //m_toolsPanel->TreeScan(&TSOCntx::TSO_Init);
-  m_toolsPanel->viewctrl = m_viewCtrl.get();
+  m_toolsPanel->m_viewctrl = m_viewCtrl.get();
 
   m_viewCtrl->TreeScan(&TSOCntx::TSO_LayoutLoad);
   m_viewCtrlEH.reset(new EventHandler_PositionController2(m_viewCtrl.get(),m_lights.get()));
@@ -130,7 +132,7 @@ SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}
 void
 SFSBuilder_TreeItem::showModel(DrawCntx* cx)
 {
-  glViewport(0,0,cx->glWidget()->width(),cx->glWidget()->height());
+  glViewport(0,0,cx->w(), cx->h());
 
   glClearDepth(1.0);
   if(m_viewCtrl->background==0)

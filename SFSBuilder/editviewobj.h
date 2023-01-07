@@ -9,6 +9,7 @@
 class DispView;
 class Serializer;
 class ViewCtrl;
+class QOpenGLWidget;
 class CentralWidget;
 
 #define SRLZ_LAYOUT   1
@@ -41,16 +42,14 @@ class DrawCntx{
   DrawCntx(CentralWidget* cw);
   virtual ~DrawCntx();
 
-
-  ViewCtrl* viewCtrl();
-  void setViewCtrl(ViewCtrl* vc);
+  QOpenGLWidget* glWidget();
   void trySetGLName(int& glname);
+  int w();
+  int h();
+  void update();
 
-  CentralWidget* glWidget();
-
-private:
+private:  
   CentralWidget* m_centralWidget;
-  ViewCtrl* m_viewCtrl = nullptr;
   int m_glnamecount = 0;
 };
 

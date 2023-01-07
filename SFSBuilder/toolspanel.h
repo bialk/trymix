@@ -10,7 +10,7 @@ class ViewCtrl;
 class ToolPanel: public EditViewObj{
   std::vector<EditViewObj*> iconvector;
  public:
-  ViewCtrl *viewctrl;
+  ViewCtrl *m_viewctrl;
   int show;
   void Draw(DrawCntx *cntx);
   void TreeScan(TSOCntx *cntx);
