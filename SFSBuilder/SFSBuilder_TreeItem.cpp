@@ -15,83 +15,79 @@ namespace {
   class EventHandler_PositionController2: public EventHandler3D{
 
   public:
-    ViewCtrl* vpc = nullptr;
-    EventHandler_PositionController2(ViewCtrl* vc)
-      :vpc(vc)
+    ViewCtrl* m_vp = nullptr;
+    Lights* m_lights = nullptr;
+    EventHandler_PositionController2(ViewCtrl* vc, Lights* lights)
+      :m_vp(vc)
+      ,m_lights(lights)
     {
       m_mouseDrag.addReact("M:MOVE") = [this](EventContext3D& cx){
-        vpc->movecont(cx.x(),cx.y());
+        m_vp->movecont(cx.x(),cx.y());
         cx.update();
       };
 
       m_mouseDrag.addReact("M:L:UP") =  [this](EventContext3D& cx){
-        vpc->movestop(cx.x(),cx.y());
+        m_vp->movestop(cx.x(),cx.y());
         cx.update();
         cx.popHandler();
       };
 
       addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
       {
-        vpc->movestart(3,cx.x(),cx.y());
+        m_vp->movestart(3,cx.x(),cx.y());
         cx.update();
         cx.pushHandler(&m_mouseDrag);
       };
 
       addReact("K:X:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
       {
-        vpc->movestart(1,cx.x(),cx.y());
+        m_vp->movestart(1,cx.x(),cx.y());
         cx.update();
         cx.pushHandler(&m_mouseDrag);
       };
 
       addReact("K:C:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
       {
-        vpc->movestart(2,cx.x(),cx.y());
+        m_vp->movestart(2,cx.x(),cx.y());
         cx.update();
         cx.pushHandler(&m_mouseDrag);
       };
       addReact("S:RESIZE") = [=](EventContext3D& cx)
       {
-        vpc->mssh.wndw=cx.x(); vc->mssh.wndh=cx.y();
-        vpc->SetProjectionMatrix();
+        m_vp->mssh.wndw=cx.x(); vc->mssh.wndh=cx.y();
+        m_vp->SetProjectionMatrix();
         cx.update();
       };
       addReact("M:L:DOWN") = [=](EventContext3D& cx){
-        cx.glWidget()->makeCurrent();
-        vpc->mssh.sx0=cx.x(); vpc->mssh.sy0=cx.y();
-        vpc->SetProjectionMatrix();
-        glSelectBuffer (1024, vpc->selectBuf);
-        glRenderMode (GL_SELECT);
-        glInitNames();
-        cx.glWidget()->paintGL();
-        vpc->hits = glRenderMode (GL_RENDER);
-        if(vpc->hits==-1){
-              printf("ViewCtrl::SelectObj2 \"Selection Buffer overflow\"\n");
-          vpc->hits=0;
+      //addReact("M:MOVE") = [=](EventContext3D& cx){
+        m_vp->mssh.sx0=cx.x(); m_vp->mssh.sy0=cx.y();
+        m_vp->SetProjectionMatrix();
+        auto id = cx.select();
+        m_lights->select(id);
+        if(m_lights->isfocus()){
+          m_lights->lightrstart(cx.x(),cx.y());
+          cx.pushHandler(&m_mouseDragLight);
         }
-        unsigned int stack[]={0};
-        int id = vpc->ProcessHits2(0, stack);
 
-
-//        int id = vpc->SelectObj(cx.x(),cx.y());
         qDebug() << "Selected name: " << id << Qt::endl;
-        cx.glWidget()->update();
-
-//        if( glName(id) ) {
-
-//          gl->dv->reselect();
-//          gl->select();
-//          gl->lightrstart(eventball->x,eventball->y);
-//          eventball->genstate(state_drag);
-
-//          eventball->stop();
-//          gl->dv->redraw();
-
-//        }
-
+        cx.update();
+        return;
       };
+
+      m_mouseDragLight.addReact("M:MOVE") = [=](EventContext3D& cx){
+        m_lights->lightrcont(cx.x(),cx.y());
+        cx.update();
+      };
+
+      m_mouseDragLight.addReact("M:L:UP") =  [this](EventContext3D& cx){
+        m_lights->lightrstop();
+        cx.update();
+        cx.popHandler();
+      };
+
     }
     EventHandler3D m_mouseDrag;
+    EventHandler3D m_mouseDragLight;
   };
 }
 
@@ -114,7 +110,7 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_toolsPanel->viewctrl = m_viewCtrl.get();
 
   m_viewCtrl->TreeScan(&TSOCntx::TSO_LayoutLoad);
-  m_viewCtrlEH.reset(new EventHandler_PositionController2(m_viewCtrl.get()));
+  m_viewCtrlEH.reset(new EventHandler_PositionController2(m_viewCtrl.get(),m_lights.get()));
 
 
   setData(0,Qt::DisplayRole,"SFS Builder");

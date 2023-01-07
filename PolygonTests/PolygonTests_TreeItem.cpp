@@ -92,12 +92,12 @@ public:
   EventHandler_PositionController()
   {
     m_mouseDragScale.addReact("M:MOVE") = [this](EventContext3D& cx){
-      vpc.continueScale(2.*(cx.y() - double(m_startXY[1]))/cx.glWidget()->height());
+      vpc.continueScale(2.*(cx.y() - double(m_startXY[1]))/cx.h());
       cx.update();
     };
 
     m_mouseDragScale.addReact("M:L:UP") =  [this](EventContext3D& cx){
-      vpc.continueScale(2.*(cx.y() - double(m_startXY[1]))/cx.glWidget()->height());
+      vpc.continueScale(2.*(cx.y() - double(m_startXY[1]))/cx.h());
       cx.update();
       cx.popHandler();
     };
@@ -124,8 +124,7 @@ public:
 
     addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
     {
-      vpc.beginScale(cx.x(),
-                     cx.glWidget()->height() - cx.y()); // inverted y axis
+      vpc.beginScale(cx.x(), cx.h() - cx.y()); // inverted y axis
       m_startXY[0] = cx.x();
       m_startXY[1] = cx.y();
       cx.update();

@@ -23,10 +23,11 @@ EventContext3D::~EventContext3D(){
 
 void
 EventContext3D::setEvent(QEvent* e) {
-  m_event = e;
+  //m_glWidget->makeCurrent();
   m_mouseHistory.clear();
-  m_x = EventParser(event()).x();
-  m_y = EventParser(event()).y();
+  m_x = EventParser(e).x();
+  m_y = EventParser(e).y();
+  m_selectionId = -1;
   if(e->type() == QEvent::MouseButtonPress){
     QMouseEvent* m_e = static_cast<QMouseEvent*>(e);
     switch(int(m_e->button())){
@@ -70,8 +71,8 @@ EventContext3D::setEvent(QEvent* e) {
   }
 }
 
-QEvent*
-EventContext3D::event() {return m_event;}
+//QEvent*
+//EventContext3D::event() {return m_event;}
 
 bool
 EventContext3D::tryProcessCapture(){
@@ -82,13 +83,6 @@ EventContext3D::tryProcessCapture(){
   }
   return false;
 }
-
-
-CentralWidget* EventContext3D::glWidget(){
-  return m_glWidget;
-}
-
-//proposals
 
 bool
 EventContext3D::isMatched(QString const& eventstring){
@@ -127,11 +121,76 @@ int EventContext3D::y(){
   return m_y;
 }
 
-void EventContext3D::update(){
-  glWidget()->update();
+int EventContext3D::w(){
+  return m_glWidget->width();
 }
 
+int EventContext3D::h(){
+  return m_glWidget->height();
+}
 
+void EventContext3D::update(){
+  m_glWidget->update();
+}
+
+int EventContext3D::select(){
+  if(m_selectionId != -1)
+    return m_selectionId;
+  m_glWidget->makeCurrent();
+  GLuint selectBuf[1024];
+  glSelectBuffer (1024, selectBuf);
+  glRenderMode (GL_SELECT);
+  glInitNames();
+  m_glWidget->paintGL();
+  auto hits = glRenderMode (GL_RENDER);
+  assert(hits != -1);
+  if(hits==-1){
+    qDebug() << "Selection Buffer overflow";
+    hits=0;
+    m_selectionId = 0;
+    return m_selectionId;
+  }
+
+  auto processHits2 = [&](unsigned int stackdepth, unsigned int* stacknames)->int{
+    int i;
+    unsigned int j;
+    float maxz1=1e10;
+    GLuint maxname = 0;
+    GLuint names, name, *ptr;
+    //printf ("hits = %d\n", hits);
+    ptr = (GLuint *) selectBuf;
+    for (i = 0; i < hits; i++) {
+      /* for each hit */
+      names = *ptr; //printf (" number of names for this hit = %d\n", names);
+      ptr++;
+      float z1=static_cast<float>(*ptr/0x7fffffff);
+      //printf(" z1 is %g;", (float) *ptr/0x7fffffff);
+      ptr++;
+      //printf(" z2 is %g\n", (float) *ptr/0x7fffffff);
+      ptr++;
+      //printf (" names are ");
+      int count = stackdepth+1;
+      int depthname;
+      for (j = 0; j < names; j++) {
+        /* for each name */
+        name = *ptr;
+        if( j<stackdepth) {if(stacknames[j]==name) count--;}
+        else if(j==stackdepth) { depthname=name; count--;}
+        //printf ("%d ", name);
+        ptr++;
+      }
+      if(count==0 && z1<maxz1 ){
+        maxname = depthname; maxz1=z1;
+      }
+      //printf ("\n");
+    }
+    //printf("maxname=%i\n",maxname);
+    return maxname;
+  };
+
+  unsigned int stack[]={0};
+  return m_selectionId = processHits2(0, stack);
+}
 
 
 EventHandler3D::~EventHandler3D(){
@@ -149,7 +208,6 @@ EventHandler3D::~EventHandler3D(){
 
 void
 EventHandler3D::handle(EventContext3D& ecntx){
-
   for(auto& i: m_reacts){
     if(ecntx.isMatched(i.first)){
       i.second(ecntx);

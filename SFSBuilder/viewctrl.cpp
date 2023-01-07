@@ -1,5 +1,6 @@
 #include "SFSBuilder/mathlib/lapackcpp/lapackcpp.h"
 #include "dispview.h"
+#include "CentralWidget.h"
 #include <fstream>
 #include <math.h>
 #include "mathlib/mathutl/mymath.h"
@@ -11,6 +12,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
 
 static class GLAnimator{
 public:
@@ -111,7 +113,7 @@ void ViewCtrl::AskForData(Serializer *s){
     s->Item("zoom",Sync(&zoom));
     s->Item("prjtype",Sync(&prjtype));
     s->Item("drawsimple",Sync(&drawsimple));
-    s->Item("show",Sync(&dv->toolpanel->show));
+    //s->Item("show",Sync(&dv->toolpanel->show));
   }
 }
 
@@ -237,7 +239,7 @@ void ViewCtrl::Draw(DrawCntx *cntx){
 
 
   if(glanimator && (glanimator->Step()>0)) {
-    dv->redisplay=1;
+    cntx->glWidget()->update();
   }else{
     glanimator=0;
   }
@@ -335,7 +337,7 @@ void ViewCtrl::reset(){
 
 
 // HITS PROCESSING 
-
+#ifdef off
 void ViewCtrl::SelectObj2(int x, int y) { 
   mssh.sx0=x;mssh.sy0=y;
   SetProjectionMatrix();
@@ -395,8 +397,7 @@ int ViewCtrl::SelectObj(int x, int y){
   SelectObj2(x,y);
   return ProcessHits2(0, stack);
 }
-
-
+#endif
 
 
 // class ViewCtrlEH
@@ -407,7 +408,7 @@ ViewCtrlEH::ViewCtrlEH(ViewCtrl*v):vc(v),state_drag(-1){}
 
 
 void ViewCtrlEH::Handle(EventBall *eventball){
-
+#ifdef off
 
   if(eventball->state(-34)){
     int x=eventball->x;
@@ -505,5 +506,6 @@ void ViewCtrlEH::Handle(EventBall *eventball){
       }
     */
   }
+#endif //off
 }    
 

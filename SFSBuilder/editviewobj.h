@@ -57,7 +57,7 @@ private:
 class EditViewObj{
  public:
 
-  DispView *dv;
+  //DispView *dv;
  
   virtual ~EditViewObj(){};
 

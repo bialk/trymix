@@ -18,25 +18,27 @@ public:
   ~EventContext3D();
 
   void setEvent(QEvent* e);
-  QEvent* event();
-  CentralWidget* glWidget();
-
   bool tryProcessCapture();
   bool isMatched(const QString& eventstring);
+
   void pushHandler(EventHandler3D* eh);
   void popHandler();
+
   int x();
   int y();
+  int w();
+  int h();
   void update();
+  int select();
 
 private:
 
   CentralWidget *m_glWidget;
-  QEvent* m_event = nullptr;
   std::stack<EventHandler3D*> m_captureHandlers;
   QString m_keyHistory;
   QString m_mouseHistory;
   int m_x,m_y;
+  int m_selectionId = -1;
 };
 
 class EventHandler3D{

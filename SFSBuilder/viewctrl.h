@@ -40,12 +40,12 @@ class ViewCtrl: public EditViewObj{
 
 
   // selecton processor
-  GLint hits;
-  GLuint selectBuf[1024];
-  void SelectObj2(int x, int y);
-  int ProcessHits2(unsigned int stackdepth, unsigned int *stacknames);
+//  GLint hits;
+//  GLuint selectBuf[1024];
+//  void SelectObj2(int x, int y);
+//  int ProcessHits2(unsigned int stackdepth, unsigned int *stacknames);
 
-  int SelectObj(int x, int y);
+//  int SelectObj(int x, int y);
 
 
   int background; // 0 - black, 1 - white

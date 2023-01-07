@@ -53,12 +53,12 @@ DispView::DispView()
    , dispvieweh(this)
 {
   SelectRst();
-  viewctrl->dv=this;
-  lights->dv=this;
+  //viewctrl->dv=this;
+  //lights->dv=this;
   //viewsurf->dv=this;
-  imageplane->dv=this;
+  //imageplane->dv=this;
   //matting->dv=this;
-  toolpanel->dv=this;
+  //toolpanel->dv=this;
 }
 
 
@@ -152,10 +152,13 @@ void DispView::SelectRst(){
 }
 
 int DispView::SelectObj(int x, int y){
+#ifdef off
   if(selectid==-1){
     selectid = viewctrl->SelectObj(x,y);
   }
   return selectid;
+#endif
+  return {};
 }
 
 

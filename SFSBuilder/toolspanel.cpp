@@ -4,7 +4,7 @@
 
 
 void ToolPanel::Add(EditViewObj * ic){
-  ic->dv=dv;
+  //ic->dv=dv;
   iconvector.push_back(ic);
 }
 
@@ -48,7 +48,7 @@ void ToolPanel::AskForData(Serializer *s){}
 
 void ToolPanel::TreeScan(TSOCntx *cntx){
   if(cntx==&TSOCntx::TSO_Init){
-    viewctrl = dv->viewctrl.get();
+    //viewctrl = dv->viewctrl.get();
     show=1;
   }
 }

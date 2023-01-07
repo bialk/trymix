@@ -61,11 +61,11 @@ void Icon3DLight::Draw(DrawCntx *cntx) {
     glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION,  mat_zero); 
     glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_zero); 
 
-    //if(dv->lights->selectid==glsel_name) {
+    if(lights->selectid==glsel_name) {
       glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_one); 
-    //}else{
-    //  glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_half);
-    //}
+    }else{
+      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_half);
+    }
   } 
 
   glScalef(15,15,15);
@@ -83,6 +83,8 @@ void Icon3DLight::Draw(DrawCntx *cntx) {
 
 Lights::Lights():lighteh(this){
 
+  glic1.lights = this;
+  glic2.lights = this;
   selectid=0;
 
   // parameter initialization
@@ -171,10 +173,13 @@ void Lights::reselect(){
   g=0;
 }
 
+int Lights::isfocus(){
+  return g!=nullptr;
+}
 
-void Lights::select(){
-  unsigned int stack[]={0};
-  int id = dv->viewctrl->ProcessHits2(0, stack);
+void Lights::select(int id){
+  //unsigned int stack[]={0};
+  //int id = dv->viewctrl->ProcessHits2(0, stack);
   
   selectid=id;
   if(id==glic1.glsel_name ){
@@ -184,7 +189,7 @@ void Lights::select(){
     g=&glic2;
   }
   else {
-    g=0;
+    g=nullptr;
   }
 }
 
@@ -221,7 +226,7 @@ int LightsEH::glName(int id){
 
 
 void LightsEH::Handle(EventBall *eventball){
-
+#ifdef off
   if(eventball->event(M_DRAG) &&
      eventball->state(state_drag)){
     gl->lightrcont(eventball->x,eventball->y);
@@ -258,5 +263,6 @@ void LightsEH::Handle(EventBall *eventball){
 
     }
   }
+#endif
 }
 

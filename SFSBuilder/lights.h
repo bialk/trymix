@@ -6,17 +6,18 @@
 //#include "toolspanel.h"
 #include "eventhnd.h"
 
-
+class Lights;
 class Icon3DLight: public  EditViewObj{  
 public:
   int glsel_name = -1;
   float *rot;
+  Lights *lights = nullptr;
   virtual void  Draw(DrawCntx *cntx);
   void  TreeScan(TSOCntx *cntx);
 };
 
 
-class Lights;
+
 class LightsEH: public EvtHandle{
  public:
   Lights *gl;
@@ -36,7 +37,7 @@ class Lights: public EditViewObj{
   virtual void Draw(DrawCntx* cntx);
  
   void    reselect();
-  void    select();
+  void    select(int id);
 
   float rot1[16],rot2[16];
   int show1,show2;
