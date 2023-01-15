@@ -4,22 +4,7 @@
 #include "editviewobj.h"
 #include "ImageTile.h"
 #include "glhelper.h"
-#include "eventhnd.h"
 #include <vector>
-
-
-class ImagePlane;
-class ImagePlaneEH: public EvtHandle{
- public:
-  ImagePlane *ev;
-  int state_drag;
-  //sigc::signal<void> SyncUI;
-
-  ImagePlaneEH(ImagePlane *v);
-  virtual void Handle(EventBall *eventball);
-};
-
-
 
 class ImagePlane: public EditViewObj{
  public:
@@ -65,8 +50,6 @@ class ImagePlane: public EditViewObj{
 
   GLListHandle shape;
   void BuildShape();
-
-  ImagePlaneEH  eh;
 
   int  cache_slot;
   void Open(int slot);

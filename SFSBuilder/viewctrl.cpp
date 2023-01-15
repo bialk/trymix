@@ -1,18 +1,13 @@
-#include "SFSBuilder/mathlib/lapackcpp/lapackcpp.h"
-#include "dispview.h"
-#include "CentralWidget.h"
-#include <fstream>
-#include <math.h>
-#include "mathlib/mathutl/mymath.h"
 #include "viewctrl.h"
-#include "toolspanel.h"
 #include "glhelper.h"
 #include "apputil/serializer.h"
-#include "apputil/eventball.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <fstream>
+#include <math.h>
 
 static class GLAnimator{
 public:
@@ -87,7 +82,6 @@ ViewCtrl::ViewCtrl()
    ,drawsimple(1)
    ,glroshow(0)
    ,play_method(0)
-   ,viewctrleh(this)
 {
   // initialize default parameters
   mssh.m =PrjMtrxRender;
@@ -230,11 +224,8 @@ void ViewCtrl::Draw(DrawCntx *cntx){
   glClear(GL_COLOR_BUFFER_BIT | GL_ACCUM_BUFFER_BIT |
           GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );  
 
-
-
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-
 
   if(glanimator && (glanimator->Step()>0)) {
     cntx->update();
@@ -332,178 +323,3 @@ void ViewCtrl::reset(){
   memcpy(InvMVMat,InitialModelMatrix,sizeof(InvMVMat));
   glInvMat(InvMVMat);
 }
-
-
-// HITS PROCESSING 
-#ifdef off
-void ViewCtrl::SelectObj2(int x, int y) { 
-  mssh.sx0=x;mssh.sy0=y;
-  SetProjectionMatrix();
-  glSelectBuffer (1024, selectBuf); 
-  glRenderMode (GL_SELECT); 
-  glInitNames(); 
-  //dv->Draw(0);
-  hits = glRenderMode (GL_RENDER);
-  if(hits==-1){
-  	printf("ViewCtrl::SelectObj2 \"Selection Buffer overflow\"\n");
-    hits=0;
-  }
-}
-
-/* processHits prints out the contents of the * selection array. */ 
-int ViewCtrl::ProcessHits2 (unsigned int stackdepth, unsigned int* stacknames) {
-
-  int i;
-  unsigned int j;
-  float maxz1=1e10;
-  GLuint maxname = 0;
-  GLuint names, name, *ptr; 
-  //printf ("hits = %d\n", hits); 
-  ptr = (GLuint *) selectBuf; 
-  for (i = 0; i < hits; i++) { 
-    /* for each hit */ 
-    names = *ptr; //printf (" number of names for this hit = %d\n", names); 
-    ptr++; 
-    float z1=(float) *ptr/0x7fffffff;
-    //printf(" z1 is %g;", (float) *ptr/0x7fffffff); 
-    ptr++; 
-    //printf(" z2 is %g\n", (float) *ptr/0x7fffffff); 
-    ptr++; 
-    //printf (" names are "); 
-    int count = stackdepth+1;
-    int depthname;
-    for (j = 0; j < names; j++) { 
-      /* for each name */ 
-      name = *ptr;
-      if( j<stackdepth) {if(stacknames[j]==name) count--;}
-      else if(j==stackdepth) { depthname=name; count--;}				 
-      //printf ("%d ", name);       
-      ptr++;
-    }
-    if(count==0 && z1<maxz1 ){
-      maxname = depthname; maxz1=z1;    
-    }  
-    //printf ("\n"); 
-  } 
-  //printf("maxname=%i\n",maxname);
-  return maxname;
-}
-
-
-int ViewCtrl::SelectObj(int x, int y){
-  unsigned int stack[]={0};
-  SelectObj2(x,y);
-  return ProcessHits2(0, stack);
-}
-#endif
-
-
-// class ViewCtrlEH
-// ===================================================================
-
-
-ViewCtrlEH::ViewCtrlEH(ViewCtrl*v):vc(v),state_drag(-1){}
-
-
-void ViewCtrlEH::Handle(EventBall *eventball){
-#ifdef off
-
-  if(eventball->state(-34)){
-    int x=eventball->x;
-    int y=eventball->y;
-    //glViewport(0,0,x,y);
-
-    vc->mssh.wndw=x; vc->mssh.wndh=y;
-    vc->SetProjectionMatrix();
-  }
-  else if(eventball->event(M_DRAG) && 
-	  eventball->state(state_drag)){
-    vc->movecont(eventball->x,eventball->y);
-    vc->dv->redraw();
-    eventball->stop();
-  }
-  else if(eventball->event(M_UP) &&
-	  eventball->state(state_drag)){
-    eventball->setstate(0);
-    vc->movestop(eventball->x,eventball->y);
-    eventball->stop();
-  }
-  else if(!eventball->state(0)){
-    // move event futher down
-    return;
-  }
-  else if(eventball->event(M_DOWN) && 
-	  eventball->keys("c") && 
-	  eventball->mbtn(1)){
-    eventball->genstate(state_drag);
-    vc->movestart(2,eventball->x,eventball->y);
-    eventball->stop();
-  }
-  else if(eventball->event(M_DOWN) && 
-	  eventball->keys("x") && 
-	  eventball->mbtn(1)){
-    eventball->genstate(state_drag);
-    vc->movestart(1,eventball->x,eventball->y);
-    eventball->stop();
-  }
-  else if(eventball->event(M_DOWN) && 
-	  eventball->keys("z") && 
-	  eventball->mbtn(1)){
-    eventball->genstate(state_drag);
-    vc->movestart(3,eventball->x,eventball->y);
-    eventball->stop();
-  }
-  else if(eventball->event(M_DOWN) && 
-	  eventball->keys("") && 
-	  eventball->mbtn(1)){
-
-  }
-  else if(eventball->event(K_DOWN) &&
-	  eventball->key(65451)){
-    vc->Zoom(1.25);
-    vc->dv->redraw();
-    eventball->stop();
-  }
-  else if(eventball->event(K_DOWN) &&
-	  eventball->key(65453)){	
-    vc->Zoom(0.85);
-    vc->dv->redraw();
-    eventball->stop();
-  }
-  else if(eventball->event(K_DOWN) &&
-	  eventball->keys("r")){
-    vc->reset();
-    vc->dv->redraw();
-    eventball->stop();    
-  }
-  else if(eventball->event(K_DOWN) &&
-	  eventball->keys("t")){	
-    /*
-      if(adisp.evthlist.modal) {
-      if(adisp.evthlist.modal==mbeh){
-      adisp.evthlist.remove(mbeh);
-      dv.scene.Remove(mbeh->gl);
-      //transform model from here
-      delete mbeh; 
-      adisp.evthlist.modal=mbeh=0;
-      //wnd->redraw();
-      dv.redraw();
-      //evt=0;
-      eventball->stop();
-      }
-      }
-      else {
-      mbeh = new ModelBldrEH;
-      adisp.evthlist.modal=mbeh;
-      adisp.evthlist.ins_head(mbeh);
-      dv.scene.Add(mbeh->gl);
-      //wnd->redraw();
-      dv.redraw();
-      //evt=0;
-      eventball->stop();
-      }
-    */
-  }
-#endif //off
-}    
-

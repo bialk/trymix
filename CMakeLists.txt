@@ -24,8 +24,10 @@ find_path_by_regex(glm_DIR "glm/install/lib/cmake/glm" PATHS ${WINDOWS_EXTERNAL_
 
 find_package(glm REQUIRED)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
+set(QT_VERSION_MAJOR 6)
+
+#find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets  LinguistTools)
 
 find_path_by_regex(BOOST_ROOT "boost_*[0-9]_*[0-9]_*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
 
@@ -56,7 +58,7 @@ ELSEIF(WIN32)
 #  list(APPEND FOR_COPY_TO_BINARY_DIR ${FREEIMAGE_DLL})
     FIND_PATH(FREEIMAGE_INCLUDE_DIR FreeImage.h REQUIRED
         PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES "FreeImage/Dist/x64")
-    FIND_LIBRARY(FREEIMAGE_LIB REQUIRED FreeImage PATHS ${FREEIMAGE_INCLUDE_DIR})
+    FIND_LIBRARY(FREEIMAGE_LIB REQUIRED NAMES FreeImage PATHS ${FREEIMAGE_INCLUDE_DIR})
     FIND_FILE(FREEIMAGE_DLL FreeImage.dll HINTS ${FREEIMAGE_INCLUDE_DIR} )
     list(APPEND FOR_COPY_TO_BINARY_DIR ${FREEIMAGE_DLL})
 ENDIF(UNIX OR MINGW)
@@ -71,6 +73,13 @@ else(UNIX)
   FIND_LIBRARY(SPOOLES_LIB spooles)
   FIND_PATH(SPOOLES_INCLUDE_DIR InpMtx.h PATH_SUFFIXES spooles/include)
 endif(WIN32)
+
+####################### Eigen ##################
+#find_path(EIGEN_INCLUDE_DIRS NAMES Sparse PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES ceres/eigen-eigen-5a0156e40feb/Eigen)
+#find_package(Eigen REQUIRED)
+#if(EIGEN_FOUND)
+#   list(APPEND CERES_INCLUDE_DIRS "${EIGEN_INCLUDE_DIRS}")
+#endif()
 
 ################# pthread #########################
 
@@ -106,6 +115,7 @@ elseif(WIN32)
   find_path_by_regex(LAPACK_DLLS "lapack/*.dll" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH})
   list(APPEND FOR_COPY_TO_BINARY_DIR ${LAPACK_DLLS})
 endif()
+  list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/torch.ico)
   list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/omi_triang.ico)
 
 
@@ -140,10 +150,10 @@ set(PROJECT_SOURCES
     SFSBuilder/ImageTile.h SFSBuilder/ImageTile.cpp
     SFSBuilder/editviewobj.h SFSBuilder/editviewobj.cpp
     SFSBuilder/glhelper.h SFSBuilder/glhelper.cpp
-    SFSBuilder/eventhnd.h SFSBuilder/eventhnd.cpp
+#    SFSBuilder/eventhnd.h SFSBuilder/eventhnd.cpp
 
     SFSBuilder/lights.h SFSBuilder/lights.cpp
-    SFSBuilder/dispview.h SFSBuilder/dispview.cpp
+    #SFSBuilder/dispview.h SFSBuilder/dispview.cpp
     SFSBuilder/toolspanel.h SFSBuilder/toolspanel.cpp
     SFSBuilder/savejpeg.h SFSBuilder/savejpeg.cpp
     SFSBuilder/mousectrl.h SFSBuilder/mousectrl.cpp
@@ -199,6 +209,7 @@ target_include_directories(omi_triang PRIVATE
     ${SPOOLES_INCLUDE_DIR}
     ${FREEIMAGE_INCLUDE_DIR}
     ${pthread_INCLUDE_DIR}
+    ${EIGEN_INCLUDE_DIRS}
 )
 
 target_compile_options(omi_triang PRIVATE "-D_TIMESPEC_DEFINED")
@@ -231,13 +242,15 @@ endif()
 target_link_libraries(omi_triang PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::OpenGL
+    Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+
     CGAL::CGAL CGAL::CGAL_Core
     ${SPOOLES_LIB}
     ${pthread_LIB}
     ${LAPACK_LIB}
     ${BLAS_LIB}
     ${FREEIMAGE_LIB}
-    OpenGL::GL
+    OpenGL::GL    
     glm::glm
 )
 

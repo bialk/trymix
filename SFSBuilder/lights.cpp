@@ -1,4 +1,4 @@
-#include "dispview.h"
+//#include "dispview.h"
 //#include "toolspanel.h"
 #include "lights.h"
 #include "mathstruct.h"
@@ -9,6 +9,7 @@
 //#include <sigc++/sigc++.h>
 
 #include <QApplication>
+#include <QOpenGLFunctions>
 
 // control elements definitions
 //=============================================================
@@ -81,7 +82,7 @@ void Icon3DLight::Draw(DrawCntx *cntx) {
 // Lights
 //============================================================
 
-Lights::Lights():lighteh(this){
+Lights::Lights(){
 
   glic1.lights = this;
   glic2.lights = this;
@@ -214,6 +215,7 @@ void Lights::lightrstop(){
 
 
 
+#ifdef off
 // class LightsEH
 //=====================================================================
 
@@ -266,3 +268,4 @@ void LightsEH::Handle(EventBall *eventball){
 #endif
 }
 
+#endif

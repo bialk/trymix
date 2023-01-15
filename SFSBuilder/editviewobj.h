@@ -1,14 +1,7 @@
 #ifndef editviewobj_h
 #define editviewobj_h
-//#include "eventlog.h"
-#include <iostream>
 
-
-#define GL3DFIND(name) ((name *)dv->gl3dfind(#name))
-
-class DispView;
 class Serializer;
-class ViewCtrl;
 class QOpenGLWidget;
 class CentralWidget;
 
@@ -46,18 +39,17 @@ class DrawCntx{
   void trySetGLName(int& glname);
   int w();
   int h();
+  int sel_x();
+  int sel_y();
   void update();
 
 private:  
   CentralWidget* m_centralWidget;
-  int m_glnamecount = 0;
+  int m_glnamecount = 0;  
 };
 
 class EditViewObj{
  public:
-
-  //DispView *dv;
- 
   virtual ~EditViewObj(){};
 
   virtual void Draw(DrawCntx *cntx) = 0;

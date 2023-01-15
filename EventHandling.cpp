@@ -2,7 +2,6 @@
 #include "EventHandling.h"
 #include "CentralWidget.h"
 #include <EventParser.h>
-#include "SFSBuilder/editviewobj.h"
 
 #include <QMouseEvent>
 #include <QDebug>
@@ -37,7 +36,7 @@ EventContext3D::setEvent(QEvent* e) {
       case Qt::RightButton:  m_mouseHistory = "M:R:DOWN"; break;
       default: m_mouseHistory.clear();
     }
-    qDebug() << m_mouseHistory << Qt::endl;
+    qDebug() << m_mouseHistory;
   }
   else if(e->type() == QEvent::MouseButtonRelease){
     QMouseEvent* m_e = static_cast<QMouseEvent*>(e);
@@ -47,28 +46,28 @@ EventContext3D::setEvent(QEvent* e) {
       case Qt::RightButton:  m_mouseHistory = "M:R:UP"; break;
       default: m_mouseHistory.clear();
     }
-    qDebug() << m_mouseHistory << Qt::endl;
+    qDebug() << m_mouseHistory;
   }
   else if(e->type() == QEvent::MouseMove){
     m_mouseHistory = "M:MOVE";
-    qDebug() << m_mouseHistory << Qt::endl;
+    qDebug() << m_mouseHistory;
   }
   else if(e->type() == QEvent::KeyPress){
     QKeyEvent* m_e = static_cast<QKeyEvent*>(e);
     m_keyHistory = QString("K:%1:DOWN").arg(QChar(m_e->key()));
-    qDebug() << m_keyHistory << Qt::endl;
+    qDebug() << m_keyHistory;
   }
   else if(e->type() == QEvent::KeyRelease){
     QKeyEvent* m_e = static_cast<QKeyEvent*>(e);
     m_keyHistory = QString("K:%1:UP").arg(QChar(m_e->key()));
-    qDebug() << m_keyHistory << Qt::endl;
+    qDebug() << m_keyHistory;
   }
   else if(e->type() == QEvent::Resize){
     QResizeEvent* m_e = static_cast<QResizeEvent*>(e);
     m_mouseHistory = "S:RESIZE";
     m_x= m_e->size().width();
     m_y= m_e->size().height();
-    qDebug() << m_keyHistory << x() << " " << y() << Qt::endl;
+    qDebug() << m_mouseHistory << m_x << m_y;
   }
 }
 
@@ -77,7 +76,7 @@ EventContext3D::setEvent(QEvent* e) {
 
 bool
 EventContext3D::tryProcessCapture(){
-  qDebug() << "total capture list size: " << m_captureHandlers.size() << Qt::endl;
+  qDebug() << "total capture list size: " << m_captureHandlers.size();
   if(!m_captureHandlers.empty()){
     m_captureHandlers.top()->handle(*this);
     return true;
@@ -90,7 +89,7 @@ EventContext3D::isMatched(QString const& eventstring){
   if(eventstring.isEmpty())
     return false;
   auto items = eventstring.split("+");
-  qDebug() << eventstring << m_keyHistory << m_mouseHistory << Qt::endl;
+  qDebug() << eventstring << m_keyHistory << m_mouseHistory;
   for(auto& i:items){
     if(m_keyHistory.endsWith(i))
       continue;
@@ -126,7 +125,7 @@ int EventContext3D::w(){
   return m_glWidget->width();
 }
 
-int EventContext3D::h(){
+int EventContext3D::h(){  
   return m_glWidget->height();
 }
 
@@ -212,6 +211,7 @@ EventHandler3D::handle(EventContext3D& ecntx){
   for(auto& i: m_reacts){
     if(ecntx.isMatched(i.first)){
       i.second(ecntx);
+      return;
     }
   }
 

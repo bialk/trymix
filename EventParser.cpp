@@ -24,12 +24,12 @@ bool EventParser::mouseMove(){
   return m_e->type() == QEvent::MouseMove;
 }
 int EventParser::x(){
-  QMouseEvent* e = static_cast<QMouseEvent*>(m_e);
-  return e?e->x():INT_MIN;
+  QMouseEvent* e = dynamic_cast<QMouseEvent*>(m_e);
+  return e?e->position().x():INT_MIN;
 }
 int EventParser::y(){
-  QMouseEvent* e = static_cast<QMouseEvent*>(m_e);
-  return e?e->y():INT_MIN;
+  QMouseEvent* e = dynamic_cast<QMouseEvent*>(m_e);
+  return e?e->position().y():INT_MIN;
 }
 bool EventParser::keyPress(Qt::Key button){
   if(m_e->type() == QEvent::KeyPress){

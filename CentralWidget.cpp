@@ -9,6 +9,7 @@
 #include <QMouseEvent>
 #include <QDebug>
 #include <QObject>
+#include <QOpenGLFunctions>
 
 #include <vector>
 #include <unordered_set>
@@ -75,11 +76,16 @@ CentralWidget::resizeGL(int w, int h){}
 
 void
 CentralWidget::paintGL(){
+#ifdef off // physical viewport size test
+  float viewport[4];
+  glGetFloatv(GL_VIEWPORT,viewport);
+  qDebug() << "viewport" << viewport[0] << viewport[1] << viewport[2] << viewport[3];
+#endif
   m_projectTree->showModel(&m_treeEventFilter->m_drawContext);
 }
 
 void
-CentralWidget::enterEvent(QEvent *event){
+CentralWidget::enterEvent(QEnterEvent* event){
   QOpenGLWidget::enterEvent(event);
   setFocus(Qt::MouseFocusReason);
 }

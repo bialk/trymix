@@ -26,7 +26,7 @@ public:
     void initializeGL() override;
     void resizeGL(int w, int h) override;
     void paintGL() override;
-    void enterEvent(QEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
     void setProjectTree(ProjectTree *pt);
 
     EventHandler3D& eventHandler();

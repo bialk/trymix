@@ -1,15 +1,8 @@
 #include "imageplane.h"
 #include <FreeImage.h>
 #include <QOpenGLFunctions>
-#include <sys/types.h>
-#include <sys/stat.h>
-#ifndef WIN32
-#include <unistd.h>
-#endif
 #include "apputil/serializer.h"
 #include "glhelper.h"
-//#include "dispview.h"
-//#include "viewctrl.h"
 #include "shapefromshade.h"
 #include "mathlib/mathutl/mymath.h"
 //#include "mathlib/mathutl/imageandfft.h"
@@ -20,7 +13,6 @@ ImagePlane::ImagePlane():
   image_mode(image_mode_image),
   shape_mode(shape_mode_off),
   edit_mode(edit_mode_off),
-  eh(this),
   cache_slot(-1),
   glsel_lightcur(0)
 {
@@ -93,10 +85,6 @@ void ImagePlane::TreeScan(TSOCntx *cntx){
     Open(1);
     Open(2);
     Open(3);
-//    glsel_light[0]=dv->GetNewName();
-//    glsel_light[1]=dv->GetNewName();
-//    glsel_light[2]=dv->GetNewName();
-//    glsel_light[3]=dv->GetNewName();
    }
 };
 
@@ -438,7 +426,7 @@ void ImagePlane::Build(){
 }
 
 
-
+#ifdef off
 // event handler
 //=================================================
 ImagePlaneEH::ImagePlaneEH(ImagePlane *v):
@@ -525,3 +513,4 @@ void ImagePlaneEH::Handle(EventBall *eventball){
 
   }
 }
+#endif

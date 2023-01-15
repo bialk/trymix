@@ -289,7 +289,7 @@ inline int SurfTxtrLoad(SurfTxtr *stxt, const char *filename){
 inline char *mystrtok_r(char* s, char const *brk, char** r){
   if(s==0) s=*r;
 
-  int p=strcspn(s,brk);
+  size_t p=strcspn(s,brk);
   if(s[p]!=0){
     s[p]=0;
     *r=s+p+1;

@@ -1,21 +1,8 @@
 #ifndef viewctrl_h
 #define viewctrl_h
 
-#include <QOpenGLFunctions>
 #include "editviewobj.h"
-#include "mathstruct.h"
 #include "mousectrl.h"
-#include "eventhnd.h"
-
-class ViewCtrl;
-class ViewCtrlEH: public EvtHandle{
- public:
-  ViewCtrl *vc;
-  int state_drag;
-
-  ViewCtrlEH(ViewCtrl *v);
-  virtual void Handle(EventBall *eventball);
-};
 
 class ViewCtrl: public EditViewObj{
  public:
@@ -37,16 +24,6 @@ class ViewCtrl: public EditViewObj{
 
   //void PsvMOper(int x, int y);
   void Zoom(float r=1.0);
-
-
-  // selecton processor
-//  GLint hits;
-//  GLuint selectBuf[1024];
-//  void SelectObj2(int x, int y);
-//  int ProcessHits2(unsigned int stackdepth, unsigned int *stacknames);
-
-//  int SelectObj(int x, int y);
-
 
   int background; // 0 - black, 1 - white
   int prjtype;    // 1 - orthogonal, 2 - perspecive
@@ -71,8 +48,6 @@ class ViewCtrl: public EditViewObj{
   void fplay();
   int play_method;
 
-
-  ViewCtrlEH viewctrleh;
 };
 
 

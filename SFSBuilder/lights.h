@@ -4,7 +4,7 @@
 #include "mathlib/mathutl/mymath.h"
 #include "mousectrl.h"
 //#include "toolspanel.h"
-#include "eventhnd.h"
+//#include "eventhnd.h"
 
 class Lights;
 class Icon3DLight: public  EditViewObj{  
@@ -16,7 +16,7 @@ public:
   void  TreeScan(TSOCntx *cntx);
 };
 
-
+#ifdef off
 
 class LightsEH: public EvtHandle{
  public:
@@ -27,6 +27,7 @@ class LightsEH: public EvtHandle{
   virtual int glName(int id);
   virtual void Handle(EventBall *eventball);
 };
+#endif
 
 class Lights: public EditViewObj{
  public:
@@ -55,7 +56,7 @@ class Lights: public EditViewObj{
   void lightrcont(int x, int y);
   void lightrstop();
 
-  LightsEH  lighteh;
+  //LightsEH  lighteh;
 };
 
 

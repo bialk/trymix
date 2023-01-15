@@ -73,7 +73,6 @@ namespace {
 
         qDebug() << "Selected name: " << id << Qt::endl;
         cx.update();
-        return;
       };
 
       m_mouseDragLight.addReact("M:MOVE") = [=](EventContext3D& cx){
@@ -132,7 +131,7 @@ SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}
 void
 SFSBuilder_TreeItem::showModel(DrawCntx* cx)
 {
-  glViewport(0,0,cx->w(), cx->h());
+  //glViewport(0,0,cx->w(), cx->h());
 
   glClearDepth(1.0);
   if(m_viewCtrl->background==0)

@@ -106,7 +106,7 @@ public:
     m_mouseDragTranslate.addReact("M:MOVE") = [this](EventContext3D& cx){
       float deltaXY[2] = {
         float((cx.x() - m_startXY[0])),
-        float(-(cx.y() - m_startXY[1])) // inverted y axis
+        float((cx.y() - m_startXY[1])) // inverted y axis
       };
       vpc.continueTranslateXY(deltaXY[0],deltaXY[1]);
       cx.update();
@@ -115,7 +115,7 @@ public:
     m_mouseDragTranslate.addReact("M:L:UP") =  [this](EventContext3D& cx){
       float deltaXY[2] = {
         float((cx.x() - m_startXY[0])),
-        float(-(cx.y() - m_startXY[1])) // inverted y axis
+        float((cx.y() - m_startXY[1])) // inverted y axis
       };
       vpc.continueTranslateXY(deltaXY[0],deltaXY[1]);
       cx.update();
@@ -124,7 +124,7 @@ public:
 
     addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
     {
-      vpc.beginScale(cx.x(), cx.h() - cx.y()); // inverted y axis
+      vpc.beginScale(cx.x(), cx.y()); // inverted y axis
       m_startXY[0] = cx.x();
       m_startXY[1] = cx.y();
       cx.update();
@@ -152,7 +152,7 @@ private:
 PolygonTests_TreeItem::PolygonTests_TreeItem()
   :polygentest(new PolygonTestConvexPartitioning(50))
   ,m_vpceh(new EventHandler_PositionController)
-{
+{  
   setData(0,Qt::DisplayRole,"Polygon Test");
   setData(1,Qt::DisplayRole, "On");
   setData(2,Qt::DisplayRole, "On");
@@ -161,23 +161,29 @@ PolygonTests_TreeItem::PolygonTests_TreeItem()
   m_panel.setupUi(m_dockWidget.data());
 
   QObject::connect(m_panel.pushButton_tryConvexPartitioning, &QPushButton::clicked,
-    [=](bool){
+    [=]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        tryConvexPartitioning(m_panel.spinBox->value());
        QApplication::restoreOverrideCursor();
     });
   QObject::connect(m_panel.pushButton_tryMonotonePartitioning, &QPushButton::clicked,
-    [=](bool){
+    [=]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        tryMonotonePartitioning(m_panel.spinBox->value());
        QApplication::restoreOverrideCursor();
     });
   QObject::connect(m_panel.pushButton_tryConformingDelanay, &QPushButton::clicked,
-    [=](bool){
+    [=]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        tryConformingDelanay(m_panel.spinBox->value(), m_panel.doubleSpinBox_MeshSellSize->value());
        QApplication::restoreOverrideCursor();
     });
+  auto& vpc = static_cast<EventHandler_PositionController*>(m_vpceh.get())->vpc;
+
+  // initial postioning
+  vpc.scaleX = 1./2;
+  vpc.translationXY[0] = 100;
+  vpc.translationXY[1] = 100;
 }
 
 PolygonTests_TreeItem::~PolygonTests_TreeItem(){
@@ -209,7 +215,9 @@ PolygonTests_TreeItem::showModel(DrawCntx* cx){
 
   QPainter p(cx->glWidget());
   auto h = cx->glWidget()->height(); auto w = cx->glWidget()->width();
-  p.setWindow(0, h, w, -h);
+  // viewport set automatically from logical size of the canvas
+  // it may not correspond to the physical size in pixels
+  //p.setWindow(0, h, w, -h);
   p.setPen(QPen(Qt::white, 3));
 
   auto vpc = dynamic_cast<EventHandler_PositionController*>(m_vpceh.get());
@@ -220,9 +228,6 @@ PolygonTests_TreeItem::showModel(DrawCntx* cx){
 
   QTransform t;
   t.translate(w/2,h/2);
-//  float scale = 0.45/600;
-//  scale = fmin(1024*scale, 1024*scale);
-//  t.scale(scale, scale);
 
   p.setTransform(t, true);
   p.drawPolyline(polygentest->getPolyline());

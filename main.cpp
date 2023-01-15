@@ -4,14 +4,29 @@
 #include <QLocale>
 #include <QTranslator>
 #include <QStyle>
-#include <QDesktopWidget>
+//#include <QDesktopWidget>
 #include <QScreen>
 
 int main(int argc, char *argv[])
 {
   //QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+//  QGuiApplication::setAttribute(Qt::AA_Use96Dpi);
+//  QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
+//        Qt::HighDpiScaleFactorRoundingPolicy::Round);
+
+//  QFont font("Courier New");
+//  font.setStyleHint(QFont::Monospace);
+//  QApplication::setFont(font);
 
   QApplication a(argc, argv);
+
+  // workaround: on Qt 6.4.1, windows, HDPI display with scaling discovered
+  // that default font 9pt "Segoe UI" is not scaled properly (it is too large)
+  // thus force it to 10pt which works fine:
+#if defined WIN32 && QT_VERSION == QT_VERSION_CHECK(6, 4, 1)
+  //qApp->setStyleSheet("QMenuBar,QMenu,QDockWidget,QTreeWidget{ font: 10pt \"Segoe UI\";}");
+  qApp->setStyleSheet("*{ font: 10pt \"Segoe UI\";}");
+#endif
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();
