@@ -99,8 +99,8 @@ void ShapeFromShade::build(){
    TCntrElem(LinSolver& lsvr, int w, int h, float * const data)
 #endif
           :m_lsvr(lsvr)
-          ,m_w(w)
           ,m_h(h)
+          ,m_w(w)
           ,m_d(data)
       {}
       void add2mtrx(int x, int y){
@@ -110,7 +110,7 @@ void ShapeFromShade::build(){
               x1 = i/2; y1 = i & 0x1;
               int idx1=(x+x1)*m_h+(y+y1); // '-1' the matrix has size (szy*szx - 1)
               float z  = GetElem(x+x1,y+y1,2);
-              if(z<0.1) z=0.1;
+              if(z<0.1f) z=0.1f;
               float gx = -GetElem(x+x1,y+y1,0)/z;
               float gy = -GetElem(x+x1,y+y1,1)/z;
               float sum = ((0.5-x1)*gx+(0.5-y1)*gy)*3;

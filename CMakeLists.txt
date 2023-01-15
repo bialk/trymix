@@ -75,7 +75,7 @@ else(UNIX)
 endif(WIN32)
 
 ####################### Eigen ##################
-#find_path(EIGEN_INCLUDE_DIRS NAMES Sparse PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES ceres/eigen-eigen-5a0156e40feb/Eigen)
+find_path(EIGEN_INCLUDE_DIRS NAMES Sparse PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES ceres/eigen-eigen-5a0156e40feb)
 #find_package(Eigen REQUIRED)
 #if(EIGEN_FOUND)
 #   list(APPEND CERES_INCLUDE_DIRS "${EIGEN_INCLUDE_DIRS}")
@@ -141,6 +141,7 @@ set(PROJECT_SOURCES
     SFSBuilder/SFSBuilder_panel.ui
     SFSBuilder/shapefromshade.cpp SFSBuilder/shapefromshade.h
     SFSBuilder/lineqsol.h SFSBuilder/lineqsol.cpp
+    SFSBuilder/lineqsol2.h SFSBuilder/lineqsol2.cpp
     SFSBuilder/mathlib/lapackcpp/lapackcpp.h
     SFSBuilder/mathlib/lapackcpp/invert.cpp
     SFSBuilder/mathlib/lapackcpp/eigenval.cpp

@@ -4,7 +4,6 @@
 #include <QLocale>
 #include <QTranslator>
 #include <QStyle>
-//#include <QDesktopWidget>
 #include <QScreen>
 
 int main(int argc, char *argv[])

@@ -51,7 +51,7 @@ void LinSolver2::B(int irow, float v)
 
 float LinSolver2::X(int irow)
 {
-   if(mtxX.size() < irow)
+   if(mtxX.size() > irow)
       return mtxX[irow];
    else {
       return 0.0f;
@@ -61,12 +61,21 @@ float LinSolver2::X(int irow)
 void LinSolver2::solve()
 {
    //Eigen::BiCGSTAB<Eigen::SparseMatrix<double>,Eigen::IncompleteLUT<double> > solver;
+
+   //QR - not working for me (Am I doing something wrong?)
    //Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > solver;
+   //Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::AMDOrdering<int> > solver;
+
    //Eigen::SparseLU<Eigen::SparseMatrix<double> > solver;
    Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
 
-   Eigen::SparseMatrix<double> mtxAaux(neqns,neqns);
+   Eigen::SparseMatrix<double,Eigen::RowMajor> mtxAaux(neqns,neqns);
    mtxAaux.setFromTriplets(mtxA.begin(),mtxA.end());
+
+   //this lines was test for QR solver but without success
+//   Eigen::SparseMatrix<double> mtxAaux2 = mtxAaux;
+//   mtxAaux.makeCompressed();
+
    printf("step 1 passed!\n");
    solver.compute(mtxAaux);
    if(solver.info()!=Eigen::Success) {
