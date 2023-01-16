@@ -5,7 +5,6 @@
 #include <math.h>
 #include <algorithm>
 #include <map>
-//#include <unistd.h> // is definition of function sleep()
 
 #define SOLVER2_OFF
 

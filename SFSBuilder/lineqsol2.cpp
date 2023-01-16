@@ -73,8 +73,8 @@ void LinSolver2::solve()
    mtxAaux.setFromTriplets(mtxA.begin(),mtxA.end());
 
    //this lines was test for QR solver but without success
-//   Eigen::SparseMatrix<double> mtxAaux2 = mtxAaux;
-//   mtxAaux.makeCompressed();
+   //Eigen::SparseMatrix<double> mtxAaux2 = mtxAaux;
+   //mtxAaux.makeCompressed();
 
    printf("step 1 passed!\n");
    solver.compute(mtxAaux);
