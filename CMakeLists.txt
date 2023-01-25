@@ -26,7 +26,6 @@ find_package(glm REQUIRED)
 
 set(QT_VERSION_MAJOR 6)
 
-#find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS OpenGL Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets  LinguistTools)
 
 find_path_by_regex(BOOST_ROOT "boost_*[0-9]_*[0-9]_*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
@@ -52,10 +51,6 @@ IF(UNIX OR MINGW)
   FIND_PATH(FREEIMAGE_INCLUDE_DIR FreeImage.h )
   FIND_LIBRARY(FREEIMAGE_LIB NAMES freeimage FreeImage)
 ELSEIF(WIN32)
-#  FIND_PATH(FREEIMAGE_INCLUDE_DIR FreeImage.h PATH_SUFFIXES FreeImage/Dist)
-#  FIND_LIBRARY(FREEIMAGE_LIB FreeImage HINTS ${FREEIMAGE_INCLUDE_DIR} )
-#  FIND_FILE(FREEIMAGE_DLL FreeImage.dll HINTS ${FREEIMAGE_INCLUDE_DIR} )
-#  list(APPEND FOR_COPY_TO_BINARY_DIR ${FREEIMAGE_DLL})
     FIND_PATH(FREEIMAGE_INCLUDE_DIR FreeImage.h REQUIRED
         PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES "FreeImage/Dist/x64")
     FIND_LIBRARY(FREEIMAGE_LIB REQUIRED NAMES FreeImage PATHS ${FREEIMAGE_INCLUDE_DIR})
@@ -75,7 +70,7 @@ else(UNIX)
 endif(WIN32)
 
 ####################### Eigen ##################
-find_path(EIGEN_INCLUDE_DIRS NAMES Sparse PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES ceres/eigen-eigen-5a0156e40feb)
+find_path(EIGEN_INCLUDE_DIRS REQUIRED NAMES Eigen/CMakeLists.txt PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES ceres/eigen-eigen-5a0156e40feb)
 #find_package(Eigen REQUIRED)
 #if(EIGEN_FOUND)
 #   list(APPEND CERES_INCLUDE_DIRS "${EIGEN_INCLUDE_DIRS}")
@@ -151,17 +146,13 @@ set(PROJECT_SOURCES
     SFSBuilder/ImageTile.h SFSBuilder/ImageTile.cpp
     SFSBuilder/editviewobj.h SFSBuilder/editviewobj.cpp
     SFSBuilder/glhelper.h SFSBuilder/glhelper.cpp
-#    SFSBuilder/eventhnd.h SFSBuilder/eventhnd.cpp
 
     SFSBuilder/lights.h SFSBuilder/lights.cpp
-    #SFSBuilder/dispview.h SFSBuilder/dispview.cpp
     SFSBuilder/toolspanel.h SFSBuilder/toolspanel.cpp
     SFSBuilder/savejpeg.h SFSBuilder/savejpeg.cpp
     SFSBuilder/mousectrl.h SFSBuilder/mousectrl.cpp
     SFSBuilder/viewctrl.h SFSBuilder/viewctrl.cpp
     SFSBuilder/mathstruct.h SFSBuilder/mathstruct.cpp
-
-    SFSBuilder/apputil/AppSysSet.h SFSBuilder/apputil/AppSysSet.cpp
 
     EventHandling.h EventHandling.cpp
     EventParser.h EventParser.cpp

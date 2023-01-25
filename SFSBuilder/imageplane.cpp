@@ -245,6 +245,7 @@ void ImagePlane::Draw(DrawCntx *cntx){
     glEnable(GL_LIGHTING);
   }
 
+  glPushName(100);
   // draw shape
   if(shape_mode!=shape_mode_off){    
     if(!shape.id){
@@ -305,6 +306,7 @@ void ImagePlane::Draw(DrawCntx *cntx){
     else
       glCallList(shape());
   }
+  glPopName();
 
 
   // drawing light control points

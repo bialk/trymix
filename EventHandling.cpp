@@ -7,7 +7,7 @@
 #include <QDebug>
 
 #include <unordered_set>
-
+#include <iostream>
 
 EventContext3D::EventContext3D(CentralWidget* cw)
   :m_glWidget(cw){}
@@ -27,6 +27,12 @@ EventContext3D::setEvent(QEvent* e) {
   m_mouseHistory.clear();
   m_x = EventParser(e).x();
   m_y = EventParser(e).y();
+
+  m_gly = 2.*(m_glWidget->height()/2. - m_y)/float(m_glWidget->height());
+  m_glx = 2.*(m_x-m_glWidget->width()/2.)/float(m_glWidget->width());
+
+  //std::cout << m_x << "," << m_gly << "," << m_glWidget->height() << std::endl;
+
   m_selectionId = -1;
   if(e->type() == QEvent::MouseButtonPress){
     QMouseEvent* m_e = static_cast<QMouseEvent*>(e);
@@ -54,12 +60,18 @@ EventContext3D::setEvent(QEvent* e) {
   }
   else if(e->type() == QEvent::KeyPress){
     QKeyEvent* m_e = static_cast<QKeyEvent*>(e);
-    m_keyHistory = QString("K:%1:DOWN").arg(QChar(m_e->key()));
+    if(QChar::isPrint(m_e->key()))
+      m_keyHistory = QString("K:%1:DOWN").arg(QChar(m_e->key()));
+    else
+      m_keyHistory = QString("K:Unkn:DOWN");
     qDebug() << m_keyHistory;
   }
   else if(e->type() == QEvent::KeyRelease){
     QKeyEvent* m_e = static_cast<QKeyEvent*>(e);
-    m_keyHistory = QString("K:%1:UP").arg(QChar(m_e->key()));
+    if(QChar::isPrint(m_e->key()))
+      m_keyHistory = QString("K:%1:UP").arg(QChar(m_e->key()));
+    else
+      m_keyHistory = QString("K:Unkn:UP");
     qDebug() << m_keyHistory;
   }
   else if(e->type() == QEvent::Resize){
@@ -128,6 +140,15 @@ int EventContext3D::w(){
 int EventContext3D::h(){  
   return m_glWidget->height();
 }
+
+float EventContext3D::glx(){
+  return m_glx;
+}
+
+float EventContext3D::gly(){
+  return m_gly;
+}
+
 
 void EventContext3D::update(){
   m_glWidget->update();

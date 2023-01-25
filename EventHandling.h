@@ -28,6 +28,8 @@ public:
   int y();
   int w();
   int h();
+  float glx();
+  float gly();
   void update();
   int select();
 
@@ -37,7 +39,8 @@ private:
   std::stack<EventHandler3D*> m_captureHandlers;
   QString m_keyHistory;
   QString m_mouseHistory;
-  int m_x,m_y;
+  int m_x, m_y;
+  float m_glx, m_gly;
   int m_selectionId = -1;
 };
 

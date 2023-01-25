@@ -23,53 +23,74 @@ namespace {
     {
       addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
       {
-        m_vp->movestart(3,cx.x(),cx.y());
+        auto dragProcessor = m_vp->movestart(ViewCtrl::Scale,cx.glx(),cx.gly());
+        m_dragHandler = std::make_unique<EventHandler3D>();
+        m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
+          dragProcessor(cx.glx(),cx.gly());
+          cx.update();
+        };
+        m_dragHandler->addReact("M:L:UP") =  [](EventContext3D& cx){
+          cx.popHandler();
+          cx.update();
+        };
+
+        cx.pushHandler(m_dragHandler.get());
         cx.update();
-        cx.pushHandler(&m_mouseDrag);
       };
 
       addReact("K:X:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
       {
-        m_vp->movestart(1,cx.x(),cx.y());
+        auto dragProcessor = m_vp->movestart(ViewCtrl::Translate,cx.glx(),cx.gly());
+        m_dragHandler = std::make_unique<EventHandler3D>();
+        m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
+          dragProcessor(cx.glx(),cx.gly());
+          cx.update();
+        };
+        m_dragHandler->addReact("M:L:UP") =  [](EventContext3D& cx){
+          cx.popHandler();
+          cx.update();
+        };
+
+        cx.pushHandler(m_dragHandler.get());
         cx.update();
-        cx.pushHandler(&m_mouseDrag);
       };
 
       addReact("K:C:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
       {
-        m_vp->movestart(2,cx.x(),cx.y());
-        cx.update();
-        cx.pushHandler(&m_mouseDrag);
-      };
+        auto dragProcessor = m_vp->movestart(ViewCtrl::Rotate,cx.glx(),cx.gly());
+        m_dragHandler = std::make_unique<EventHandler3D>();
+        m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
+          dragProcessor(cx.glx(),cx.gly());
+          cx.update();
+        };
+        m_dragHandler->addReact("M:L:UP") =  [](EventContext3D& cx){
+          cx.popHandler();
+          cx.update();
+        };
 
-      m_mouseDrag.addReact("M:MOVE") = [this](EventContext3D& cx){
-        m_vp->movecont(cx.x(),cx.y());
+        cx.pushHandler(m_dragHandler.get());
         cx.update();
-      };
-
-      m_mouseDrag.addReact("M:L:UP") =  [this](EventContext3D& cx){
-        m_vp->movestop(cx.x(),cx.y());
-        cx.update();
-        cx.popHandler();
       };
 
       addReact("S:RESIZE") = [=](EventContext3D& cx)
       {
-        m_vp->mssh.wndw=cx.x(); vc->mssh.wndh=cx.y();
-        m_vp->SetProjectionMatrix();
+//        m_vp->mssh.wndw=cx.x(); vc->mssh.wndh=cx.y();
+//        m_vp->SetProjectionMatrix();
+        m_vp->updateProjectionMtrx(cx.x(),cx.y());
         cx.update();
       };
 
       addReact("M:L:DOWN") = [=](EventContext3D& cx){
       //addReact("M:MOVE") = [=](EventContext3D& cx){
-        m_vp->mssh.sx0=cx.x(); m_vp->mssh.sy0=cx.y();
-        m_vp->SetProjectionMatrix();
+        m_vp->updateProjectionMtrx(cx.w(), cx.h(), cx.x(), cx.y());
+//        m_vp->mssh.sx0=cx.x(); m_vp->mssh.sy0=cx.y();
+//        m_vp->SetProjectionMatrix();
         auto id = cx.select();
-        m_lights->select(id);
-        if(m_lights->isfocus()){
-          m_lights->lightrstart(cx.x(),cx.y());
-          cx.pushHandler(&m_mouseDragLight);
-        }
+//        m_lights->select(id);
+//        if(m_lights->isfocus()){
+//          m_lights->lightrstart(cx.x(),cx.y());
+//          cx.pushHandler(&m_mouseDragLight);
+//        }
 
         qDebug() << "Selected name: " << id << Qt::endl;
         cx.update();
@@ -87,7 +108,7 @@ namespace {
       };
 
     }
-    EventHandler3D m_mouseDrag;
+    std::unique_ptr<EventHandler3D> m_dragHandler;
     EventHandler3D m_mouseDragLight;
   };
 }
@@ -131,8 +152,6 @@ SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}
 void
 SFSBuilder_TreeItem::showModel(DrawCntx* cx)
 {
-  //glViewport(0,0,cx->w(), cx->h());
-
   glClearDepth(1.0);
   if(m_viewCtrl->background==0)
     glClearColor(.0, .0, .0, 0.0);
@@ -184,8 +203,9 @@ SFSBuilder_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
     cw->eventContext().pushHandler(m_viewCtrlEH.get());
 
     // update viewport size if it was changed before
-    m_viewCtrl->mssh.wndw=cw->width(); m_viewCtrl->mssh.wndh=cw->height();
-    m_viewCtrl->SetProjectionMatrix();
+    m_viewCtrl->updateProjectionMtrx(cw->width(),cw->height());
+//    m_viewCtrl->mssh.wndw=cw->width(); m_viewCtrl->mssh.wndh=cw->height();
+//    m_viewCtrl->SetProjectionMatrix();
   }
   else{
     m_dockWidget->hide();

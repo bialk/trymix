@@ -1,6 +1,8 @@
 #ifndef mousectrl_h
 #define mousectrl_h
 
+#include <glm/glm.hpp>
+
 //------------------------ free rotation and shift control by mouse ---------------------
 
 class MouseMoveAndShift{
@@ -12,7 +14,7 @@ public:
   float mi[16]; //inverse projection matrix
   float* m; //projection matrix
 
-  // mouse coord in the beginning operation
+  // mouse coord at the start operation
   int sx0,sy0;
 
   //output rotation increment
@@ -32,7 +34,6 @@ public:
   void StopMOper();
   int ContinueMOper(int x, int y);
 };
-
 
 class  Ctrl3DRotate{
  public:

@@ -1,21 +1,24 @@
 #include "viewctrl.h"
-#include "glhelper.h"
 #include "apputil/serializer.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/geometric.hpp>
 
 #include <fstream>
 #include <math.h>
 
-static class GLAnimator{
+#include <QOpenGLFunctions>
+namespace {
+class GLAnimator{
 public:
   virtual void Init()=0;
   virtual int Step()=0;  
 } *glanimator=0;
 
-static class Rotation360a: public GLAnimator{
+class Rotation360a: public GLAnimator{
   int play;
   virtual void Init(){ play=100; };
   virtual int Step(){
@@ -27,7 +30,7 @@ static class Rotation360a: public GLAnimator{
   };  
 } rot360a;
 
-static class Rotation360b: public GLAnimator{
+class Rotation360b: public GLAnimator{
   int play;
   virtual void Init(){ play=100; };
   virtual int Step(){
@@ -39,8 +42,7 @@ static class Rotation360b: public GLAnimator{
   };  
 } rot360b;
 
-
-static class LeftRight: public GLAnimator{
+class LeftRight: public GLAnimator{
   int play;
   virtual void Init(){ play=100; };
   virtual int Step(){
@@ -52,7 +54,7 @@ static class LeftRight: public GLAnimator{
     return play;
   };  
 } leftright;
-
+} //end of namespace
 
 int play_method;
 static class GLAnimator *animators[]={&rot360a,&rot360b,&leftright};
@@ -75,7 +77,7 @@ ViewCtrl::~ViewCtrl()
 }
 
 ViewCtrl::ViewCtrl()
-   :zoom(1)
+   :m_zoom(1)
    ,play(0)
    ,background(0)
    ,prjtype(0)
@@ -83,18 +85,8 @@ ViewCtrl::ViewCtrl()
    ,glroshow(0)
    ,play_method(0)
 {
-  // initialize default parameters
-  mssh.m =PrjMtrxRender;
-  mssh.shift_y = mssh.shift_x = mssh.shift_z = 0;
-  mssh.oper = 0;
-  mssh.wndw = mssh.wndh = -1;
-  mssh.angle_r = mssh.norm_rx = mssh.norm_ry = 0; mssh.norm_rz=1;
-
   // initialize model view matrix as identity matrix 
-  int i;
-  for(i=0; i<16; i++) InitialModelMatrix[i]=(i%5)?0.0:1.0;
-  memcpy(InvMVMat,InitialModelMatrix,sizeof(InvMVMat));
-  glInvMat(InvMVMat);
+  updateModelViewMtrx();
 }
 
 
@@ -102,9 +94,9 @@ ViewCtrl::ViewCtrl()
 
 void ViewCtrl::AskForData(Serializer *s){
   if(s->ss->storageid==SRLZ_LAYOUT){
-    s->Item("InitialModelMatrix",Sync(InitialModelMatrix,16));
+    //s->Item("InitialModelMatrix",Sync(InitialModelMatrix,16));
     s->Item("glroshow",Sync(&glroshow));
-    s->Item("zoom",Sync(&zoom));
+    s->Item("zoom",Sync(&m_zoom));
     s->Item("prjtype",Sync(&prjtype));
     s->Item("drawsimple",Sync(&drawsimple));
     //s->Item("show",Sync(&dv->toolpanel->show));
@@ -113,105 +105,100 @@ void ViewCtrl::AskForData(Serializer *s){
 
 void ViewCtrl::TreeScan(TSOCntx *cntx){
   if(cntx==&TSOCntx::TSO_LayoutLoad){
-    // initialize inverse model view matrix and variables;
-    memcpy(InvMVMat,InitialModelMatrix,sizeof(InvMVMat));
-    glInvMat(InvMVMat);
+    //initialize inverse model view matrix and variables;
   }
   if(cntx==&TSOCntx::TSO_Init){
-    //dv->toolpanel->show=1;
   }
 }
 
-void ViewCtrl::SetProjectionMatrix(){
+glm::mat4 const& ViewCtrl::getModelViewMtrx(){
+  return m_MV;
+}
+
+glm::mat4 const& ViewCtrl::updateModelViewMtrx(){
+//  m_MV = glm::translate(glm::scale(glm::mat4(1.0),glm::vec3(zoom,zoom,zoom))*
+//         glm::toMat4(m_rot),m_trans);
+  m_MV = glm::toMat4(m_rot)*glm::translate(glm::mat4{1.0},m_trans);
+  return m_MV;
+}
+
+glm::mat4 const& ViewCtrl::getProjectionMtrx(){
+  return m_P;
+}
+
+glm::mat4 const& ViewCtrl::getProjectionSelectMtrx(){
+  return m_Ps;
+}
+
+glm::mat4 const& ViewCtrl::updateProjectionMtrx(int w, int h, int x, int y){
+
+  prjtype = 1;
+  float nearPlane = 100.f;  //near plane
+  float farPlane =  30000.f;  //far plane
 
   switch(prjtype){
-    float x,y;
   case 0: //orthogonal
-      {
-        glm::mat4 orthov = glm::scale<float>(
-            glm::ortho<float>(-mssh.wndw/2,mssh.wndw/2, -mssh.wndh/2,mssh.wndh/2, -300,300),
-            {zoom,zoom,1});
-        memcpy(PrjMtrxRender, glm::value_ptr(orthov),sizeof(PrjMtrxRender));
-      }
-
-      {
-        x=(mssh.sx0-mssh.wndw/2)/zoom;
-        y=(mssh.wndh/2-mssh.sy0)/zoom;
-        glm::mat4 orthov = glm::scale<float>(
-            glm::frustum<float>(-5+x,5+x,-5+y,5+y,-300,300),
-                                            { zoom,zoom,1});
-        memcpy(PrjMtrxSelect, glm::value_ptr(orthov),sizeof(PrjMtrxSelect));
-      }
-
+      //P = glm::scale(glm::mat4{1.0}, {2.0/w, 2.0/h, -1./(farPlane-nearPlane)});
+      m_P = glm::ortho<float>(-0.5*w, 0.5*w,-0.5*h, 0.5*h, nearPlane, farPlane);
       break;
-    
-  case 1: //frustrum
 
-    float k=2500; // distance from camera to the centre of the object
-
+  case 1: //perspective
       {
-        glm::mat4 orthov = glm::translate(glm::scale<float>(
-            glm::frustum<float>(-mssh.wndw/2,mssh.wndw/2,-mssh.wndh/2,mssh.wndh/2,-300+k,300+k),
-            { zoom*(k/(k-300)),zoom*(k/(k-300)),1}),
-                                          {0,0,-k});
-        memcpy(PrjMtrxRender, glm::value_ptr(orthov),sizeof(PrjMtrxRender));
-      }
+//        float k=400; // focal distance
 
-      {
-        x=(mssh.sx0-mssh.wndw/2)/(zoom*(k/(k-300)));
-        y=(mssh.wndh/2-mssh.sy0)/(zoom*(k/(k-300)));
-        glm::mat4 orthov = glm::translate(glm::scale<float>(
-            glm::frustum<float>(-5+x,5+x,-5+y,5+y,-300+k,300+k),
-            { zoom*(k/(k-300)),zoom*(k/(k-300)),1}),
-                                          {0,0,-k});
-        memcpy(PrjMtrxSelect, glm::value_ptr(orthov),sizeof(PrjMtrxSelect));
+//        m_P = glm::translate(
+//            glm::frustum<float>(-w/2,w/2,-h/2,h/2,k,k+300),
+//                                          {0,0,-k-300/2});
+
+//        qDebug() << m_P[0][0] << m_P[0][1] << m_P[0][2] << m_P[0][3] <<
+//                    m_P[1][0] << m_P[1][1] << m_P[1][2] << m_P[1][3] <<
+//                    m_P[2][0] << m_P[2][1] << m_P[2][2] << m_P[2][3] <<
+//                    m_P[3][0] << m_P[3][1] << m_P[3][2] << m_P[3][3];
+
+        // perspective matrix looking in
+        // z direction (from the camera), y to the up, x to the right
+        m_P = { nearPlane*2.0/w, .0, .0, .0,
+                .0, nearPlane*2.0/h, .0, .0,
+                .0, .0, -(nearPlane+farPlane)/(farPlane-nearPlane), -1,
+                .0, .0, -2*nearPlane*farPlane/(farPlane-nearPlane), 0
+        };
+
+        float aspect = float(w)/h;
+        m_P = glm::perspective(m_fovY, aspect, nearPlane, farPlane);
+
+        // translate camera position to the origin (center of the near plane is origin)
+        //m_P = glm::translate(m_P,{0.,0.,-fd});
+
+//        qDebug() << m_P[0][0] << m_P[0][1] << m_P[0][2] << m_P[0][3] <<
+//                    m_P[1][0] << m_P[1][1] << m_P[1][2] << m_P[1][3] <<
+//                    m_P[2][0] << m_P[2][1] << m_P[2][2] << m_P[2][3] <<
+//                    m_P[3][0] << m_P[3][1] << m_P[3][2] << m_P[3][3];
+
+        //m_Ps = glm::scale(glm::mat4{1},{w/2,h/2,1.})*glm::translate(glm::mat4{1.0}, {-wx,-wy,0.})*m_P;
+
       }
 
     break;
   }
+  {
+    auto wx=2*(x-w/2.)/w;
+    auto wy=2*(h/2. -y)/h;
+    m_Ps = glm::scale(glm::mat4{1.0},{w/2,h/2,1.})*
+        glm::translate(glm::mat4{1.0}, {-wx,-wy,0.})*m_P;
+  }
 
-  // calculate inverse matrix  
-  memcpy(
-    InvMVMat,
-    glm::value_ptr(glm::make_mat4(PrjMtrxRender)*glm::inverse(glm::make_mat4(InitialModelMatrix))),
-    sizeof(InvMVMat));
+
+#if NDEBUG && off //user for debugging object selection (instant zoom on every second mouse click)
+  {
+    bool static useSelectMatrix = false;
+    if(useSelectMatrix)
+      m_P = m_Ps;
+    useSelectMatrix = !useSelectMatrix;
+  }
+#endif
+
+  return m_P;
 }
-
-void ViewCtrl::hitscene(float &x, float &y, float &z){  
-
-  SetProjectionMatrix();
-  glReadPixels(x,mssh.wndh-y,1,1,GL_DEPTH_COMPONENT,GL_FLOAT,&z);
-  //printf("before: px=%f py=%f pz=%f\n", x,y,z);
-  BackScreenTransform(x,y,z);
-  //printf("scene point:  px=%f py=%f pz=%f\n", x,y,z);
-}
-
-void ViewCtrl::BackScreenTransform(float &x, float &y, float &z){
-
-  // see glspec14.pdf section 2.10.1 "Controling Viewport"
-
-  float cx = 2.*float(x-mssh.wndw/2)/mssh.wndw;
-  float cy = 2.*float(mssh.wndh-y-mssh.wndh/2)/mssh.wndh;
-  float cz = z*2-1;
-
-  // taking into consideration that 
-  //      -1            -1            -1            -1
-  // 1 = m (4,1)*x*w + m [4,2]*y*w + m [4,3]*z*w + m [4,4]*w
-  // we have that w can be obtained as:
-  //           -1          -1          -1          -1
-  // w = 1 / (m (4,1)*x + m [4,2]*y + m [4,3]*z + m [4,4])
-  // 
-
-  double w = 1.0/(InvMVMat[3]*cx + InvMVMat[7]*cy +
-		  InvMVMat[11]*cz + InvMVMat[15]);
-
-  Ptn p = { cx*w, cy*w, cz*w };
-  p = glMulMat(InvMVMat,p,w);
-	  
-  x = p.x; y = p.y;  z = p.z; 
-
-}
-
 
 void ViewCtrl::Draw(DrawCntx *cntx){
 
@@ -233,21 +220,17 @@ void ViewCtrl::Draw(DrawCntx *cntx){
     glanimator=0;
   }
 
-  glRotatef(mssh.angle_r,mssh.norm_rx,mssh.norm_ry,mssh.norm_rz);
-  
-  // shift control
-  glTranslated(mssh.shift_x,mssh.shift_y,mssh.shift_z);
-  glMultMatrixf(InitialModelMatrix);
+  glMultMatrixf(glm::value_ptr(getModelViewMtrx()));
 
   glMatrixMode(GL_PROJECTION);
   GLint mode;
   glGetIntegerv(GL_RENDER_MODE,&mode);
   switch (mode){
   case GL_RENDER:
-    glLoadMatrixf(PrjMtrxRender);
+    glLoadMatrixf(glm::value_ptr(getProjectionMtrx()));
     break;
   case GL_SELECT:
-    glLoadMatrixf(PrjMtrxSelect);
+    glLoadMatrixf(glm::value_ptr(getProjectionSelectMtrx()));
     break;
   }
 
@@ -256,70 +239,64 @@ void ViewCtrl::Draw(DrawCntx *cntx){
 
 
 // ZOOMING, ROTATION AND SHIFT PROCESSING
+std::function<void(float x, float y)>
+ViewCtrl::movestart(ViewCtrl::Opercode opercode, float x, float y){
+  switch(opercode){
+  case Translate:
+      return [this, oldX=x, oldY=y, transOld = m_trans](float x, float y)
+      {
+          auto mi = glm::inverse(m_P*glm::toMat4(m_rot));
+          auto from = mi*glm::vec4{oldX, oldY, 0, 1};
+          from /= from[3];
+          auto to = mi*glm::vec4{x, y, 0., 1.};
+          to /= to[3];
 
-void ViewCtrl::Zoom(float r){
-    if(r != 1.0)  zoom *= r;
-    else          zoom = 1;
-    SetProjectionMatrix();
-}
+          m_trans = transOld + glm::vec3(to) - glm::vec3(from);
+          updateModelViewMtrx();
+      };
+      break;
+  case Rotate:
+      return [this, oldX=x, oldY=y, rotOld=m_rot](float x, float y)
+      {
+        auto mi = glm::inverse(m_P);
+        auto from = glm::vec3(mi*glm::vec4{oldX, oldY, 0, 1});
+        auto to = glm::vec3(mi*glm::vec4{x, y, 0., 1.});
+        if(glm::distance(glm::vec2(oldX,oldY),{0.,0.}) > 0.8f){
+          from[2]=to[2]=0;
+        }
+        auto rot = glm::rotation(glm::normalize(from),glm::normalize(to));
+        m_rot = rot * rotOld;
+        updateModelViewMtrx();
+      };
 
-void ViewCtrl::movestart(int oper, int x, int y){
-  opercode=oper;
-  switch(oper){
-  case 1:
-      //dv->drawsimple=drawsimple;
-      mssh.StartMove(x,y);  
       break;
-  case 2:
-      //dv->drawsimple=drawsimple;
-      mssh.StartRotate(x,y);
-      break;
-  case 3:
-      //dv->drawsimple=drawsimple;
-      zoom0=zoom; zoomy=y;
+  case Scale:
+      return [this, transOld=m_trans, oldY=y](float x, float y)
+      {
+        auto mi = glm::inverse(m_P*glm::toMat4(m_rot));
+        auto dir4 = mi*glm::vec4{0, 0, 0, 1};
+        auto dir = glm::vec3(dir4/dir4[3]);
+
+        float dy = (oldY-y);
+        m_trans = transOld + dir * float(-3 * dy);
+        updateModelViewMtrx();
+      };
+
+      return [this, zoomOld=m_zoom, oldY=y](float x, float y)
+      {
+        int dy = (oldY-y);
+        m_zoom = zoomOld*exp(-3 * dy);
+        updateModelViewMtrx();
+      };
       break;
   }
-}
-
-
-void ViewCtrl::movecont(int x, int y){
-  if(opercode==3){
-    int dy = (zoomy-y);
-    zoom = zoom0*(250+dy)/250.;
-    SetProjectionMatrix();
-  }
-  else{
-    mssh.ContinueMOper(x,y);
-  }
-}
-
-void ViewCtrl::movestop(int x, int y){
-  memcpy(InitialModelMatrix,
-      glm::value_ptr(
-           glm::rotate<float>(glm::mat4(1.0), mssh.angle_r*glm::pi<float>()/180., {mssh.norm_rx,mssh.norm_ry,mssh.norm_rz})*
-           glm::translate<float>(glm::mat4(1.0),{mssh.shift_x,mssh.shift_y,mssh.shift_z})*
-           glm::make_mat4(InitialModelMatrix)),
-      sizeof(InitialModelMatrix));
-
-//  auto m =
-//        glm::translate<float>(
-//        glm::rotate<float>(
-//          glm::mat4(1.0),
-//               glm::pi<float>()*mssh.angle_r/180., {mssh.norm_rx,mssh.norm_ry,mssh.norm_rz}),
-//               {mssh.shift_x,mssh.shift_y,mssh.shift_z})*
-//      glm::make_mat4(InitialModelMatrix);
-//  memcpy(InitialModelMatrix, glm::value_ptr(m), sizeof(InitialModelMatrix));
-
-  memcpy(InvMVMat, glm::value_ptr(glm::inverse(glm::make_mat4(InitialModelMatrix))), sizeof(InvMVMat));
-
-  mssh.StopMOper();
-  opercode=0;
+  return {};
 }
 
 void ViewCtrl::reset(){
-  Zoom(1.0);
-  int i;
-  for(i=0; i<16; i++) InitialModelMatrix[i]=(i%5)?0.0:1.0;
-  memcpy(InvMVMat,InitialModelMatrix,sizeof(InvMVMat));
-  glInvMat(InvMVMat);
+  m_zoom = 1.;
+  m_rot = {1.0,.0,.0,.0};
+  m_trans = {.0,.0,-700};
+  updateModelViewMtrx();
 }
+

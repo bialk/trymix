@@ -19,21 +19,21 @@ void ToolPanel::Draw(DrawCntx *cntx){
     GLint mode;
     glGetIntegerv(GL_RENDER_MODE,&mode);  
     float x,y;
-    switch (mode){ 
-      case GL_RENDER:
-        glOrtho(-cntx->w()/2,cntx->w()/2,-cntx->h()/2,cntx->h()/2,-300,300);
-        break;
-      case GL_SELECT:
-        x=(m_viewctrl->mssh.sx0 - cntx->w()/2);
-        y=(cntx->h()/2 - m_viewctrl->mssh.sy0);
-        glOrtho(-5+x,5+x,-5+y,5+y,-500,500);
-        break;
-    }
+//    switch (mode){
+//      case GL_RENDER:
+//        glOrtho(-cntx->w()/2,cntx->w()/2,-cntx->h()/2,cntx->h()/2,-300,300);
+//        break;
+//      case GL_SELECT:
+//        x=(m_viewctrl->mssh.sx0 - cntx->w()/2);
+//        y=(cntx->h()/2 - m_viewctrl->mssh.sy0);
+//        glOrtho(-5+x,5+x,-5+y,5+y,-500,500);
+//        break;
+//    }
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-    glTranslatef((-m_viewctrl->mssh.wndw/2+100*(i+0.7)),(m_viewctrl->mssh.wndh/2-60),200);
+    //glTranslatef((-m_viewctrl->mssh.wndw/2+100*(i+0.7)),(m_viewctrl->mssh.wndh/2-60),200);
 
     iconvector[i]->Draw(cntx);
 

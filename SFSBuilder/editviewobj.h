@@ -53,8 +53,8 @@ class EditViewObj{
   virtual ~EditViewObj(){};
 
   virtual void Draw(DrawCntx *cntx) = 0;
-  //virtual void TreeScan(TSOCntx *){};
-  //virtual void AskForData(Serializer *s){};
+  virtual void TreeScan(TSOCntx *){};
+  virtual void AskForData(Serializer *s){};
 
 };
 
