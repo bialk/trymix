@@ -77,12 +77,9 @@ ViewCtrl::~ViewCtrl()
 }
 
 ViewCtrl::ViewCtrl()
-   :m_zoom(1)
-   ,play(0)
+   :m_scale(1)
    ,background(0)
    ,prjtype(0)
-   ,drawsimple(1)
-   ,glroshow(0)
    ,play_method(0)
 {
   // initialize model view matrix as identity matrix 
@@ -95,10 +92,7 @@ ViewCtrl::ViewCtrl()
 void ViewCtrl::AskForData(Serializer *s){
   if(s->ss->storageid==SRLZ_LAYOUT){
     //s->Item("InitialModelMatrix",Sync(InitialModelMatrix,16));
-    s->Item("glroshow",Sync(&glroshow));
-    s->Item("zoom",Sync(&m_zoom));
     s->Item("prjtype",Sync(&prjtype));
-    s->Item("drawsimple",Sync(&drawsimple));
     //s->Item("show",Sync(&dv->toolpanel->show));
   }
 }
@@ -130,7 +124,12 @@ glm::mat4 const& ViewCtrl::getProjectionSelectMtrx(){
   return m_Ps;
 }
 
-glm::mat4 const& ViewCtrl::updateProjectionMtrx(int w, int h, int x, int y){
+void ViewCtrl::setGeometry(int w, int h){
+  m_w = w; m_h = h;
+  updateProjectionMtrx();
+}
+
+glm::mat4 const& ViewCtrl::updateProjectionMtrx(int x, int y){
 
   prjtype = 1;
   float nearPlane = 100.f;  //near plane
@@ -139,7 +138,7 @@ glm::mat4 const& ViewCtrl::updateProjectionMtrx(int w, int h, int x, int y){
   switch(prjtype){
   case 0: //orthogonal
       //P = glm::scale(glm::mat4{1.0}, {2.0/w, 2.0/h, -1./(farPlane-nearPlane)});
-      m_P = glm::ortho<float>(-0.5*w, 0.5*w,-0.5*h, 0.5*h, nearPlane, farPlane);
+      m_P = glm::ortho<float>(-0.5*m_w, 0.5*m_w,-0.5*m_h, 0.5*m_h, nearPlane, farPlane);
       break;
 
   case 1: //perspective
@@ -157,13 +156,13 @@ glm::mat4 const& ViewCtrl::updateProjectionMtrx(int w, int h, int x, int y){
 
         // perspective matrix looking in
         // z direction (from the camera), y to the up, x to the right
-        m_P = { nearPlane*2.0/w, .0, .0, .0,
-                .0, nearPlane*2.0/h, .0, .0,
+        m_P = { nearPlane*2.0/m_w, .0, .0, .0,
+                .0, nearPlane*2.0/m_h, .0, .0,
                 .0, .0, -(nearPlane+farPlane)/(farPlane-nearPlane), -1,
                 .0, .0, -2*nearPlane*farPlane/(farPlane-nearPlane), 0
         };
 
-        float aspect = float(w)/h;
+        float aspect = float(m_w)/m_h;
         m_P = glm::perspective(m_fovY, aspect, nearPlane, farPlane);
 
         // translate camera position to the origin (center of the near plane is origin)
@@ -181,9 +180,9 @@ glm::mat4 const& ViewCtrl::updateProjectionMtrx(int w, int h, int x, int y){
     break;
   }
   {
-    auto wx=2*(x-w/2.)/w;
-    auto wy=2*(h/2. -y)/h;
-    m_Ps = glm::scale(glm::mat4{1.0},{w/2,h/2,1.})*
+    auto wx=2*(x-m_w/2.)/m_w;
+    auto wy=2*(m_h/2. -y)/m_h;
+    m_Ps = glm::scale(glm::mat4{1.0},{m_w/2,m_h/2,1.})*
         glm::translate(glm::mat4{1.0}, {-wx,-wy,0.})*m_P;
   }
 
@@ -240,7 +239,7 @@ void ViewCtrl::Draw(DrawCntx *cntx){
 
 // ZOOMING, ROTATION AND SHIFT PROCESSING
 std::function<void(float x, float y)>
-ViewCtrl::movestart(ViewCtrl::Opercode opercode, float x, float y){
+ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
   switch(opercode){
   case Translate:
       return [this, oldX=x, oldY=y, transOld = m_trans](float x, float y)
@@ -278,23 +277,32 @@ ViewCtrl::movestart(ViewCtrl::Opercode opercode, float x, float y){
         auto dir = glm::vec3(dir4/dir4[3]);
 
         float dy = (oldY-y);
-        m_trans = transOld + dir * float(-3 * dy);
+        m_trans = transOld + dir * float(3 * dy);
         updateModelViewMtrx();
       };
 
-      return [this, zoomOld=m_zoom, oldY=y](float x, float y)
+      return [this, zoomOld=m_scale, oldY=y](float x, float y)
       {
-        int dy = (oldY-y);
-        m_zoom = zoomOld*exp(-3 * dy);
+        float dy = (oldY-y);
+        m_scale = zoomOld*exp(3 * dy);
         updateModelViewMtrx();
       };
       break;
+    case FoV:
+      return [this, fovYOld=m_fovY, oldY=y](float x, float y)
+      {
+        float dy = (oldY-y);
+        m_fovY = std::clamp(fovYOld*expf(3 * dy),glm::radians(5.f),glm::radians(70.f));
+        updateProjectionMtrx();
+      };
+      break;
+
   }
   return {};
 }
 
 void ViewCtrl::reset(){
-  m_zoom = 1.;
+  m_scale = 1.;
   m_rot = {1.0,.0,.0,.0};
   m_trans = {.0,.0,-700};
   updateModelViewMtrx();
