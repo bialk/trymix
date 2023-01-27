@@ -27,9 +27,11 @@ class ViewCtrl: public EditViewObj{
   glm::mat4 const& updateModelViewMtrx();
 
   glm::mat4 const& getProjectionMtrx();
-  void setGeometry(int w, int h);
-  glm::mat4 const& updateProjectionMtrx(int x=0, int y=0);
-  glm::mat4 const& getProjectionSelectMtrx();
+  glm::mat4 const& updateProjectionMtrx(int w, int h);
+  glm::mat4 const& updateProjectionMtrx();
+
+  glm::mat4 const& updateSelectionMtrx(float gx=0, float gy=0);
+  glm::mat4 const& getSelectionMtrx();
 
   std::function<void(float x, float y)>  startOperation(ViewCtrl::Opercode opercode, float x, float y);
   void reset();

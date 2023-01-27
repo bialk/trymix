@@ -120,16 +120,16 @@ glm::mat4 const& ViewCtrl::getProjectionMtrx(){
   return m_P;
 }
 
-glm::mat4 const& ViewCtrl::getProjectionSelectMtrx(){
+glm::mat4 const& ViewCtrl::getSelectionMtrx(){
   return m_Ps;
 }
 
-void ViewCtrl::setGeometry(int w, int h){
+glm::mat4 const& ViewCtrl::updateProjectionMtrx(int w, int h){
   m_w = w; m_h = h;
-  updateProjectionMtrx();
+  return updateProjectionMtrx();
 }
 
-glm::mat4 const& ViewCtrl::updateProjectionMtrx(int x, int y){
+glm::mat4 const& ViewCtrl::updateProjectionMtrx(){
 
   prjtype = 1;
   float nearPlane = 100.f;  //near plane
@@ -137,66 +137,38 @@ glm::mat4 const& ViewCtrl::updateProjectionMtrx(int x, int y){
 
   switch(prjtype){
   case 0: //orthogonal
-      //P = glm::scale(glm::mat4{1.0}, {2.0/w, 2.0/h, -1./(farPlane-nearPlane)});
       m_P = glm::ortho<float>(-0.5*m_w, 0.5*m_w,-0.5*m_h, 0.5*m_h, nearPlane, farPlane);
       break;
-
   case 1: //perspective
       {
-//        float k=400; // focal distance
-
-//        m_P = glm::translate(
-//            glm::frustum<float>(-w/2,w/2,-h/2,h/2,k,k+300),
-//                                          {0,0,-k-300/2});
-
-//        qDebug() << m_P[0][0] << m_P[0][1] << m_P[0][2] << m_P[0][3] <<
-//                    m_P[1][0] << m_P[1][1] << m_P[1][2] << m_P[1][3] <<
-//                    m_P[2][0] << m_P[2][1] << m_P[2][2] << m_P[2][3] <<
-//                    m_P[3][0] << m_P[3][1] << m_P[3][2] << m_P[3][3];
-
-        // perspective matrix looking in
-        // z direction (from the camera), y to the up, x to the right
-        m_P = { nearPlane*2.0/m_w, .0, .0, .0,
-                .0, nearPlane*2.0/m_h, .0, .0,
-                .0, .0, -(nearPlane+farPlane)/(farPlane-nearPlane), -1,
-                .0, .0, -2*nearPlane*farPlane/(farPlane-nearPlane), 0
-        };
-
         float aspect = float(m_w)/m_h;
         m_P = glm::perspective(m_fovY, aspect, nearPlane, farPlane);
-
-        // translate camera position to the origin (center of the near plane is origin)
-        //m_P = glm::translate(m_P,{0.,0.,-fd});
-
-//        qDebug() << m_P[0][0] << m_P[0][1] << m_P[0][2] << m_P[0][3] <<
-//                    m_P[1][0] << m_P[1][1] << m_P[1][2] << m_P[1][3] <<
-//                    m_P[2][0] << m_P[2][1] << m_P[2][2] << m_P[2][3] <<
-//                    m_P[3][0] << m_P[3][1] << m_P[3][2] << m_P[3][3];
-
-        //m_Ps = glm::scale(glm::mat4{1},{w/2,h/2,1.})*glm::translate(glm::mat4{1.0}, {-wx,-wy,0.})*m_P;
-
       }
 
     break;
   }
-  {
-    auto wx=2*(x-m_w/2.)/m_w;
-    auto wy=2*(m_h/2. -y)/m_h;
-    m_Ps = glm::scale(glm::mat4{1.0},{m_w/2,m_h/2,1.})*
-        glm::translate(glm::mat4{1.0}, {-wx,-wy,0.})*m_P;
-  }
+  return m_P;
+}
+
+glm::mat4 const& ViewCtrl::updateSelectionMtrx(float gx, float gy){
 
 
-#if NDEBUG && off //user for debugging object selection (instant zoom on every second mouse click)
+  m_Ps = glm::scale(glm::mat4{1.0},{m_w/2,m_h/2,1.})*
+      glm::translate(glm::mat4{1.0}, {-gx,-gy,0.})*m_P;
+
+//use for debugging object selection (instant zoom on every second mouse click)
+#if !NDEBUG && off
   {
     bool static useSelectMatrix = false;
     if(useSelectMatrix)
       m_P = m_Ps;
+    else
+      updateProjectionMtrx();
     useSelectMatrix = !useSelectMatrix;
   }
 #endif
 
-  return m_P;
+  return m_Ps;
 }
 
 void ViewCtrl::Draw(DrawCntx *cntx){
@@ -229,7 +201,7 @@ void ViewCtrl::Draw(DrawCntx *cntx){
     glLoadMatrixf(glm::value_ptr(getProjectionMtrx()));
     break;
   case GL_SELECT:
-    glLoadMatrixf(glm::value_ptr(getProjectionSelectMtrx()));
+    glLoadMatrixf(glm::value_ptr(getSelectionMtrx()));
     break;
   }
 

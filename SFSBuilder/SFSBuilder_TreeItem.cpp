@@ -93,14 +93,14 @@ namespace {
       {
 //        m_vp->mssh.wndw=cx.x(); vc->mssh.wndh=cx.y();
 //        m_vp->SetProjectionMatrix();
-        m_vp->setGeometry(cx.w(),cx.h());
+        m_vp->updateProjectionMtrx(cx.w(),cx.h());
         cx.update();
       };
 
       addReact("M:L:DOWN") = [=](EventContext3D& cx){
       //addReact("M:MOVE") = [=](EventContext3D& cx){
         //m_vp->setGeometry(cx.w(), cx.h());
-        m_vp->updateProjectionMtrx(cx.x(), cx.y());
+        m_vp->updateSelectionMtrx(cx.glx(), cx.gly());
 //        m_vp->mssh.sx0=cx.x(); m_vp->mssh.sy0=cx.y();
 //        m_vp->SetProjectionMatrix();
         auto id = cx.select();
@@ -221,7 +221,7 @@ SFSBuilder_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
     cw->eventContext().pushHandler(m_viewCtrlEH.get());
 
     // update viewport size if it was changed before
-    m_viewCtrl->setGeometry(cw->width(),cw->height());
+    m_viewCtrl->updateProjectionMtrx(cw->width(),cw->height());
 //    m_viewCtrl->mssh.wndw=cw->width(); m_viewCtrl->mssh.wndh=cw->height();
 //    m_viewCtrl->SetProjectionMatrix();
   }
