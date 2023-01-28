@@ -40,7 +40,7 @@ namespace {
 
       addReact("K:X:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
       {
-        auto dragProcessor = m_vp->startOperation(ViewCtrl::Translate,cx.glx(),cx.gly());
+        auto dragProcessor = m_vp->startOperation(ViewCtrl::origRotate,cx.glx(),cx.gly());
         m_dragHandler = std::make_unique<EventHandler3D>();
         m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
           dragProcessor(cx.glx(),cx.gly());
@@ -57,7 +57,7 @@ namespace {
 
       addReact("K:C:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
       {
-        auto dragProcessor = m_vp->startOperation(ViewCtrl::Rotate,cx.glx(),cx.gly());
+        auto dragProcessor = m_vp->startOperation(ViewCtrl::CamRotate,cx.glx(),cx.gly());
         m_dragHandler = std::make_unique<EventHandler3D>();
         m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
           dragProcessor(cx.glx(),cx.gly());
@@ -91,15 +91,12 @@ namespace {
 
       addReact("S:RESIZE") = [=](EventContext3D& cx)
       {
-//        m_vp->mssh.wndw=cx.x(); vc->mssh.wndh=cx.y();
-//        m_vp->SetProjectionMatrix();
         m_vp->updateProjectionMtrx(cx.w(),cx.h());
         cx.update();
       };
 
       addReact("M:L:DOWN") = [=](EventContext3D& cx){
       //addReact("M:MOVE") = [=](EventContext3D& cx){
-        //m_vp->setGeometry(cx.w(), cx.h());
         m_vp->updateSelectionMtrx(cx.glx(), cx.gly());
 //        m_vp->mssh.sx0=cx.x(); m_vp->mssh.sy0=cx.y();
 //        m_vp->SetProjectionMatrix();
@@ -171,7 +168,7 @@ void
 SFSBuilder_TreeItem::showModel(DrawCntx* cx)
 {
   glClearDepth(1.0);
-  if(m_viewCtrl->background==0)
+  if(m_viewCtrl->m_background==0)
     glClearColor(.0, .0, .0, 0.0);
   else
     glClearColor(1.0, 1.0, 1.0, 0.0);

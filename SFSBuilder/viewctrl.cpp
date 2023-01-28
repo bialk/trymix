@@ -6,6 +6,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/geometric.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include <fstream>
 #include <math.h>
@@ -78,8 +79,8 @@ ViewCtrl::~ViewCtrl()
 
 ViewCtrl::ViewCtrl()
    :m_scale(1)
-   ,background(0)
-   ,prjtype(0)
+   ,m_background(0)
+   ,m_prjtype(0)
    ,play_method(0)
 {
   // initialize model view matrix as identity matrix 
@@ -92,7 +93,7 @@ ViewCtrl::ViewCtrl()
 void ViewCtrl::AskForData(Serializer *s){
   if(s->ss->storageid==SRLZ_LAYOUT){
     //s->Item("InitialModelMatrix",Sync(InitialModelMatrix,16));
-    s->Item("prjtype",Sync(&prjtype));
+    s->Item("prjtype",Sync(&m_prjtype));
     //s->Item("show",Sync(&dv->toolpanel->show));
   }
 }
@@ -131,18 +132,16 @@ glm::mat4 const& ViewCtrl::updateProjectionMtrx(int w, int h){
 
 glm::mat4 const& ViewCtrl::updateProjectionMtrx(){
 
-  prjtype = 1;
-  float nearPlane = 100.f;  //near plane
-  float farPlane =  30000.f;  //far plane
+  m_prjtype = 1;
 
-  switch(prjtype){
+  switch(m_prjtype){
   case 0: //orthogonal
-      m_P = glm::ortho<float>(-0.5*m_w, 0.5*m_w,-0.5*m_h, 0.5*m_h, nearPlane, farPlane);
+      m_P = glm::ortho<float>(-0.5*m_w, 0.5*m_w,-0.5*m_h, 0.5*m_h, m_nearPlane, m_farPlane);
       break;
   case 1: //perspective
       {
         float aspect = float(m_w)/m_h;
-        m_P = glm::perspective(m_fovY, aspect, nearPlane, farPlane);
+        m_P = glm::perspective(m_fovY, aspect, m_nearPlane, m_farPlane);
       }
 
     break;
@@ -174,7 +173,7 @@ glm::mat4 const& ViewCtrl::updateSelectionMtrx(float gx, float gy){
 void ViewCtrl::Draw(DrawCntx *cntx){
 
   glClearDepth(1.0);
-  if(background==0)
+  if(m_background==0)
     glClearColor(.0, .0, .0, 0.0);
   else
     glClearColor(1.0, 1.0, 1.0, 0.0);  
@@ -213,35 +212,59 @@ void ViewCtrl::Draw(DrawCntx *cntx){
 std::function<void(float x, float y)>
 ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
   switch(opercode){
-  case Translate:
+    case Translate:
       return [this, oldX=x, oldY=y, transOld = m_trans](float x, float y)
       {
-          auto mi = glm::inverse(m_P*glm::toMat4(m_rot));
-          auto from = mi*glm::vec4{oldX, oldY, 0, 1};
-          from /= from[3];
-          auto to = mi*glm::vec4{x, y, 0., 1.};
-          to /= to[3];
+        auto mi = glm::inverse(m_P*glm::toMat4(m_rot));
+        auto from = mi*glm::vec4{oldX, oldY, 0, 1};
+        from /= from[3];
+        auto to = mi*glm::vec4{x, y, 0., 1.};
+        to /= to[3];
 
-          m_trans = transOld + glm::vec3(to) - glm::vec3(from);
-          updateModelViewMtrx();
+        m_trans = transOld + glm::vec3(to) - glm::vec3(from);
+        updateModelViewMtrx();
       };
       break;
-  case Rotate:
+
+    case CamRotate:
       return [this, oldX=x, oldY=y, rotOld=m_rot](float x, float y)
       {
         auto mi = glm::inverse(m_P);
         auto from = glm::vec3(mi*glm::vec4{oldX, oldY, 0, 1});
         auto to = glm::vec3(mi*glm::vec4{x, y, 0., 1.});
-        if(glm::distance(glm::vec2(oldX,oldY),{0.,0.}) > 0.8f){
+        if(glm::distance(glm::vec2(oldX,oldY),{0.,0.}) > sqrtf(1.5f)){
           from[2]=to[2]=0;
         }
         auto rot = glm::rotation(glm::normalize(from),glm::normalize(to));
         m_rot = rot * rotOld;
         updateModelViewMtrx();
       };
-
       break;
-  case Scale:
+
+    case origRotate:
+      {
+        auto oldD = glm::rotate(glm::inverse(m_rot), glm::vec3{0.,0.,1.}); // get camera direction
+
+        return [this, oldX=x, oldY=y, oldTrans = m_trans, oldD, rotOld=m_rot](float x, float y)
+        {
+          auto from = glm::vec4{oldX, oldY, 0, 1}-glm::vec4{0, 0, -1., 1};
+          auto to = glm::vec4{x, y, 0, 1}-glm::vec4{0, 0, -1., 1};
+          if(glm::distance(glm::vec2(oldX,oldY),{0.,0.}) > sqrtf(1.5f)){
+            from[2]=to[2]=0;
+          }
+          auto rot = (glm::rotation(glm::normalize(glm::vec3(from)),glm::normalize(glm::vec3(to))));
+          m_rot = rot * rotOld;
+
+          // get new camera direction
+          auto d = glm::rotate(glm::inverse(m_rot), glm::vec3{0.,0.,1.});
+
+          // correct translation to make rotatin around center (oldD*m_rotDistance)
+          m_trans = oldTrans + m_rotDistance*(d-oldD);
+          updateModelViewMtrx();
+        };
+      }
+      break;
+    case Scale:
       return [this, transOld=m_trans, oldY=y](float x, float y)
       {
         auto mi = glm::inverse(m_P*glm::toMat4(m_rot));
@@ -250,6 +273,7 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
 
         float dy = (oldY-y);
         m_trans = transOld + dir * float(3 * dy);
+        m_rotDistance = -glm::distance(m_trans,{0.,0.,0.});
         updateModelViewMtrx();
       };
 
@@ -268,7 +292,6 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
         updateProjectionMtrx();
       };
       break;
-
   }
   return {};
 }

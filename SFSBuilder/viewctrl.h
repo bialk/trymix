@@ -11,7 +11,8 @@ class ViewCtrl: public EditViewObj{
 
   // view camera point controlling methods
   enum Opercode{
-    Rotate,
+    CamRotate,
+    origRotate,
     Translate,
     Scale,
     FoV
@@ -36,19 +37,23 @@ class ViewCtrl: public EditViewObj{
   std::function<void(float x, float y)>  startOperation(ViewCtrl::Opercode opercode, float x, float y);
   void reset();
 
-  int background; // 0 - black, 1 - white
+  int m_background; // 0 - black, 1 - white
 
 private:
-  int prjtype;    // 1 - orthogonal, 2 - perspecive
+  int m_prjtype;    // 1 - orthogonal, 2 - perspecive
   
   void fplay();
   int play_method;
 
   float m_w,m_h;
+  float m_nearPlane = 100.f;  //near plane
+  float m_farPlane =  3000.f;  //far plane
+
   float m_scale=1.f;
   float m_fovY=glm::radians(35.f);
   glm::quat m_rot{1.0,.0,.0,.0};
-  glm::vec3 m_trans{.0,.0,-200};
+  glm::vec3 m_trans{-50.,-50.,-600};
+  float m_rotDistance = -glm::l2Norm(m_trans);
 
   glm::mat4 m_P{1.0};
   glm::mat4 m_Ps{1.0};
