@@ -298,17 +298,16 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
       }
       break;
     case Scale:
-      return [this, transOld=m_trans, rotDistanceOld = m_rotDistance, oldY=y](float x, float y)
       {
-        auto mi = glm::inverse(m_P*glm::toMat4(m_rot));
-        auto dir4 = mi*glm::vec4{0, 0, 0, 1};
-        auto dir = glm::vec3(dir4/dir4[3]);
-
-        float dy = (oldY-y);
-        m_trans = transOld + dir * float(3 * dy);
-        m_rotDistance = rotDistanceOld - float((dy > 0) - (dy < 0)) * glm::l2Norm(dir * float(3 * dy));
-        updateModelViewMtrx();
-      };
+        auto dir = glm::rotate(glm::inverse(m_rot),{0.,0.,1.});
+        return [this, transOld=m_trans, dir, rotDistanceOld = m_rotDistance, oldY=y](float x, float y)
+        {
+          float dy = (oldY-y);
+          m_rotDistance = rotDistanceOld * exp(2.f * dy);
+          m_trans = transOld + dir*(m_rotDistance - rotDistanceOld);
+          updateModelViewMtrx();
+        };
+      }
 
       return [this, zoomOld=m_scale, oldY=y](float x, float y)
       {
@@ -318,16 +317,16 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
       };
       break;
     case FoV:
-      auto dir = glm::normalize(glm::rotate(glm::inverse(m_rot),{0.,0.,1.}));
+      auto dir = glm::rotate(glm::inverse(m_rot),{0.,0.,1.});
       return [this, fovYOld=m_fovY, oldY=y, transOld=m_trans, rotDistanceOld=m_rotDistance, dir](float x, float y)
       {
         float dy = (oldY-y);
         m_fovY = std::clamp(fovYOld*expf(3. * dy),glm::radians(5.f),glm::radians(70.f));
 
+        // compensating zoom(FoV) by moving camera in depth such way that object on
+        // m_rotDistance will stay unscaled
         m_rotDistance = rotDistanceOld*(tan(0.5*fovYOld)/tan(0.5*m_fovY));
         auto delta = -m_rotDistance + rotDistanceOld;
-
-        qDebug() << "distance: " << m_rotDistance << fovYOld <<m_fovY <<sin(fovYOld)/sin(m_fovY);
         m_trans = transOld - dir*delta;
 
         updateModelViewMtrx();
