@@ -203,7 +203,6 @@ void ViewCtrl::Draw(DrawCntx *cntx){
     glLoadMatrixf(glm::value_ptr(getSelectionMtrx()));
     break;
   }
-
 }
 
 
@@ -227,7 +226,7 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
       break;
 
     case CamRotate:
-      return [this, oldX=x, oldY=y, rotOld=m_rot](float x, float y)
+      return [this, oldX=x, oldY=y, rotDistanceOld = m_rotDistance, rotOld=m_rot](float x, float y)
       {
         auto mi = glm::inverse(m_P);
         auto from = glm::vec3(mi*glm::vec4{oldX, oldY, 0, 1});
@@ -237,6 +236,31 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
         }
         auto rot = glm::rotation(glm::normalize(from),glm::normalize(to));
         m_rot = rot * rotOld;
+
+        {
+          m_prevOperIsCamRotation = true;
+
+          m_dir2 = glm::rotate(glm::inverse(m_rot),{0.,0.,1.});
+          m_s2 = m_trans;
+
+          auto a11 = glm::dot(m_dir1,m_dir1);
+          auto a22 = glm::dot(m_dir2,m_dir2);
+          auto a12 = glm::dot(m_dir1,m_dir2);
+
+          auto p1 = dot(m_s2-m_s1,m_dir1);
+          auto p2 = dot(m_s1-m_s2,m_dir2);
+
+          auto denom = a11*a22 - a12*a12;
+          if(fabs(denom) > 1.e-5 && glm::distance(p1,p2) > 1.e-5){
+            auto rdist = (a11*p2 + a12*p1)/denom;
+            m_rotDistance = rdist > fabs(m_rotDistance)/10.f?-rdist:rotDistanceOld;
+          }
+          else
+            m_rotDistance = rotDistanceOld;
+
+          //qDebug() << "rotDistance: "  << m_rotDistance;
+        }
+
         updateModelViewMtrx();
       };
       break;
@@ -247,6 +271,14 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
 
         return [this, oldX=x, oldY=y, oldTrans = m_trans, oldD, rotOld=m_rot](float x, float y)
         {
+          // remember last "ray from screen" position from last camera rotation
+          if(m_prevOperIsCamRotation){
+            //qDebug() << "stack previous ray from screen position";
+            m_s1 = m_s2;
+            m_dir1 = m_dir2;
+            m_prevOperIsCamRotation = false;
+          }
+
           auto from = glm::vec4{oldX, oldY, 0, 1}-glm::vec4{0, 0, -1., 1};
           auto to = glm::vec4{x, y, 0, 1}-glm::vec4{0, 0, -1., 1};
           if(glm::distance(glm::vec2(oldX,oldY),{0.,0.}) > sqrtf(1.5f)){
@@ -260,12 +292,13 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
 
           // correct translation to make rotatin around center (oldD*m_rotDistance)
           m_trans = oldTrans + m_rotDistance*(d-oldD);
+
           updateModelViewMtrx();
         };
       }
       break;
     case Scale:
-      return [this, transOld=m_trans, oldY=y](float x, float y)
+      return [this, transOld=m_trans, rotDistanceOld = m_rotDistance, oldY=y](float x, float y)
       {
         auto mi = glm::inverse(m_P*glm::toMat4(m_rot));
         auto dir4 = mi*glm::vec4{0, 0, 0, 1};
@@ -273,7 +306,7 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
 
         float dy = (oldY-y);
         m_trans = transOld + dir * float(3 * dy);
-        m_rotDistance = -glm::distance(m_trans,{0.,0.,0.});
+        m_rotDistance = rotDistanceOld - float((dy > 0) - (dy < 0)) * glm::l2Norm(dir * float(3 * dy));
         updateModelViewMtrx();
       };
 
@@ -285,10 +318,19 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
       };
       break;
     case FoV:
-      return [this, fovYOld=m_fovY, oldY=y](float x, float y)
+      auto dir = glm::normalize(glm::rotate(glm::inverse(m_rot),{0.,0.,1.}));
+      return [this, fovYOld=m_fovY, oldY=y, transOld=m_trans, rotDistanceOld=m_rotDistance, dir](float x, float y)
       {
         float dy = (oldY-y);
-        m_fovY = std::clamp(fovYOld*expf(3 * dy),glm::radians(5.f),glm::radians(70.f));
+        m_fovY = std::clamp(fovYOld*expf(3. * dy),glm::radians(5.f),glm::radians(70.f));
+
+        m_rotDistance = rotDistanceOld*(tan(0.5*fovYOld)/tan(0.5*m_fovY));
+        auto delta = -m_rotDistance + rotDistanceOld;
+
+        qDebug() << "distance: " << m_rotDistance << fovYOld <<m_fovY <<sin(fovYOld)/sin(m_fovY);
+        m_trans = transOld - dir*delta;
+
+        updateModelViewMtrx();
         updateProjectionMtrx();
       };
       break;

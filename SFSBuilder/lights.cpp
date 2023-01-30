@@ -52,11 +52,11 @@ void Icon3DLight::Draw(DrawCntx *cntx) {
     GLfloat mat_one[] = {1., 1., 1., 1.}; 
     GLfloat mat_half[] = {0.5, 0.5, 0.5, 1.}; 
 
-    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat_zero); 
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat_zero);
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_zero );
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_zero); 
-    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION,  mat_zero); 
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_zero); 
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_zero);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION,  mat_zero);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_zero);
 
     if(lights->selectid==glsel_name) {
       glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_one); 

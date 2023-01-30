@@ -46,18 +46,26 @@ private:
   int play_method;
 
   float m_w,m_h;
-  float m_nearPlane = 100.f;  //near plane
-  float m_farPlane =  3000.f;  //far plane
+  float m_nearPlane = 10.f;  //near plane
+  float m_farPlane =  6000.f;  //far plane
+
+  bool m_prevOperIsCamRotation = false;
 
   float m_scale=1.f;
   float m_fovY=glm::radians(35.f);
   glm::quat m_rot{1.0,.0,.0,.0};
-  glm::vec3 m_trans{-50.,-50.,-600};
+  glm::vec3 m_trans{-0.,-0.,-600};
   float m_rotDistance = -glm::l2Norm(m_trans);
 
   glm::mat4 m_P{1.0};
   glm::mat4 m_Ps{1.0};
   glm::mat4 m_MV{1.0};
+
+  glm::vec3 m_dir1{0.,0,.1};
+  glm::vec3 m_s1{m_trans};
+  glm::vec3 m_dir2{0.,0,.1};
+  glm::vec3 m_s2{m_trans};
+
 };
 
 

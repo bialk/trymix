@@ -6,10 +6,12 @@
 #include "toolspanel.h"
 #include "EventHandling.h"
 #include "CentralWidget.h"
+#include "testScene.h"
 
 #include <QOpenGLWidget>
 #include <QPainter>
 #include <QDebug>
+
 
 namespace {
   class EventHandler_PositionController2: public EventHandler3D{
@@ -157,6 +159,7 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());
 
+  drawTestScene();
 
   m_sfs->TreeScan(&TSOCntx::TSO_ProjectLoad);
   m_sfs->Build();
@@ -195,10 +198,14 @@ SFSBuilder_TreeItem::showModel(DrawCntx* cx)
   m_viewCtrl->Draw(cx);
   m_lights->Draw(cx);
 
+  drawTestScene();
+
+#ifdef off
   m_sfs->image_mode = ImagePlane::image_mode_image;
   m_sfs->shape_mode = ImagePlane::shape_mode_image;
   m_sfs->edit_mode = ImagePlane::edit_mode_off;
   m_sfs->Draw(cx);
+#endif
 
   m_toolsPanel->Draw(cx);
 }

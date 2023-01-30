@@ -156,6 +156,7 @@ set(PROJECT_SOURCES
 
     EventHandling.h EventHandling.cpp
     EventParser.h EventParser.cpp
+    testScene.cpp testScene.h
 
     omi_triang.qrc
 
