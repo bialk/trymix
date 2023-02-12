@@ -1,6 +1,8 @@
 #include "viewctrl.h"
 #include "apputil/serializer.h"
 
+#include "EventHandling.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -200,6 +202,7 @@ void ViewCtrl::Draw(DrawCntx *cntx){
     glLoadMatrixf(glm::value_ptr(getProjectionMtrx()));
     break;
   case GL_SELECT:
+    updateSelectionMtrx(cntx->eventContext().glx(), cntx->eventContext().gly());
     glLoadMatrixf(glm::value_ptr(getSelectionMtrx()));
     break;
   }

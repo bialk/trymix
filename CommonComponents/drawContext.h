@@ -4,6 +4,7 @@
 class Serializer;
 class QOpenGLWidget;
 class CentralWidget;
+class EventContext3D;
 
 #define SRLZ_LAYOUT   1
 #define SRLZ_PROJECT  2
@@ -39,13 +40,16 @@ class DrawCntx{
   void trySetGLName(int& glname);
   int w();
   int h();
-  int sel_x();
-  int sel_y();
+  void setEventContext(EventContext3D* eventContext);
+  EventContext3D &eventContext();
   void update();
 
 private:  
-  CentralWidget* m_centralWidget;
-  int m_glnamecount = 0;  
+  CentralWidget* m_centralWidget{nullptr};
+  EventContext3D* m_eventContext{nullptr};
+  int m_glnamecount = 0;
+  int m_sel_x {0};
+  int m_sel_y {0};
 };
 
 class EditViewObj{

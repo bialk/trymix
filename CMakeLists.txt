@@ -135,6 +135,8 @@ set(PROJECT_SOURCES
 
     CommonComponents/drawContext.h CommonComponents/drawContext.cpp
 
+    CommonComponents/viewctrl.h CommonComponents/viewctrl.cpp
+
 
     mathlib/lapackcpp/lapackcpp.h
     mathlib/lapackcpp/invert.cpp
@@ -160,7 +162,6 @@ set(PROJECT_SOURCES
     SFSBuilder/lights.h SFSBuilder/lights.cpp
     SFSBuilder/toolspanel.h SFSBuilder/toolspanel.cpp
     SFSBuilder/mousectrl.h SFSBuilder/mousectrl.cpp
-    SFSBuilder/viewctrl.h SFSBuilder/viewctrl.cpp
     SFSBuilder/mathstruct.h SFSBuilder/mathstruct.cpp
 
     omi_triang.qrc

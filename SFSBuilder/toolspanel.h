@@ -5,6 +5,7 @@
 
 class DispView;
 class ViewCtrl;
+class DrawCntx;
 
 
 class ToolPanel: public EditViewObj{

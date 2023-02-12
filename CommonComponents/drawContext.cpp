@@ -1,5 +1,5 @@
-#include "CommonComponents/drawContext.h"
-#include "CommonComponents/CentralWidget.h"
+#include "drawContext.h"
+#include "CentralWidget.h"
 
 // class TSOCntx (TreeScanOperCntx)
 //================================================
@@ -27,6 +27,14 @@ int DrawCntx::w(){
 
 int DrawCntx::h(){
   return m_centralWidget->height();
+}
+
+void DrawCntx::setEventContext(EventContext3D* eventContext){
+  m_eventContext = eventContext;
+}
+
+EventContext3D& DrawCntx::eventContext(){
+  return *m_eventContext;
 }
 
 void DrawCntx::update(){

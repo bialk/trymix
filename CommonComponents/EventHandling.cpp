@@ -1,7 +1,8 @@
 #define QT_NO_DEBUG_OUTPUT
-#include "CommonComponents/EventHandling.h"
-#include "CommonComponents/CentralWidget.h"
-#include "CommonComponents/EventParser.h"
+#include "EventHandling.h"
+#include "CentralWidget.h"
+#include "EventParser.h"
+#include "drawContext.h"
 
 #include <QMouseEvent>
 #include <QDebug>
@@ -83,9 +84,6 @@ EventContext3D::setEvent(QEvent* e) {
   }
 }
 
-//QEvent*
-//EventContext3D::event() {return m_event;}
-
 bool
 EventContext3D::tryProcessCapture(){
   qDebug() << "total capture list size: " << m_captureHandlers.size();
@@ -161,8 +159,9 @@ int EventContext3D::select(){
   GLuint selectBuf[1024];
   glSelectBuffer (1024, selectBuf);
   glRenderMode (GL_SELECT);
-  glInitNames();
-  m_glWidget->paintGL();  
+  glInitNames();  
+  m_glWidget->drawContext().setEventContext(this);
+  m_glWidget->paintGL();
   auto hits = glRenderMode (GL_RENDER);
   assert(hits != -1);
   if(hits==-1){

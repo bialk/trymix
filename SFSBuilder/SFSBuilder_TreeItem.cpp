@@ -1,9 +1,9 @@
 #include "SFSBuilder_TreeItem.h"
 #include "QMainWindow"
 #include "imageplane.h"
-#include "viewctrl.h"
 #include "lights.h"
 #include "toolspanel.h"
+#include "CommonComponents/viewctrl.h"
 #include "CommonComponents/EventHandling.h"
 #include "CommonComponents/CentralWidget.h"
 #include "CommonComponents/testScene.h"
@@ -98,17 +98,13 @@ namespace {
       };
 
       addReact("M:L:DOWN") = [=](EventContext3D& cx){
-      //addReact("M:MOVE") = [=](EventContext3D& cx){
-        m_vp->updateSelectionMtrx(cx.glx(), cx.gly());
-//        m_vp->mssh.sx0=cx.x(); m_vp->mssh.sy0=cx.y();
-//        m_vp->SetProjectionMatrix();
-        auto id = cx.select();
-//        m_lights->select(id);
-//        if(m_lights->isfocus()){
-//          m_lights->lightrstart(cx.x(),cx.y());
-//          cx.pushHandler(&m_mouseDragLight);
-//        }
-
+      //addReact("M:MOVE") = [=](EventContext3D& cx){        
+        auto id = cx.select();        
+        m_lights->select(id);
+        if(m_lights->isfocus()){
+          m_lights->lightrstart(cx.x(),cx.y());
+          cx.pushHandler(&m_mouseDragLight);
+        }
         qDebug() << "Selected name: " << id << Qt::endl;
         cx.update();
       };
@@ -227,8 +223,6 @@ SFSBuilder_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
 
     // update viewport size if it was changed before
     m_viewCtrl->updateProjectionMtrx(cw->width(),cw->height());
-//    m_viewCtrl->mssh.wndw=cw->width(); m_viewCtrl->mssh.wndh=cw->height();
-//    m_viewCtrl->SetProjectionMatrix();
   }
   else{
     m_dockWidget->hide();
