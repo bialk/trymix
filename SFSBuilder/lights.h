@@ -1,6 +1,6 @@
 #ifndef lights_h
 #define lights_h
-#include "editviewobj.h"
+#include "CommonComponents/drawContext.h"
 #include "mathlib/mathutl/mymath.h"
 #include "mousectrl.h"
 //#include "toolspanel.h"

@@ -297,6 +297,7 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
         };
       }
       break;
+
     case Scale:
       {
         auto dir = glm::rotate(glm::inverse(m_rot),{0.,0.,1.});
@@ -309,13 +310,6 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
         };
       }
 
-      return [this, zoomOld=m_scale, oldY=y](float x, float y)
-      {
-        float dy = (oldY-y);
-        m_scale = zoomOld*exp(3 * dy);
-        updateModelViewMtrx();
-      };
-      break;
     case FoV:
       auto dir = glm::rotate(glm::inverse(m_rot),{0.,0.,1.});
       return [this, fovYOld=m_fovY, oldY=y, transOld=m_trans, rotDistanceOld=m_rotDistance, dir](float x, float y)

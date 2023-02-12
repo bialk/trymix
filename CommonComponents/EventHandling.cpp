@@ -1,7 +1,7 @@
 #define QT_NO_DEBUG_OUTPUT
-#include "EventHandling.h"
-#include "CentralWidget.h"
-#include <EventParser.h>
+#include "CommonComponents/EventHandling.h"
+#include "CommonComponents/CentralWidget.h"
+#include "CommonComponents/EventParser.h"
 
 #include <QMouseEvent>
 #include <QDebug>

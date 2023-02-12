@@ -1,5 +1,5 @@
-#include "editviewobj.h"
-#include "CentralWidget.h"
+#include "CommonComponents/drawContext.h"
+#include "CommonComponents/CentralWidget.h"
 
 // class TSOCntx (TreeScanOperCntx)
 //================================================

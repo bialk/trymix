@@ -1,7 +1,7 @@
 #ifndef POLYGONTESTS_TREEITEM_H
 #define POLYGONTESTS_TREEITEM_H
 
-#include "../Projects_TreeItem.h"
+#include "CommonComponents/Projects_TreeItem.h"
 #include "ui_PolygonTests_panel.h"
 
 class QDockWidget;

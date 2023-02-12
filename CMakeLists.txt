@@ -118,13 +118,28 @@ set(TS_FILES omi_triang_en_GB.ts)
 
 set(PROJECT_SOURCES
     main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
-    CentralWidget.cpp  CentralWidget.h CentralWidget.ui
+    CommonComponents/mainwindow.cpp
+    CommonComponents/mainwindow.h
+    CommonComponents/mainwindow.ui
+    CommonComponents/CentralWidget.cpp
+    CommonComponents/CentralWidget.h
+    CommonComponents/CentralWidget.ui
 
-    ProjectTree.h ProjectTree.cpp
-    Projects_TreeItem.h Projects_TreeItem.cpp
+    CommonComponents/ProjectTree.h CommonComponents/ProjectTree.cpp
+    CommonComponents/Projects_TreeItem.h CommonComponents/Projects_TreeItem.cpp
+
+    CommonComponents/EventHandling.h CommonComponents/EventHandling.cpp
+    CommonComponents/EventParser.h CommonComponents/EventParser.cpp
+
+    CommonComponents/testScene.cpp CommonComponents/testScene.h
+
+    CommonComponents/drawContext.h CommonComponents/drawContext.cpp
+
+
+    mathlib/lapackcpp/lapackcpp.h
+    mathlib/lapackcpp/invert.cpp
+    mathlib/lapackcpp/eigenval.cpp
+    mathlib/lapackcpp/leastsquare.cpp
 
     PolygonTests/PolygonTests_TreeItem.cpp PolygonTests/PolygonTests_TreeItem.h
     PolygonTests/PolygonTests_panel.ui
@@ -137,26 +152,16 @@ set(PROJECT_SOURCES
     SFSBuilder/shapefromshade.cpp SFSBuilder/shapefromshade.h
     SFSBuilder/lineqsol.h SFSBuilder/lineqsol.cpp
     SFSBuilder/lineqsol2.h SFSBuilder/lineqsol2.cpp
-    SFSBuilder/mathlib/lapackcpp/lapackcpp.h
-    SFSBuilder/mathlib/lapackcpp/invert.cpp
-    SFSBuilder/mathlib/lapackcpp/eigenval.cpp
-    SFSBuilder/mathlib/lapackcpp/leastsquare.cpp
+
     SFSBuilder/imageplane.h SFSBuilder/imageplane.cpp
-    SFSBuilder/editviewobj.h SFSBuilder/editviewobj.cpp
     SFSBuilder/ImageTile.h SFSBuilder/ImageTile.cpp
-    SFSBuilder/editviewobj.h SFSBuilder/editviewobj.cpp
     SFSBuilder/glhelper.h SFSBuilder/glhelper.cpp
 
     SFSBuilder/lights.h SFSBuilder/lights.cpp
     SFSBuilder/toolspanel.h SFSBuilder/toolspanel.cpp
-    SFSBuilder/savejpeg.h SFSBuilder/savejpeg.cpp
     SFSBuilder/mousectrl.h SFSBuilder/mousectrl.cpp
     SFSBuilder/viewctrl.h SFSBuilder/viewctrl.cpp
     SFSBuilder/mathstruct.h SFSBuilder/mathstruct.cpp
-
-    EventHandling.h EventHandling.cpp
-    EventParser.h EventParser.cpp
-    testScene.cpp testScene.h
 
     omi_triang.qrc
 

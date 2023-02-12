@@ -1,7 +1,7 @@
 #include "toolspanel.h"
 #include "viewctrl.h"
-#include "editviewobj.h"
-#include "CentralWidget.h"
+#include "CommonComponents/drawContext.h"
+#include "CommonComponents/CentralWidget.h"
 
 
 void ToolPanel::Add(EditViewObj * ic){

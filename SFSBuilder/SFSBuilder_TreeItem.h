@@ -1,7 +1,7 @@
 #ifndef SFSBUILDER_TREEITEM_H
 #define SFSBUILDER_TREEITEM_H
 
-#include "../Projects_TreeItem.h"
+#include "CommonComponents/Projects_TreeItem.h"
 #include "ui_SFSBuilder_panel.h"
 
 class QDockWidget;

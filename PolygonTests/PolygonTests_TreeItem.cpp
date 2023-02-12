@@ -2,9 +2,9 @@
 #include "PolygonTests/PolygonTestConvexPartitioning.h"
 #include "PolygonTests/PolygonTestMonotonePartitioning.h"
 #include "PolygonTests/PolygonTestConformingDelanay.h"
-#include "CentralWidget.h"
-#include "mainwindow.h"
-#include "EventHandling.h"
+#include "CommonComponents/CentralWidget.h"
+#include "CommonComponents/mainwindow.h"
+#include "CommonComponents/EventHandling.h"
 
 #include <QAction>
 #include <QOpenGLWidget>

@@ -1,7 +1,7 @@
 #ifndef viewctrl_h
 #define viewctrl_h
 
-#include "editviewobj.h"
+#include "CommonComponents/drawContext.h"
 
 #include <glm/gtx/quaternion.hpp>
 #include <functional>

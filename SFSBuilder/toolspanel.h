@@ -1,7 +1,7 @@
 #ifndef toolspanel_h
 #define toolspanel_h
 #include <vector>
-#include "editviewobj.h"
+#include "CommonComponents/drawContext.h"
 
 class DispView;
 class ViewCtrl;

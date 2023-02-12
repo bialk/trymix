@@ -1,7 +1,7 @@
 #ifndef PROJECTS_TREEITEM_H
 #define PROJECTS_TREEITEM_H
 
-#include "SFSBuilder/editviewobj.h"
+#include "drawContext.h"
 #include "qdockwidget.h"
 #include <QTreeWidgetItem>
 #include <QWidget>

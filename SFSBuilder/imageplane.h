@@ -1,7 +1,7 @@
 #ifndef imageplane_h
 #define imageplane_h
 
-#include "editviewobj.h"
+#include "CommonComponents/drawContext.h"
 #include "ImageTile.h"
 #include "glhelper.h"
 #include <vector>

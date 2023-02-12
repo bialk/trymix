@@ -2,7 +2,7 @@
 #include "ui_CentralWidget.h"
 #include "ProjectTree.h"
 #include "EventHandling.h"
-#include "SFSBuilder/editviewobj.h"
+#include "drawContext.h"
 
 #include <QPainter>
 #include <QEvent>

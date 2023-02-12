@@ -1,8 +1,6 @@
 #include "lights.h"
 #include "mathstruct.h"
-#include "viewctrl.h"
 #include "apputil/serializer.h"
-#include "apputil/eventball.h"
 
 #include <QApplication>
 #include <QOpenGLFunctions>

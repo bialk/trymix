@@ -1,7 +1,7 @@
 #ifndef PROJECTTREE_H
 #define PROJECTTREE_H
 
-#include "SFSBuilder/editviewobj.h"
+#include "drawContext.h"
 #include <QTreeWidget>
 
 class ProjectTreeItem;

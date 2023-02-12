@@ -4,9 +4,9 @@
 #include "viewctrl.h"
 #include "lights.h"
 #include "toolspanel.h"
-#include "EventHandling.h"
-#include "CentralWidget.h"
-#include "testScene.h"
+#include "CommonComponents/EventHandling.h"
+#include "CommonComponents/CentralWidget.h"
+#include "CommonComponents/testScene.h"
 
 #include <QOpenGLWidget>
 #include <QPainter>
@@ -198,13 +198,14 @@ SFSBuilder_TreeItem::showModel(DrawCntx* cx)
   m_viewCtrl->Draw(cx);
   m_lights->Draw(cx);
 
-  drawTestScene();
 
-#ifdef off
+#if !off
   m_sfs->image_mode = ImagePlane::image_mode_image;
   m_sfs->shape_mode = ImagePlane::shape_mode_image;
   m_sfs->edit_mode = ImagePlane::edit_mode_off;
   m_sfs->Draw(cx);
+#else
+  drawTestScene();
 #endif
 
   m_toolsPanel->Draw(cx);
