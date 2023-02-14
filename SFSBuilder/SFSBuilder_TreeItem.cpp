@@ -114,8 +114,7 @@ namespace {
         cx.update();
       };
 
-      m_mouseDragLight.addReact("M:L:UP") =  [this](EventContext3D& cx){
-        m_lights->lightrstop();
+      m_mouseDragLight.addReact("M:L:UP") =  [](EventContext3D& cx){
         cx.update();
         cx.popHandler();
       };

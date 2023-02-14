@@ -13,15 +13,15 @@ long double minv(long double *a,int n);
 #define Exception (char*)
 TMatrix &TMatrix::operator*= (long double Koef)
 {
-   // умножение матрицы на число
+   // СѓРјРЅРѕР¶РµРЅРёРµ РјР°С‚СЂРёС†С‹ РЅР° С‡РёСЃР»Рѕ
    long double *Dest = mat;
    for (int i = NumElem; i > 0; i--) *(Dest++) *= Koef;
    return *this;
 }
 void TMatrix::Diagonal(long double DiagElem)
 {
-   // заполняет все диагональные элементы
-   //  DiagElem'ом а все остальные нулями
+   // Р·Р°РїРѕР»РЅСЏРµС‚ РІСЃРµ РґРёР°РіРѕРЅР°Р»СЊРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹
+   //  DiagElem'РѕРј Р° РІСЃРµ РѕСЃС‚Р°Р»СЊРЅС‹Рµ РЅСѓР»СЏРјРё
    for (int i = 0; i < sizeV; i++)
    for (int j = 0; j < sizeH; j++)
    {
@@ -30,8 +30,8 @@ void TMatrix::Diagonal(long double DiagElem)
 }
 TMatrix BlockDiag(const TMatrix &mat1, const TMatrix &mat2)
 {
-   // возвращает
-   // матрицу б'ольших размеров , состоящую из блоков mat1 и mat2
+   // РІРѕР·РІСЂР°С‰Р°РµС‚
+   // РјР°С‚СЂРёС†Сѓ Р±'РѕР»СЊС€РёС… СЂР°Р·РјРµСЂРѕРІ , СЃРѕСЃС‚РѕСЏС‰СѓСЋ РёР· Р±Р»РѕРєРѕРІ mat1 Рё mat2
    int SizeV1 = mat1.GetSizeV();
    int SizeV2 = mat2.GetSizeV();
    int SizeH1 = mat1.GetSizeH();
@@ -41,26 +41,26 @@ TMatrix BlockDiag(const TMatrix &mat1, const TMatrix &mat2)
    int SizeResH = SizeH1 + SizeH2;
 
    TMatrix Result (SizeResV, SizeResH);
-	 int i,j;
+   int i,j;
    for (i = 0; i < SizeV1; i++)
-   for (j = 0; j < SizeH1; j++)                       // заполнение
+   for (j = 0; j < SizeH1; j++)                       // Р·Р°РїРѕР»РЅРµРЅРёРµ
    {                                                      // |1 0|
       Result.WriteElem(i,j, mat1.ReadElem(i,j));          // |0 0|
    }
    int i2 = 0;
    int j2 = 0;
    for (i = SizeV1; i < SizeResV; i++, i2++)
-   for (int j = SizeH1; j < SizeResH; j++, j2++)          // заполнение
+   for (int j = SizeH1; j < SizeResH; j++, j2++)          // Р·Р°РїРѕР»РЅРµРЅРёРµ
    {                                                      // |0 0|
       Result.WriteElem(i,j, mat2.ReadElem(i2,j2));        // |0 1|
    }
    for (i = 0;      i < SizeV1;   i++)
-   for (int j = SizeH1; j < SizeResH; j++)                // заполнение
+   for (int j = SizeH1; j < SizeResH; j++)                // Р·Р°РїРѕР»РЅРµРЅРёРµ
    {                                                      // |0 1|
       Result.WriteElem(i,j, 0.f);                         // |0 0|
    }
    for (i = SizeV1; i < SizeResV; i++)
-   for (int j = 0;      j < SizeH1;   j++)                // заполнение
+   for (int j = 0;      j < SizeH1;   j++)                // Р·Р°РїРѕР»РЅРµРЅРёРµ
    {                                                      // |0 0|
       Result.WriteElem(i,j, 0.f);                         // |1 0|
    }
@@ -80,33 +80,33 @@ void TMatrix::SetSize (int y, int x)
    mat = new long double[sizeV * sizeH];
    if (mat == NULL)
    {
-      // должна быть подпрограмма обработки ошибки
-      throw Exception("Нет памяти для создания матрицы!");
+      // РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РїРѕРґРїСЂРѕРіСЂР°РјРјР° РѕР±СЂР°Р±РѕС‚РєРё РѕС€РёР±РєРё
+      throw Exception("РќРµС‚ РїР°РјСЏС‚Рё РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РјР°С‚СЂРёС†С‹!");
    }
 }
 //---------------------------------------------------------------------------
-TMatrix::TMatrix (const TMatrix &matR) // конструктор копирования
+TMatrix::TMatrix (const TMatrix &matR) // РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
 {
    mat = NULL;
-   SetSize(matR.sizeV, matR.sizeH); //выделение памяти
-   if (!memcpy(mat, matR.mat, NumElem*sizeof(long double))) //копирование матрицы
-       throw Exception ("Ошибка копирования матрицы");
+   SetSize(matR.sizeV, matR.sizeH); //РІС‹РґРµР»РµРЅРёРµ РїР°РјСЏС‚Рё
+   if (!memcpy(mat, matR.mat, NumElem*sizeof(long double))) //РєРѕРїРёСЂРѕРІР°РЅРёРµ РјР°С‚СЂРёС†С‹
+       throw Exception ("РћС€РёР±РєР° РєРѕРїРёСЂРѕРІР°РЅРёСЏ РјР°С‚СЂРёС†С‹");
 }
 //---------------------------------------------------------------------------
-TMatrix::TMatrix (int _sizeV, int _sizeH)   // конструктор
+TMatrix::TMatrix (int _sizeV, int _sizeH)   // РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ
 {
    mat = NULL;
    SetSize(_sizeV, _sizeH);
 }
 //---------------------------------------------------------------------------
-TMatrix::~TMatrix() // деструктор
+TMatrix::~TMatrix() // РґРµСЃС‚СЂСѓРєС‚РѕСЂ
 {
   if (mat != NULL)
      delete[] mat;
 }
 
 //---------------------------------------------------------------------------
-TMatrix &TMatrix::operator= (const TMatrix &matR)     // пересылка матриц
+TMatrix &TMatrix::operator= (const TMatrix &matR)     // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС†
 {
   if (sizeV != matR.sizeV || sizeH != matR.sizeH)
   {
@@ -118,14 +118,14 @@ TMatrix &TMatrix::operator= (const TMatrix &matR)     // пересылка матриц
   return *this;
 }
 //---------------------------------------------------------------------------
-TMatrix &TMatrix::operator=(long double *matR)     // пересылка матриц
+TMatrix &TMatrix::operator=(long double *matR)     // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС†
 {
   memcpy(mat, matR, NumElem * sizeof(long double));
   return *this;
 }
 
 //---------------------------------------------------------------------------
-TMatrix &TMatrix::operator=(double *matR)      // пересылка матриц
+TMatrix &TMatrix::operator=(double *matR)      // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС†
 {
   long double *Dest = mat;
   for (int i = NumElem; i > 0; i--)
@@ -147,7 +147,7 @@ TMatrix TMatrix::operator+(const TMatrix &matR) const
   return Result;
 }
 //---------------------------------------------------------------------------
-TMatrix &TMatrix::operator += (const TMatrix &matR) // пересылка матриц со сложением
+TMatrix &TMatrix::operator += (const TMatrix &matR) // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС† СЃРѕ СЃР»РѕР¶РµРЅРёРµРј
 {
   //if (NumElem != matR.NumElem)
   if (sizeV != matR.sizeV || sizeH != matR.sizeH)
@@ -160,7 +160,7 @@ TMatrix &TMatrix::operator += (const TMatrix &matR) // пересылка матриц со сложе
 }
 //---------------------------------------------------------------------------
 TMatrix &TMatrix::operator-=(const TMatrix &matR)
-{                                       // пересылка матриц с вычитанием
+{                                       // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС† СЃ РІС‹С‡РёС‚Р°РЅРёРµРј
   if (sizeV != matR.sizeV || sizeH != matR.sizeH)
      throw Exception ("The matrices have different dimensions!");
   long double *Dest = mat;
@@ -183,7 +183,7 @@ TMatrix TMatrix::operator-(const TMatrix &matR) const
   return Result;
 }
 //---------------------------------------------------------------------------
-TMatrix& TMatrix::Transpose()      // транспонирование матрицы
+TMatrix& TMatrix::Transpose()      // С‚СЂР°РЅСЃРїРѕРЅРёСЂРѕРІР°РЅРёРµ РјР°С‚СЂРёС†С‹
 {
   long double *pj, *pi, hold;
   int nm = NumElem - 1;
@@ -193,18 +193,18 @@ TMatrix& TMatrix::Transpose()      // транспонирование матрицы
   do
   {
     n++;
-    j = k;                          // номер приемника
-    i = (j * sizeH) % nm;           // номер источника
-    pj = mat + j;                   // адрес приемника
-    hold = *pj;                     // сохранение приемника
+    j = k;                          // РЅРѕРјРµСЂ РїСЂРёРµРјРЅРёРєР°
+    i = (j * sizeH) % nm;           // РЅРѕРјРµСЂ РёСЃС‚РѕС‡РЅРёРєР°
+    pj = mat + j;                   // Р°РґСЂРµСЃ РїСЂРёРµРјРЅРёРєР°
+    hold = *pj;                     // СЃРѕС…СЂР°РЅРµРЅРёРµ РїСЂРёРµРјРЅРёРєР°
     do
     {
-      pi = mat + i;           // адрес источника
-      *pj = *pi;              // пересылка
-      n++;                    // число пересланных элем.
-      j = i;                  // источник стал приемником
+      pi = mat + i;           // Р°РґСЂРµСЃ РёСЃС‚РѕС‡РЅРёРєР°
+      *pj = *pi;              // РїРµСЂРµСЃС‹Р»РєР°
+      n++;                    // С‡РёСЃР»Рѕ РїРµСЂРµСЃР»Р°РЅРЅС‹С… СЌР»РµРј.
+      j = i;                  // РёСЃС‚РѕС‡РЅРёРє СЃС‚Р°Р» РїСЂРёРµРјРЅРёРєРѕРј
       pj = pi;                // ---------- // ----------
-      i =  (j * sizeH)  % nm; // адрес нового источника
+      i =  (j * sizeH)  % nm; // Р°РґСЂРµСЃ РЅРѕРІРѕРіРѕ РёСЃС‚РѕС‡РЅРёРєР°
     } while(i != k);
     *pj = hold;
     k++;
@@ -216,10 +216,10 @@ TMatrix& TMatrix::Transpose()      // транспонирование матрицы
 }
 
 //---------------------------------------------------------------------------
-TMatrix TMatrix::operator!() const                    // обращение матрицы
+TMatrix TMatrix::operator!() const                    // РѕР±СЂР°С‰РµРЅРёРµ РјР°С‚СЂРёС†С‹
 {
   if (sizeV != sizeH)
-     throw Exception("Попытка обратить неквадратную матрицу!");
+     throw Exception("РџРѕРїС‹С‚РєР° РѕР±СЂР°С‚РёС‚СЊ РЅРµРєРІР°РґСЂР°С‚РЅСѓСЋ РјР°С‚СЂРёС†Сѓ!");
   TMatrix Result(*this);
   minv (Result.mat, sizeV);
   return Result;
@@ -228,35 +228,35 @@ TMatrix TMatrix::operator!() const                    // обращение матрицы
 long double TMatrix::Inverse()
 {
   if (sizeV != sizeH)
-     throw Exception("Попытка обратить неквадратную матрицу!");
+     throw Exception("РџРѕРїС‹С‚РєР° РѕР±СЂР°С‚РёС‚СЊ РЅРµРєРІР°РґСЂР°С‚РЅСѓСЋ РјР°С‚СЂРёС†Сѓ!");
   return minv (mat, sizeV);
 }
 //---------------------------------------------------------------------------
-void TMatrix::madd (TMatrix &op1)                 // сложение матриц
+void TMatrix::madd (TMatrix &op1)                 // СЃР»РѕР¶РµРЅРёРµ РјР°С‚СЂРёС†
 {
   for(int i = 0; i < NumElem; i++)
     mat[i] += op1.mat[i];
 }
 //---------------------------------------------------------------------------
-void TMatrix::msub (TMatrix &op1)                 // вычитание матриц
+void TMatrix::msub (TMatrix &op1)                 // РІС‹С‡РёС‚Р°РЅРёРµ РјР°С‚СЂРёС†
 {
   for(int i = 0; i < NumElem; i++)
     mat[i] -= op1.mat[i];
 }
 //---------------------------------------------------------------------------
-void TMatrix::madd (TMatrix &op1, TMatrix &op2)    // сложение матриц
+void TMatrix::madd (TMatrix &op1, TMatrix &op2)    // СЃР»РѕР¶РµРЅРёРµ РјР°С‚СЂРёС†
 {
   for (int i = 0; i < NumElem; i++)
     mat[i] = op1.mat[i] + op2.mat[i];
 }
 //---------------------------------------------------------------------------
-void TMatrix::msub (TMatrix &op1, TMatrix &op2)    // вычитание матриц
+void TMatrix::msub (TMatrix &op1, TMatrix &op2)    // РІС‹С‡РёС‚Р°РЅРёРµ РјР°С‚СЂРёС†
 {
   for(int i = 0; i < NumElem; i++)
     mat[i] = op1.mat[i] - op2.mat[i];
 }
 //---------------------------------------------------------------------------
-void TMatrix::mtra (const TMatrix &op1)  // транспонирование матрицы
+void TMatrix::mtra (const TMatrix &op1)  // С‚СЂР°РЅСЃРїРѕРЅРёСЂРѕРІР°РЅРёРµ РјР°С‚СЂРёС†С‹
 {
   long double *ij;
   long double *a = op1.mat;
@@ -265,7 +265,7 @@ void TMatrix::mtra (const TMatrix &op1)  // транспонирование матрицы
   for(int i = 0; i < sizeH; i++)
   {
     ij = a;
-    for(j = 0; j < sizeV; j++)  // перевод столбца в строку
+    for(j = 0; j < sizeV; j++)  // РїРµСЂРµРІРѕРґ СЃС‚РѕР»Р±С†Р° РІ СЃС‚СЂРѕРєСѓ
     {
       *b++ = *ij;
       ij += sizeH;
@@ -274,12 +274,12 @@ void TMatrix::mtra (const TMatrix &op1)  // транспонирование матрицы
   }
 }
 //---------------------------------------------------------------------------
-// умножение матриц a(n*m); b(m*l); r(n*l) = a(n*m) * b(m*l)
+// СѓРјРЅРѕР¶РµРЅРёРµ РјР°С‚СЂРёС† a(n*m); b(m*l); r(n*l) = a(n*m) * b(m*l)
 void TMatrix::mmul (const TMatrix &op1, const TMatrix &op2)
 {
   long double *ib;
   long double *j2;
-  long double *a = op1.mat;           // первая строка А
+  long double *a = op1.mat;           // РїРµСЂРІР°СЏ СЃС‚СЂРѕРєР° Рђ
   long double *b = op2.mat;
   long double *r = mat;
   long double *j1 = a;
@@ -289,28 +289,28 @@ void TMatrix::mmul (const TMatrix &op1, const TMatrix &op2)
   int m = op1.sizeH;
   for(int i = 0; i < sizeV; i++)
   {
-    ik = b;                     // первый элемент В
-    for(j = 0; j < sizeH; j++)  // движение по матрице В
+    ik = b;                     // РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ Р’
+    for(j = 0; j < sizeH; j++)  // РґРІРёР¶РµРЅРёРµ РїРѕ РјР°С‚СЂРёС†Рµ Р’
     {
-      ib = ik;                  // адрес эл. В
-      j2 = j1;                  // адрес эл. А
-      *r = 0;                   // обнуление суммы
-      for(k = 0; k < m; k++)    // вычисление суммы
+      ib = ik;                  // Р°РґСЂРµСЃ СЌР». Р’
+      j2 = j1;                  // Р°РґСЂРµСЃ СЌР». Рђ
+      *r = 0;                   // РѕР±РЅСѓР»РµРЅРёРµ СЃСѓРјРјС‹
+      for(k = 0; k < m; k++)    // РІС‹С‡РёСЃР»РµРЅРёРµ СЃСѓРјРјС‹
       {
-        *r += *j2 * *ib;  // прибавление элемента
-        j2++;             // следующий эл. А
-        ib += op2.sizeH;  // следующий эл. B
+        *r += *j2 * *ib;  // РїСЂРёР±Р°РІР»РµРЅРёРµ СЌР»РµРјРµРЅС‚Р°
+        j2++;             // СЃР»РµРґСѓСЋС‰РёР№ СЌР». Рђ
+        ib += op2.sizeH;  // СЃР»РµРґСѓСЋС‰РёР№ СЌР». B
       }
-      r++;                      // следующий эл. R
-      ik++;                     // следующий столбец B
+      r++;                      // СЃР»РµРґСѓСЋС‰РёР№ СЌР». R
+      ik++;                     // СЃР»РµРґСѓСЋС‰РёР№ СЃС‚РѕР»Р±РµС† B
     }
-    j1+=op1.sizeH;              // следующая строка А
+    j1+=op1.sizeH;              // СЃР»РµРґСѓСЋС‰Р°СЏ СЃС‚СЂРѕРєР° Рђ
   }
 };
 //---------------------------------------------------------------------------
-TMatrix TMatrix::operator~() const //транспонирование матрицы
-{                                    // возвращает транспонированную матрицу
-                                     // не изменяя собственного объекта
+TMatrix TMatrix::operator~() const //С‚СЂР°РЅСЃРїРѕРЅРёСЂРѕРІР°РЅРёРµ РјР°С‚СЂРёС†С‹
+{                                    // РІРѕР·РІСЂР°С‰Р°РµС‚ С‚СЂР°РЅСЃРїРѕРЅРёСЂРѕРІР°РЅРЅСѓСЋ РјР°С‚СЂРёС†Сѓ
+                                     // РЅРµ РёР·РјРµРЅСЏСЏ СЃРѕР±СЃС‚РІРµРЅРЅРѕРіРѕ РѕР±СЉРµРєС‚Р°
    TMatrix Result (sizeH, sizeV);    //
    for (int i = 0; i < sizeV; i++)
      for (int j = 0; j < sizeH; j++)

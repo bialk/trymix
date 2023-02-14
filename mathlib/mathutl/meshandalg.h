@@ -233,7 +233,7 @@ inline int SurfTxtrStore(SurfTxtr *stxt, const char * filename){
     err_printf(("Can't open texture file '%s' \n",filename));
     return 1;
   }
-  fprintf(f,"%lu %lu\n",stxt->trg.size(),stxt->tx.size());
+  fprintf(f,"%llu %llu\n",stxt->trg.size(),stxt->tx.size());
 
   std::vector<Surf::TTrg>::iterator it;
   for(it=stxt->trg.begin();it!=stxt->trg.end();it++)

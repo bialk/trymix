@@ -1,6 +1,9 @@
 #ifndef imageandfft_h
 #define imageandfft_h
 
+#define _CRT_SECURE_NO_WARNINGS
+
+#include "gmp.h"
 #ifndef err_printf
 #define err_printf(n) printf n
 #endif

@@ -53,7 +53,7 @@ private:
 
   float m_scale=1.f;
   float m_fovY=glm::radians(35.f);
-  glm::quat m_rot{1.0,.0,.0,.0};
+  glm::quat m_rot{1.f,.0f,.0f,.0f};
   glm::vec3 m_trans{-0.,-0.,-600};
   float m_rotDistance = -glm::l2Norm(m_trans);
 

@@ -1,7 +1,7 @@
 #ifndef lights_h
 #define lights_h
 #include "CommonComponents/drawContext.h"
-#include "mathlib/mathutl/mymath.h"
+//#include "mathlib/mathutl/mymath.h"
 #include "mousectrl.h"
 //#include "toolspanel.h"
 //#include "eventhnd.h"
@@ -54,9 +54,6 @@ class Lights: public EditViewObj{
   void focusctrl(int x, int y);
   void lightrstart(int x, int y);
   void lightrcont(int x, int y);
-  void lightrstop();
-
-  //LightsEH  lighteh;
 };
 
 

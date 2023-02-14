@@ -2,6 +2,7 @@
 #define mousectrl_h
 
 #include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 //------------------------ free rotation and shift control by mouse ---------------------
 
@@ -37,16 +38,15 @@ public:
 
 class  Ctrl3DRotate{
  public:
-  int   sx0,sy0;
+  int sx0,sy0;
   int cx,cy,cz;
-  float norm_rx, norm_ry, norm_rz, angle_r;
+
+  glm::quat m_rotQuat{1.,0.,0.,0.};
   float m[16];
 
   void setcenter(int x, int y, int z);
-  void start(int x, int y, float *mtrx = 0);
-  void drag(int x, int y);
+  void start(int x, int y, float *mtrx);
   void drag(int x, int y, float *m);
-  void stop();
 };
 
 #endif

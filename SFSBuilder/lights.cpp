@@ -20,7 +20,6 @@ public:
     list = glGenLists(1);
     glNewList(list,GL_COMPILE);
 
-    //D3DG1obj().open((appsysset.path_app+"/torch.ico").c_str());
     D3DG1obj().open((qApp->applicationDirPath() + "/torch.ico").toStdString().c_str());
 
     glEndList();
@@ -30,7 +29,6 @@ public:
 
 void Icon3DLight::TreeScan(TSOCntx *cntx) {
   if(cntx == &TSOCntx::TSO_Init){
-    //glsel_name=dv->GetNewName();
   }
 }
 
@@ -200,14 +198,6 @@ void Lights::lightrcont(int x, int y){
     mrot.drag(x,y,g->rot);
   }
 }
-
-void Lights::lightrstop(){
-  if(g){
-    mrot.stop();
-  }
-}
-
-
 
 #ifdef off
 // class LightsEH

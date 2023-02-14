@@ -80,10 +80,10 @@ ViewCtrl::~ViewCtrl()
 }
 
 ViewCtrl::ViewCtrl()
-   :m_scale(1)
-   ,m_background(0)
-   ,m_prjtype(0)
-   ,play_method(0)
+  :m_background(0)
+  ,m_prjtype(0)
+  ,play_method(0)
+  ,m_scale(1)
 {
   // initialize model view matrix as identity matrix 
   updateModelViewMtrx();

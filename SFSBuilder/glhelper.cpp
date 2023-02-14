@@ -40,7 +40,7 @@ void CompoundTexture::SetTexture(float *rgb,int rgbx, int rgby, int brd){
 	for(iy=0;iy<(maxtxs+border*2);iy++){
 	  int imgx=(i*maxtxs+ix-border);
 	  int imgy=(j*maxtxs+iy-border);
-	  float zero[] =  {0.7,0.7,0.7};
+    float zero[] =  {0.7f,0.7f,0.7f};
 	  float *v = zero;
 	  if( imgx >= 0 && imgx < rgbx && imgy >= 0 && imgy < rgby )
 	    v = &rgb[(imgy*rgbx + imgx)*3];
@@ -167,7 +167,7 @@ void CompoundTexture::Map(float x, float y){
     return 1;
   }
   void Surf2GL::SmoothNorms(){
-    unsigned int k,n;
+    size_t k,n;
     norms.resize(surf->vtx.size());
     Ptn null = {0,0,0};
     std::fill(norms.begin(), norms.end(), null);

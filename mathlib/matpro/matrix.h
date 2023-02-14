@@ -8,8 +8,8 @@
 
 class TMatrix;
 
-TMatrix BlockDiag(const TMatrix &mat1, const TMatrix &mat2); // возвращает
-// матрицу б'ольших размеров , состоящую из диагональных блоков mat1 и mat2
+TMatrix BlockDiag(const TMatrix &mat1, const TMatrix &mat2); // РІРѕР·РІСЂР°С‰Р°РµС‚
+// РјР°С‚СЂРёС†Сѓ Р±'РѕР»СЊС€РёС… СЂР°Р·РјРµСЂРѕРІ , СЃРѕСЃС‚РѕСЏС‰СѓСЋ РёР· РґРёР°РіРѕРЅР°Р»СЊРЅС‹С… Р±Р»РѕРєРѕРІ mat1 Рё mat2
 
 class TMatrix
 {
@@ -29,19 +29,19 @@ public:
   ~TMatrix();
 
   void SetSize (int y, int x);
-  TMatrix &operator= (const TMatrix &matR);  // пересылка матриц
-  TMatrix &operator= (double *matR);         // пересылка матриц
-  TMatrix &operator= (long double *matR);          // пересылка матриц
-  TMatrix  operator+ (const TMatrix &matR) const; //сложение матриц
-  TMatrix  operator- (const TMatrix &matR) const; //вычитание матриц
-  TMatrix &operator+= (const TMatrix &matR);  // пересылка матриц со сложением
-  TMatrix &operator*= (long double Koef);           // умножение матрицы на число
-  TMatrix &operator-= (const TMatrix &matR);  // пересылка матриц с вычитанием
-  TMatrix &Transpose();                       // транспонирование самой матрицы
-  TMatrix  operator~ () const;                // транспонирование матрицы
+  TMatrix &operator= (const TMatrix &matR);  // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС†
+  TMatrix &operator= (double *matR);         // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС†
+  TMatrix &operator= (long double *matR);          // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС†
+  TMatrix  operator+ (const TMatrix &matR) const; //СЃР»РѕР¶РµРЅРёРµ РјР°С‚СЂРёС†
+  TMatrix  operator- (const TMatrix &matR) const; //РІС‹С‡РёС‚Р°РЅРёРµ РјР°С‚СЂРёС†
+  TMatrix &operator+= (const TMatrix &matR);  // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС† СЃРѕ СЃР»РѕР¶РµРЅРёРµРј
+  TMatrix &operator*= (long double Koef);           // СѓРјРЅРѕР¶РµРЅРёРµ РјР°С‚СЂРёС†С‹ РЅР° С‡РёСЃР»Рѕ
+  TMatrix &operator-= (const TMatrix &matR);  // РїРµСЂРµСЃС‹Р»РєР° РјР°С‚СЂРёС† СЃ РІС‹С‡РёС‚Р°РЅРёРµРј
+  TMatrix &Transpose();                       // С‚СЂР°РЅСЃРїРѕРЅРёСЂРѕРІР°РЅРёРµ СЃР°РјРѕР№ РјР°С‚СЂРёС†С‹
+  TMatrix  operator~ () const;                // С‚СЂР°РЅСЃРїРѕРЅРёСЂРѕРІР°РЅРёРµ РјР°С‚СЂРёС†С‹
 
-  TMatrix  operator! () const;                // обращение матрицы
-  TMatrix  operator* (const TMatrix &matR) const;  // перемножение матриц
+  TMatrix  operator! () const;                // РѕР±СЂР°С‰РµРЅРёРµ РјР°С‚СЂРёС†С‹
+  TMatrix  operator* (const TMatrix &matR) const;  // РїРµСЂРµРјРЅРѕР¶РµРЅРёРµ РјР°С‚СЂРёС†
   long double   &operator[] (int x){return mat[x];}
 
   long double ReadElem(int y, int x) const
@@ -53,8 +53,8 @@ public:
     mat[y * sizeH + x] = value;
   }
 
-  void Diagonal(long double DiagElem);    // заполняет все диагональные элементы
-                                    //  DiagElem'ом а все остальные нулями
+  void Diagonal(long double DiagElem);    // Р·Р°РїРѕР»РЅСЏРµС‚ РІСЃРµ РґРёР°РіРѕРЅР°Р»СЊРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹
+                                    //  DiagElem'РѕРј Р° РІСЃРµ РѕСЃС‚Р°Р»СЊРЅС‹Рµ РЅСѓР»СЏРјРё
   void madd (TMatrix &op1);
   void msub (TMatrix &op1);
   void madd (TMatrix &op1, TMatrix &op2);

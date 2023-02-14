@@ -7,7 +7,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
-
 // MouseMoveAndShift
 //=======================================================================
 
@@ -110,30 +109,16 @@ void Ctrl3DRotate::start(int x, int y, float *m_in){
 }
 
 
-void Ctrl3DRotate::drag(int x, int y){
+void Ctrl3DRotate::drag(int x, int y, float *mout){
 
-  // free rotation control
-  if(sx0 == x && sy0 == y) {angle_r = 0; return;}
   float x0=sx0-cx, y0=-(sy0-cy), z0=cz;
   float x1=x-cx, y1=-(y-cy), z1=cz;
-  float n0=sqrt(x0*x0+y0*y0+z0*z0);
-  float n1=sqrt(x1*x1+y1*y1+z1*z1);
-  x0/=n0;y0/=n0;z0/=n0;
-  x1/=n1;y1/=n1;z1/=n1;
-  angle_r=acos(x0*x1+y0*y1+z0*z1)*180/glm::pi<float>();
-  glm::vec3 norm = glm::normalize(glm::cross(glm::vec3{x0, y0, z0}, glm::vec3{x1, y1, z1}));
-  norm_rx=norm[0];norm_ry=norm[1];norm_rz=norm[2];
-}
+  m_rotQuat = glm::rotation(glm::normalize(glm::vec3{x0, y0, z0}), glm::normalize(glm::vec3{x1, y1, z1}));
 
-void Ctrl3DRotate::stop(){
-  angle_r = norm_rx = norm_ry = 0; norm_rz=1;
-}
-
-void Ctrl3DRotate::drag(int x, int y, float *mout){
-  drag(x,y);
-  memcpy(mout,
-    glm::value_ptr(
-           glm::rotate<float>(glm::mat4(1.0), angle_r*glm::pi<float>()/180., {norm_rx, norm_ry, norm_rz})*
+  memcpy(mout,//glm::value_ptr(glm::toMat4(m_rotQuat)*glm::make_mat4(m))
+         glm::value_ptr(
+           glm::toMat4(m_rotQuat)*
            glm::make_mat4(m)),
-    sizeof(float)*4*4);
+         sizeof(float)*4*4);
 }
+
