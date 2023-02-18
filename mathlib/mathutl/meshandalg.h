@@ -27,46 +27,46 @@
 
 //========================== POINT IN 3D SPACE ===============================
 
-  class Ptn{
-  public:
-    float x,y,z;
-    
-    Ptn operator-(const Ptn &r) const {
-      Ptn p = {x-r.x, y-r.y, z-r.z};
-      return p; 
-    }
-    Ptn operator+(const Ptn &r) const {
-      Ptn p = {x+r.x, y+r.y, z+r.z};
-      return p; 
-    }
-    float operator*(const Ptn &r) const {
-      return x*r.x+y*r.y+z*r.z;
-    }
-    Ptn operator*(const float &r) const {
-      Ptn p={x*r,y*r,z*r};
-      return p;
-    }
-    Ptn operator=(const float &r) {
-      x=y=z=r;
-      return *this;
-    }
-    float norma() const {
-      return sqrt(x*x+y*y+z*z);
-    }
-    float cos(const Ptn &r) const {
-      return (x*r.x + y*r.y + z*r.z)/(norma()*r.norma());
-    }
-    float *asfloat(float *v){
-      v[0]=x; v[1]=y; v[2]=z;
-      return v;
-    }
-    template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-    {
-        ar & x;
-        ar & y;
-        ar & z;
-    }
+class Ptn{
+public:
+  float x,y,z;
+
+  Ptn operator-(const Ptn &r) const {
+    Ptn p = {x-r.x, y-r.y, z-r.z};
+    return p;
+  }
+  Ptn operator+(const Ptn &r) const {
+    Ptn p = {x+r.x, y+r.y, z+r.z};
+    return p;
+  }
+  float operator*(const Ptn &r) const {
+    return x*r.x+y*r.y+z*r.z;
+  }
+  Ptn operator*(const float &r) const {
+    Ptn p={x*r,y*r,z*r};
+    return p;
+  }
+  Ptn operator=(const float &r) {
+    x=y=z=r;
+    return *this;
+  }
+  float norma() const {
+    return sqrt(x*x+y*y+z*z);
+  }
+  float cos(const Ptn &r) const {
+    return (x*r.x + y*r.y + z*r.z)/(norma()*r.norma());
+  }
+  float *asfloat(float *v){
+    v[0]=x; v[1]=y; v[2]=z;
+    return v;
+  }
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & x;
+    ar & y;
+    ar & z;
+  }
 }; 
 
 
@@ -74,47 +74,47 @@
 
 
 class Surf{ 
- public:
-    struct TEdg {
-      int i1,i2;
-      template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-      {
-	ar & i1 & i2;
-      }
-    };
-    struct TTrg {
-      int i1,i2,i3;
-      template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-      {
-	ar & i1 & i2 & i3;
-      }
-    };
-    struct TVtx {
-      Ptn p; float d;
-      template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-      {
-	ar & p & d;
-      }
-    };
-
-    Ptn cnt;
-    std::vector<TEdg> edg;
-    std::vector<TTrg> trg;
-    std::vector<TVtx> vtx;
-    void clear(){
-      edg.clear(); 
-      trg.clear();
-      vtx.clear();
-    }
-
+public:
+  struct TEdg {
+    int i1,i2;
     template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-      {
-	ar & edg & trg& vtx ;
-      }
+    void serialize(Archive & ar, const unsigned int version)
+    {
+      ar & i1 & i2;
+    }
+  };
+  struct TTrg {
+    int i1,i2,i3;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+      ar & i1 & i2 & i3;
+    }
+  };
+  struct TVtx {
+    Ptn p; float d;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+      ar & p & d;
+    }
+  };
+
+  Ptn cnt;
+  std::vector<TEdg> edg;
+  std::vector<TTrg> trg;
+  std::vector<TVtx> vtx;
+  void clear(){
+    edg.clear();
+    trg.clear();
+    vtx.clear();
+  }
+
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & edg & trg& vtx ;
+  }
 };
 
 class SurfStore{
@@ -122,19 +122,19 @@ public:
   int operator()(Surf *surf, const char *name="test.srf"){
     std::ofstream f(name);
     if(! f.good()) {
-      err_printf(("Can't open file of surface (check the name: \"%s\") \n",name)); return 1; 
+      err_printf(("Can't open file of surface (check the name: \"%s\") \n",name)); return 1;
     }
     f << surf->cnt.x << "\t" << surf->cnt.y << "\t" << surf->cnt.z << std::endl;
     f << surf->vtx.size() << "\t" << surf->edg.size() << "\t" << surf->trg.size() << std::endl;
     size_t i;
     for(i=0;i<surf->vtx.size();i++)
-      f << surf->vtx[i].p.x << "\t" <<  surf->vtx[i].p.y << "\t"   
-	<< surf->vtx[i].p.z << "\t" <<  surf->vtx[i].d << std::endl;
+      f << surf->vtx[i].p.x << "\t" <<  surf->vtx[i].p.y << "\t"
+        << surf->vtx[i].p.z << "\t" <<  surf->vtx[i].d << std::endl;
     for(i=0;i<surf->edg.size();i++)
       f << surf->edg[i].i1 << "\t" <<  surf->edg[i].i2 << std::endl;
     for(i=0;i<surf->trg.size();i++)
       f << surf->trg[i].i1 << "\t" <<  surf->trg[i].i2 << "\t" << surf->trg[i].i3 << std::endl;
-    f.close();    
+    f.close();
     return 0;
   }
 };
@@ -144,9 +144,9 @@ public:
   int operator()(Surf *surf, const char *name="test.srf"){
     std::ifstream f(name);
     if(!f.good() || f.eof()) {
-      err_printf(("Can't open file of surface (check the name: \"%s\") \n",name)); return 1; 
+      err_printf(("Can't open file of surface (check the name: \"%s\") \n",name)); return 1;
     }
-    surf->clear();    
+    surf->clear();
     size_t i, sz;
     f >> surf->cnt.x >> surf->cnt.y >> surf->cnt.z;
     f >> sz; surf->vtx.resize(sz);
@@ -164,48 +164,48 @@ public:
 
 
 class SurfLoadGTS{
- private:
+private:
   int t(int i1,int i2,int i3,int i4){
     if(i1==i3 || i1==i4) return i1;
     if(i2==i3 || i2==i4) return i2;
   }
 
- public:
+public:
   void operator()(const char* name,Surf *surf, float diam = 50){
-    std::ifstream f(name); 
+    std::ifstream f(name);
     surf->clear();
     int i,nvtx,ntrg,nedg;
     
-    if(f.good() && !f.eof()){      
+    if(f.good() && !f.eof()){
       f >> nvtx >> nedg >> ntrg;
       
       for(i=0;i<nvtx;i++){
-	Surf::TVtx vtx;
-	f >> vtx.p.x >> vtx.p.y >> vtx.p.z;
-	vtx.d=vtx.p.norma();
-    vtx.p=vtx.p*(1.0f/vtx.d);
-	vtx.d*=diam;
-	surf->vtx.push_back(vtx);	
+        Surf::TVtx vtx;
+        f >> vtx.p.x >> vtx.p.y >> vtx.p.z;
+        vtx.d=vtx.p.norma();
+        vtx.p=vtx.p*(1.0f/vtx.d);
+        vtx.d*=diam;
+        surf->vtx.push_back(vtx);
       }
       for(i=0;i<nedg;i++){
-	Surf::TEdg edg;
-	f >> edg.i1 >> edg.i2;
-	edg.i1--; edg.i2--;
-	surf->edg.push_back(edg);	
+        Surf::TEdg edg;
+        f >> edg.i1 >> edg.i2;
+        edg.i1--; edg.i2--;
+        surf->edg.push_back(edg);
       }
       for(i=0;i<ntrg;i++){
-	Surf::TTrg trg;
-	int i1,i2,i3;
-	f >> i1 >> i2 >> i3;
-	i1--;i2--;i3--;	
-	
-	trg.i1 = t(surf->edg[i1].i1, surf->edg[i1].i2, surf->edg[i2].i1, surf->edg[i2].i2);
-	trg.i2 = t(surf->edg[i2].i1, surf->edg[i2].i2, surf->edg[i3].i1, surf->edg[i3].i2);
-	trg.i3 = t(surf->edg[i3].i1, surf->edg[i3].i2, surf->edg[i1].i1, surf->edg[i1].i2);
-	
-	surf->trg.push_back(trg);	
+        Surf::TTrg trg;
+        int i1,i2,i3;
+        f >> i1 >> i2 >> i3;
+        i1--;i2--;i3--;
+
+        trg.i1 = t(surf->edg[i1].i1, surf->edg[i1].i2, surf->edg[i2].i1, surf->edg[i2].i2);
+        trg.i2 = t(surf->edg[i2].i1, surf->edg[i2].i2, surf->edg[i3].i1, surf->edg[i3].i2);
+        trg.i3 = t(surf->edg[i3].i1, surf->edg[i3].i2, surf->edg[i1].i1, surf->edg[i1].i2);
+
+        surf->trg.push_back(trg);
       }
-    }    
+    }
   }
 };
 
@@ -233,7 +233,7 @@ inline int SurfTxtrStore(SurfTxtr *stxt, const char * filename){
     err_printf(("Can't open texture file '%s' \n",filename));
     return 1;
   }
-  fprintf(f,"%llu %llu\n",stxt->trg.size(),stxt->tx.size());
+  fprintf(f,"%lu %lu\n",stxt->trg.size(),stxt->tx.size());
 
   std::vector<Surf::TTrg>::iterator it;
   for(it=stxt->trg.begin();it!=stxt->trg.end();it++)
@@ -311,7 +311,7 @@ inline int SurfLoad_WaveFrontObj(Surf *surf, SurfTxtr *stxr, const char *filenam
   surf->clear();
   if(stxr)
     stxr->clear();
-    
+
 
 
   char line[1024], *s,*r;
@@ -337,8 +337,8 @@ inline int SurfLoad_WaveFrontObj(Surf *surf, SurfTxtr *stxr, const char *filenam
       tx.x=atof(s);
       s=strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
       tx.y=atof(s);
-      if(stxr) 
-	stxr->tx.push_back(tx);
+      if(stxr)
+        stxr->tx.push_back(tx);
     }
     else if(strcmp(s,"f")==0){
 
@@ -368,7 +368,7 @@ inline int SurfLoad_WaveFrontObj(Surf *surf, SurfTxtr *stxr, const char *filenam
 
       surf->trg.push_back(t);
       if(stxr)
-	stxr->trg.push_back(tt);
+        stxr->trg.push_back(tt);
     }
   }
   surf->cnt.x=  surf->cnt.y=  surf->cnt.z=0;
@@ -397,7 +397,7 @@ public:
 
   void reset(){
     ijmap.clear();
-    ijmap2.clear();      
+    ijmap2.clear();
   }
 
   int idxget(int a, int b, int c, int i, int j){
@@ -406,20 +406,20 @@ public:
     int ii,p1,p2, *p;
     switch (w){
     case 2: return (i?1:0)*b + (j?1:0)*c +(k?1:0)*a;
-    case 1: 
-      if(!k) { 
-	if(b>c) { std::swap(b,c); std::swap(i,j); }
-	p1=b; p2=c; ii=j;
-      } else if(!j) { 
-	if(a>b) { std::swap(a,b); std::swap(i,k); }
-	p1=a; p2=b; ii=i;
-      } else if(!i) { 
-	if(a>c) { std::swap(a,c); std::swap(j,k); }
-	p1=a; p2=c; ii=j;
+    case 1:
+      if(!k) {
+        if(b>c) { std::swap(b,c); std::swap(i,j); }
+        p1=b; p2=c; ii=j;
+      } else if(!j) {
+        if(a>b) { std::swap(a,b); std::swap(i,k); }
+        p1=a; p2=b; ii=i;
+      } else if(!i) {
+        if(a>c) { std::swap(a,c); std::swap(j,k); }
+        p1=a; p2=c; ii=j;
       }
       p = &ijmap2[ijmap[p1]];  for(;*p!=p2;p+=2);
       return p[1]+ii-1;
-    case 0: 
+    case 0:
       return intidx(i,j);
     }
   }
@@ -441,15 +441,15 @@ public:
       Ptn p2 = vtx2.p*vtx2.d;
       int i;
       for(i=1;i<n-1;i++){
-	Surf::TVtx vtx;
-	Ptn p = (p2*i+p1*(n-1-i))*(1.0/float(n-1));
-	vtx.d = p.norma();
-	vtx.p = p*(1.0/vtx.d); 
-	//test string (to see the new parts surface)
-	//vtx.d += 1;
-	dst->vtx.push_back(vtx);
+        Surf::TVtx vtx;
+        Ptn p = (p2*i+p1*(n-1-i))*(1.0/float(n-1));
+        vtx.d = p.norma();
+        vtx.p = p*(1.0/vtx.d);
+        //test string (to see the new parts surface)
+        //vtx.d += 1;
+        dst->vtx.push_back(vtx);
       }
-    }	    
+    }
   }
 
 
@@ -475,8 +475,8 @@ public:
     int suml=0;
     for(i=0;i<sz;i++){
       int l = ijmap[i]*2+1;
-      ijmap[i] = suml; 
-      suml+=l;     
+      ijmap[i] = suml;
+      suml+=l;
     }
     ijmap2.resize(suml);
     for(i=0;i<sz;i++)  ijmap2[ijmap[i]]=-1;
@@ -484,7 +484,7 @@ public:
     // clear resulting array
     dst->clear();
 
-    //insert initial vertexes 
+    //insert initial vertexes
     dst->vtx = src->vtx;
     vlastpos = sz;
 
@@ -511,31 +511,31 @@ public:
       Ptn p3 = vtx3.p*vtx3.d;
       
       for(j=1;j<n;j++){
-	for(k=0;k<n-j;k++){
-	  int l = n-j-k-1;
+        for(k=0;k<n-j;k++){
+          int l = n-j-k-1;
 
-	  int a = idxget(trg->i1,trg->i2,trg->i3,j,k);
-	  if(a >= vlastpos) { 
-	    Ptn p = (p1*l + p2*j  + p3*k)*w;
-	    Surf::TVtx vtx; 
-	    vtx.d=p.norma();
-	    vtx.p=p*(1.0/vtx.d);	  
-	    //test string (to see the new parts surface)
-	    //vtx.d+=1;
-	    dst->vtx.push_back(vtx);
-	  }
-	  Surf::TTrg t;
-	  if(k!=0){
-	    t.i1 = a;
-	    t.i2 = idxget(trg->i1,trg->i2,trg->i3,j-1,k);
-	    t.i3 = idxget(trg->i1,trg->i2,trg->i3,j,k-1);
-	    dst->trg.push_back(t);
-	  }
-	  t.i1 = a;
-	  t.i2 = idxget(trg->i1,trg->i2,trg->i3,j-1,k+1);
-	  t.i3 = idxget(trg->i1,trg->i2,trg->i3,j-1,k);	    
-	  dst->trg.push_back(t);
-	}
+          int a = idxget(trg->i1,trg->i2,trg->i3,j,k);
+          if(a >= vlastpos) {
+            Ptn p = (p1*l + p2*j  + p3*k)*w;
+            Surf::TVtx vtx;
+            vtx.d=p.norma();
+            vtx.p=p*(1.0/vtx.d);
+            //test string (to see the new parts surface)
+            //vtx.d+=1;
+            dst->vtx.push_back(vtx);
+          }
+          Surf::TTrg t;
+          if(k!=0){
+            t.i1 = a;
+            t.i2 = idxget(trg->i1,trg->i2,trg->i3,j-1,k);
+            t.i3 = idxget(trg->i1,trg->i2,trg->i3,j,k-1);
+            dst->trg.push_back(t);
+          }
+          t.i1 = a;
+          t.i2 = idxget(trg->i1,trg->i2,trg->i3,j-1,k+1);
+          t.i3 = idxget(trg->i1,trg->i2,trg->i3,j-1,k);
+          dst->trg.push_back(t);
+        }
       }
       vlastpos=dst->vtx.size();
     }
@@ -561,7 +561,7 @@ public:
 class GenerateTpg{
 public:
   Surf *surf;
-  Tpg *tpg;  
+  Tpg *tpg;
   std::vector<int> ipairs;
   std::vector<int> pairs;
   int idx;
@@ -578,7 +578,7 @@ public:
     sz=surf->vtx.size();
     for(i=0;i<sz;i++){
       pairsort(i);
-    }  
+    }
     pairs.clear();
     ipairs.clear();
   }
@@ -588,18 +588,18 @@ public:
     int j,k;
     tpg->itpg[i]=idx;
     int* fan=(int*)alloca(n*3*sizeof(int)),nfan=0;
-    for(j=1;j<n;j++){    
-      for(k=j;k<n;k++){   
-	if(p[j*2-1]==p[k*2]){
-	  std::swap(p[j*2],p[k*2]);
-	  std::swap(p[j*2+1],p[k*2+1]);
-	  break;
-	}
-	if(p[j*2-1]==p[k*2+1]){
-	  std::swap(p[j*2],p[k*2+1]);
-	  std::swap(p[j*2+1],p[k*2]);
-	  break;
-	}
+    for(j=1;j<n;j++){
+      for(k=j;k<n;k++){
+        if(p[j*2-1]==p[k*2]){
+          std::swap(p[j*2],p[k*2]);
+          std::swap(p[j*2+1],p[k*2+1]);
+          break;
+        }
+        if(p[j*2-1]==p[k*2+1]){
+          std::swap(p[j*2],p[k*2+1]);
+          std::swap(p[j*2+1],p[k*2]);
+          break;
+        }
       }
     }
     for(j=0;j<n;j++){
@@ -607,11 +607,11 @@ public:
       int k2=(2*j+2)%(2*n);
       
       if(p[k1]==p[k2]){
-	fan[nfan++]=p[k1];
+        fan[nfan++]=p[k1];
       }else {
-	fan[nfan++]=p[k1];
-	fan[nfan++]=i;
-	fan[nfan++]=p[k2];
+        fan[nfan++]=p[k1];
+        fan[nfan++]=i;
+        fan[nfan++]=p[k2];
       }
     }
     tpg->tpg.push_back(nfan); idx++;
@@ -638,7 +638,7 @@ public:
     unsigned int sumidx=0;
     for(i=0;i<surf->vtx.size();i++){
       int n = ipairs[i];
-      ipairs[i]=sumidx; 
+      ipairs[i]=sumidx;
       sumidx+=n*2+1;
     }
 
@@ -665,7 +665,7 @@ public:
 class WaveFront{
 public:
   int buf[200000];
-  int *ft1, *ft2; 
+  int *ft1, *ft2;
   int pft1,pft2, szpft1;
   Surf *surf;
   Tpg *tpg;
@@ -681,9 +681,9 @@ public:
 
     float x,y,z;
     vnormal2(x,y,z,
-	     vtx2.p.x,vtx2.p.y,vtx2.p.z,
-	     vtx3.p.x,vtx3.p.y,vtx3.p.z,
-	     vtx1.p.x,vtx1.p.y,vtx1.p.z );
+       vtx2.p.x,vtx2.p.y,vtx2.p.z,
+       vtx3.p.x,vtx3.p.y,vtx3.p.z,
+       vtx1.p.x,vtx1.p.y,vtx1.p.z );
     glNormal3f(x,y,z);
     glVertex3f(vtx1.p.x,vtx1.p.y,vtx1.p.z);
     glVertex3f(vtx2.p.x,vtx2.p.y,vtx2.p.z);
@@ -711,47 +711,47 @@ public:
       finish=0;
       pft2=0;
       for(pft1=0;ft1[pft1+1]!=eofft;){
-	//one step of front wave
-	int i1 = ft2[pft2], i2 = ft1[pft1], i3 = ft1[pft1+1];
+        //one step of front wave
+        int i1 = ft2[pft2], i2 = ft1[pft1], i3 = ft1[pft1+1];
 
-	//if(--iter <= 0) 
-	//  return; 
-	//if(iter==1)
-	//  int stop=10;
+        //if(--iter <= 0)
+        //  return;
+        //if(iter==1)
+        //  int stop=10;
 
-	if(i1==i3){
-	  pft1++;
-	  pft2--;
-	  closed[i3]--; //if(closed[i3]==0) closed[i3]=0;
-	  if(pft2<0) {pft2=0; ft2[0]=ft1[szpft1--];ft1[szpft1+1]=eofft;}
-	  finish++;
-	} else	if(!closed[i2]){	  
-	  //  -c-
-	  int *p=(*tpg)[i2];	  
-	  int np = *p; p++;
-	  for(i=0;p[i]!=i1;i++);
-	  for(i++;p[i%np]!=i3;i++){
-	    //all new vertexes here
-	    int ii= p[i%np];
-	    if(color[ii]) 
-	      closed[ii]++;	      
-	    else 
-	      color[ii]=true;
-	    ft2[++pft2]=ii;
-	    draw(i2,p[(i-1)%np],p[i%np]);
-	    finish++;
-	  }
-	  draw(i2,p[(i-1)%np],i3);
-	  pft1++;	  
-      }	else if(closed[i1] && closed[i3]){	
-	  // z-z-z
-	  ft2[++pft2]=i2;
-	  pft1++;
-	}else{
-	  // others
-	  ft2[++pft2]=i2;
-	  pft1++;
-	}
+        if(i1==i3){
+          pft1++;
+          pft2--;
+          closed[i3]--; //if(closed[i3]==0) closed[i3]=0;
+          if(pft2<0) {pft2=0; ft2[0]=ft1[szpft1--];ft1[szpft1+1]=eofft;}
+          finish++;
+        } else	if(!closed[i2]){
+          //  -c-
+          int *p=(*tpg)[i2];
+          int np = *p; p++;
+          for(i=0;p[i]!=i1;i++);
+          for(i++;p[i%np]!=i3;i++){
+            //all new vertexes here
+            int ii= p[i%np];
+            if(color[ii])
+              closed[ii]++;
+            else
+              color[ii]=true;
+            ft2[++pft2]=ii;
+            draw(i2,p[(i-1)%np],p[i%np]);
+            finish++;
+          }
+          draw(i2,p[(i-1)%np],i3);
+          pft1++;
+        }	else if(closed[i1] && closed[i3]){
+          // z-z-z
+          ft2[++pft2]=i2;
+          pft1++;
+        }else{
+          // others
+          ft2[++pft2]=i2;
+          pft1++;
+        }
       }
       szpft1=pft2;
       ft1[0]=ft1[pft1]; ft2[++pft2]=eofft;
@@ -765,12 +765,12 @@ public:
 class SelectVolume{
 public:
   typedef std::vector<float> bnd;
- 
+
   inline float zval(const Ptn &p,const Ptn &a, const Ptn &b, const Ptn &c){
     float k_y = (-b.x*c.z+a.x*c.z-a.x*b.z-c.x*a.z+c.x*b.z+b.x*a.z)/
-      (a.x*c.y-a.x*b.y-b.x*c.y-c.x*a.y+c.x*b.y+b.x*a.y); 
+        (a.x*c.y-a.x*b.y-b.x*c.y-c.x*a.y+c.x*b.y+b.x*a.y);
     float  k_x = (-a.y*c.z+b.y*c.z-b.y*a.z+a.z*c.y-b.z*c.y+b.z*a.y)/
-      (a.x*c.y-a.x*b.y-b.x*c.y-c.x*a.y+c.x*b.y+b.x*a.y);
+        (a.x*c.y-a.x*b.y-b.x*c.y-c.x*a.y+c.x*b.y+b.x*a.y);
     return (p.x-b.x)*k_x+(p.y-b.y)*k_y+b.z;
   }
 
@@ -780,62 +780,62 @@ public:
     if(surf){
       int sz = surf->trg.size();
       for(i=0;i<sz;i++){
-	Surf::TTrg &trg = surf->trg[i];
-	Surf::TVtx &vtx1 = surf->vtx[trg.i1];
-	Surf::TVtx &vtx2 = surf->vtx[trg.i2];
-	Surf::TVtx &vtx3 = surf->vtx[trg.i3];
-	Ptn p1 = vtx1.p * vtx1.d + surf->cnt;
-	Ptn p2 = vtx2.p * vtx2.d + surf->cnt;
-	Ptn p3 = vtx3.p * vtx3.d + surf->cnt;
-   //Ptn pp1 = p1; pp1.z=0;
-   //Ptn pp2 = p2; pp2.z=0;
-   //Ptn pp3 = p3; pp3.z=0;
+        Surf::TTrg &trg = surf->trg[i];
+        Surf::TVtx &vtx1 = surf->vtx[trg.i1];
+        Surf::TVtx &vtx2 = surf->vtx[trg.i2];
+        Surf::TVtx &vtx3 = surf->vtx[trg.i3];
+        Ptn p1 = vtx1.p * vtx1.d + surf->cnt;
+        Ptn p2 = vtx2.p * vtx2.d + surf->cnt;
+        Ptn p3 = vtx3.p * vtx3.d + surf->cnt;
+        //Ptn pp1 = p1; pp1.z=0;
+        //Ptn pp2 = p2; pp2.z=0;
+        //Ptn pp3 = p3; pp3.z=0;
 
-	//float nx,ny,nz;
-	//vnormal2(nx,nz,ny,
-	//       p1.x,p1.y,p1.z,
-	//       p2.x,p2.y,p2.z,
-	//       p3.x,p3.y,p3.z );
+        //float nx,ny,nz;
+        //vnormal2(nx,nz,ny,
+        //       p1.x,p1.y,p1.z,
+        //       p2.x,p2.y,p2.z,
+        //       p3.x,p3.y,p3.z );
 
-	if(p1.x > p2.x) std::swap(p1,p2);
-	if(p2.x > p3.x) std::swap(p2,p3);
-	if(p1.x > p2.x) std::swap(p1,p2);      
+        if(p1.x > p2.x) std::swap(p1,p2);
+        if(p2.x > p3.x) std::swap(p2,p3);
+        if(p1.x > p2.x) std::swap(p1,p2);
 
-	int j,k;
-	// triangle rasterization
-	for(j=p1.x+1;j<=p3.x;j++){
-	  if(j<0 || j>=szX) continue;
-	  float y1 = p1.y+(j-p1.x)*(p3.y-p1.y)/(p3.x-p1.x);
-	  float y2;
-	  if(j<p2.x)
-	    y2 = p1.y+(j-p1.x)*(p2.y-p1.y)/(p2.x-p1.x);
-	  else
-	    y2 = p2.y+(j-p2.x)*(p3.y-p2.y)/(p3.x-p2.x);
-	  if(y1>y2) std::swap(y1,y2);
-	    
-	  for(k=y1+1;k<=y2;k++){	  
-	    if(k<0 || k>=szY) continue;
-	    Ptn p; p.x=j; p.y=k; 
-	    float z = zval(p,p1,p2,p3);	  
-	    //boundary membering
-	    bndflat[j*szY+k].push_back(z);
-	  }
-	}      
+        int j,k;
+        // triangle rasterization
+        for(j=p1.x+1;j<=p3.x;j++){
+          if(j<0 || j>=szX) continue;
+          float y1 = p1.y+(j-p1.x)*(p3.y-p1.y)/(p3.x-p1.x);
+          float y2;
+          if(j<p2.x)
+            y2 = p1.y+(j-p1.x)*(p2.y-p1.y)/(p2.x-p1.x);
+          else
+            y2 = p2.y+(j-p2.x)*(p3.y-p2.y)/(p3.x-p2.x);
+          if(y1>y2) std::swap(y1,y2);
+
+          for(k=y1+1;k<=y2;k++){
+            if(k<0 || k>=szY) continue;
+            Ptn p; p.x=j; p.y=k;
+            float z = zval(p,p1,p2,p3);
+            //boundary membering
+            bndflat[j*szY+k].push_back(z);
+          }
+        }
       }
     }
 
 
     for(i=0;i<szX*szY;i++){
-      if(bndflat[i].size()%2!=0) 
-	printf("Not even number of boundaries (size=%i)\n",(int)bndflat[i].size());
-      std::sort(bndflat[i].begin(),bndflat[i].end());      
+      if(bndflat[i].size()%2!=0)
+        printf("Not even number of boundaries (size=%i)\n",(int)bndflat[i].size());
+      std::sort(bndflat[i].begin(),bndflat[i].end());
       //printf("%i: ",i);
       unsigned int j;
       float prev=0;
       for(j=0;j<bndflat[i].size();j++){
-	//printf("%f ",bndflat[i][j]);	
-	scan(i/szY,i%szY,prev,bndflat[i][j],j%2); 
-	prev=bndflat[i][j];
+        //printf("%f ",bndflat[i][j]);
+        scan(i/szY,i%szY,prev,bndflat[i][j],j%2);
+        prev=bndflat[i][j];
       }
       scan(i/szY,i%szY,prev,szZ,j%2);
       //printf("\n");
@@ -848,10 +848,10 @@ public:
       if(inside){
       drawBnd(x-0.5,y-0.5,zb,
       x+0.5,y+0.5,ze);
-      }    
+      }
       glEnd();
     */
-  } 
+  }
 
   /*
     void drawBnd( float x1, float y1, float z1, float x2, float y2, float z2){
@@ -868,15 +868,15 @@ public:
     glVertex3f(x1,y2,z2);
     glVertex3f(x2,y2,z2);
     glVertex3f(x2,y1,z2);
-    } 
+    }
   */
 };
 
 class MapTxtrCoord{
 public:  
   struct TxtrCoord{ float x, y;};
-  std::vector<TxtrCoord> arrfxy;  
-  TxtrCoord *GetXY(int i){    
+  std::vector<TxtrCoord> arrfxy;
+  TxtrCoord *GetXY(int i){
     return &arrfxy[i];
   }
   int Load(const char *fn = 0){
