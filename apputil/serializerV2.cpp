@@ -1,38 +1,39 @@
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-#endif
+#include "serializerV2.h"
 
-#include "serializer.h"
 //#include "system.h"
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
 
+namespace sV2{
+
 static char const zero_ch = '\0';
+
 
 // Moved here to avoid a warning on strncpy()
 void CSync_CStr::Load(Serializer *s)
 {
-	while(1){
-		int type=s->ss->NextItem();
-		if(type==1) {
-			return;
-		} else if(type==2) {
-			char const* str;
-			s->ss->GetItem(&str);
-			strncpy(obj,str,sz);
-		} else if(type==0) {
-			Serializer(s).Load(); 
-		}
-	}
+  while(1){
+    int type=s->ss->NextItem();
+    if(type==1) {
+      return;
+    } else if(type==2) {
+      char const* str;
+      s->ss->GetItem(&str);
+      strncpy(obj,str,sz);
+    } else if(type==0) {
+      Serializer(s).Load();
+    }
+  }
 }
 
 //Simple Binary storage
 //////////////////////
 
-StorageStreamSimpleBinary::StorageStreamSimpleBinary()
-:  f(),
+StorageStreamSimpleBinary::StorageStreamSimpleBinary(StreamMedia *sm)
+:  //f(),
+  m_streamMedia(sm),
    type(),
    ddata(),
    fdata(),
@@ -43,26 +44,26 @@ StorageStreamSimpleBinary::StorageStreamSimpleBinary()
 }
 
 StorageStreamSimpleBinary::~StorageStreamSimpleBinary(){
-   Close();
+   //Close();
 }
 
-//stream initialization operation
-int StorageStreamSimpleBinary::OpenForWrite(const char * fname){
-   Close();
-   f=fopen(fname,"w+b");
-   return !f;
-}
-int StorageStreamSimpleBinary::OpenForRead(const char * fname){
-   Close();
-   f=fopen(fname,"rb");
-   return !f;
-}
-void StorageStreamSimpleBinary::Close(){
-   if(f!=NULL){
-      fclose(f); 
-      f=NULL;
-   }
-}
+////stream initialization operation
+//int StorageStreamSimpleBinary::OpenForWrite(const char * fname){
+//   Close();
+//   f=fopen(fname,"w+b");
+//   return !f;
+//}
+//int StorageStreamSimpleBinary::OpenForRead(const char * fname){
+//   Close();
+//   f=fopen(fname,"rb");
+//   return !f;
+//}
+//void StorageStreamSimpleBinary::Close(){
+//   if(f!=NULL){
+//      fclose(f);
+//      f=NULL;
+//   }
+//}
 
 //atomic storage operations
 const char* StorageStreamSimpleBinary::GetNodeName(){
@@ -70,35 +71,43 @@ const char* StorageStreamSimpleBinary::GetNodeName(){
 }
 
 
-int StorageStreamSimpleBinary::NextItem(){   
-   //data set parsing   
-   fread(&type,1,1,f);
-   if(!f || feof(f)) return 1;
+int StorageStreamSimpleBinary::NextItem(){
+   //data set parsing
+   //fread(&type,1,1,f);
+   m_streamMedia->read(&type,1);
+   //if(!f || feof(f)) return 1;
+   if(m_streamMedia->eos()) return 1;
    switch(type){
       case 0: // start node
       case 2: // string
       case 6: // binary
          if (type == 6) {
-            fread(&biglen, 1, sizeof(biglen), f);
+            //fread(&biglen, 1, sizeof(biglen), f);
+           m_streamMedia->read(&biglen, sizeof(biglen));
             shortlen = biglen;
          } else {
-            fread(&shortlen, 1, sizeof(shortlen), f);
+            //fread(&shortlen, 1, sizeof(shortlen), f);
+           m_streamMedia->read(&shortlen, sizeof(shortlen));
             biglen = shortlen;
          }
          strdata.resize(biglen + 1);
-         fread(&strdata[0], 1, biglen, f);
+         //fread(&strdata[0], 1, biglen, f);
+         m_streamMedia->read(strdata.data(), biglen);
          strdata[biglen] = '\0';
          return type == 0 ? 0 : 2;
       case 1: // end node
          return 1;
       case 3: // int
-         fread(&idata,sizeof(idata),1,f);
+         //fread(&idata,sizeof(idata),1,f);
+         m_streamMedia->read(&idata, sizeof(idata));
          return 2;
       case 4: // float
-         fread(&fdata,sizeof(fdata),1,f);
+         //fread(&fdata,sizeof(fdata),1,f);
+         m_streamMedia->read(&fdata, sizeof(fdata));
          return 2;
       case 5: // double
-         fread(&ddata,sizeof(ddata),1,f);
+         //fread(&ddata,sizeof(ddata),1,f);
+         m_streamMedia->read(&ddata, sizeof(ddata));
          return 2;
    }
    return 2;
@@ -107,13 +116,17 @@ int StorageStreamSimpleBinary::NextItem(){
 void StorageStreamSimpleBinary::PutStartNode(const char *s){
    char t = 0;
    unsigned short len = strlen(s);
-   fwrite(&t,1,1,f);
-   fwrite(&len,sizeof(len),1,f);
-   fwrite(s,1,len,f);
+//   fwrite(&t,1,1,f);
+//   fwrite(&len,sizeof(len),1,f);
+//   fwrite(s,1,len,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(&len, sizeof(len));
+   m_streamMedia->write((void*)s, len);
 }
 void StorageStreamSimpleBinary::PutEndNode(const char *s){
    char t = 1;
-   fwrite(&t,1,1,f);
+   //fwrite(&t,1,1,f);
+   m_streamMedia->write(&t, 1);
 }
 void StorageStreamSimpleBinary::GetItem(int* v){
    switch(type){
@@ -212,33 +225,47 @@ void StorageStreamSimpleBinary::GetItem(void const** v, int* n){
 
 void StorageStreamSimpleBinary::PutItem(int* v){
    char t = 3;
-   fwrite(&t,1,1,f);
-   fwrite(v,sizeof(int),1,f);
+//   fwrite(&t,1,1,f);
+//   fwrite(v,sizeof(int),1,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(v, sizeof(*v));
 }
 void StorageStreamSimpleBinary::PutItem(float* v){
    char t = 4;
-   fwrite(&t,1,1,f);
-   fwrite(v,sizeof(float),1,f);
+//   fwrite(&t,1,1,f);
+//   fwrite(v,sizeof(float),1,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(v, sizeof(*v));
 }
 void StorageStreamSimpleBinary::PutItem(double* v){
    char t = 5;
-   fwrite(&t,1,1,f);
-   fwrite(v,sizeof(double),1,f);
+//   fwrite(&t,1,1,f);
+//   fwrite(v,sizeof(double),1,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(v, sizeof(*v));
 }
 void StorageStreamSimpleBinary::PutItem(const char* v){
    char t = 2;
    unsigned short len = strlen(v);
-   fwrite(&t,1,1,f);
-   fwrite(&len,sizeof(len),1,f);
-   fwrite(v,1,len,f);
+//   fwrite(&t,1,1,f);
+//   fwrite(&len,sizeof(len),1,f);
+//   fwrite(v,1,len,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(&len, sizeof(len));
+   m_streamMedia->write((void *)v, len);
 }
 void StorageStreamSimpleBinary::PutItem(void const* v, int n)
 {
    char t = 6;
    unsigned int len = n;
-   fwrite(&t,1,1,f);
-   fwrite(&len,sizeof(len),1,f);
-   fwrite(v,1,len,f);
+//   fwrite(&t,1,1,f);
+//   fwrite(&len,sizeof(len),1,f);
+//   fwrite(v,1,len,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(&len, sizeof(len));
+   if (len != 0) { // This check is mandatory.
+      m_streamMedia->write((void *)v, len);
+   }
 }
 
 
@@ -246,8 +273,10 @@ void StorageStreamSimpleBinary::PutItem(void const* v, int n)
 // StorageStreamSimpleIostream
 ///////////////////////////////////
 
-StorageStreamSimpleIostream::StorageStreamSimpleIostream(std::iostream* st)
-:  strm(st),
+//StorageStreamSimpleIostream::StorageStreamSimpleIostream(std::iostream* st)
+StorageStreamSimpleIostream::StorageStreamSimpleIostream(StreamMedia* sm)
+:  //strm(st),
+   strm(sm),
    type(),
    ddata(),
    fdata(),
@@ -266,16 +295,17 @@ const char* StorageStreamSimpleIostream::GetNodeName(){
 }
 
 
-int StorageStreamSimpleIostream::NextItem(){   
+int StorageStreamSimpleIostream::NextItem(){
    //data set parsing
-   strm->read((char*)&type, 1);
-   if(!*strm) return 1;
+   strm->read(&type, 1);
+   //if(!*strm) return 1;
+   if(strm->eos()) return 1;
    switch(type){
       case 0: // start node
       case 2: // string
       case 6: // blob
          if (type == 6) {
-            strm->read((char*)&biglen, sizeof(biglen));
+            strm->read(&biglen, sizeof(biglen));
             shortlen = biglen;
          } else {
             strm->read((char*)&shortlen, sizeof(shortlen));
@@ -303,13 +333,17 @@ int StorageStreamSimpleIostream::NextItem(){
 void StorageStreamSimpleIostream::PutStartNode(const char *s){
    char t = 0;
    unsigned short len = strlen(s);
-   strm->write((char const*)&t, 1);
-   strm->write((char const*)&len, sizeof(len));
-   strm->write((char const*)s, len);
+//   strm->write((char const*)&t, 1);
+//   strm->write((char const*)&len, sizeof(len));
+//   strm->write((char const*)s, len);
+   strm->write(&t, 1);
+   strm->write(&len, sizeof(len));
+   strm->write((void*)s, len);
 }
 void StorageStreamSimpleIostream::PutEndNode(const char *s){
    char t = 1;
-   strm->write((char const*)&t, 1);
+   //strm->write((char const*)&t, 1);
+   strm->write(&t, 1);
 }
 void StorageStreamSimpleIostream::GetItem(int* v){
    switch(type){
@@ -406,33 +440,47 @@ void StorageStreamSimpleIostream::GetItem(void const** v, int* n){
 
 void StorageStreamSimpleIostream::PutItem(int* v){
    char t = 3;
-   strm->write((char const*)&t, 1);
-   strm->write((char const*)v, sizeof(*v));
+//   strm->write((char const*)&t, 1);
+//   strm->write((char const*)v, sizeof(*v));
+   strm->write(&t, 1);
+   strm->write(v, sizeof(*v));
 }
 void StorageStreamSimpleIostream::PutItem(float* v){
    char t = 4;
-   strm->write((char const*)&t, 1);
-   strm->write((char const*)v, sizeof(*v));
+//   strm->write((char const*)&t, 1);
+//   strm->write((char const*)v, sizeof(*v));
+   strm->write(&t, 1);
+   strm->write(v, sizeof(*v));
 }
 void StorageStreamSimpleIostream::PutItem(double* v){
    char t = 5;
-   strm->write((char const*)&t, 1);
-   strm->write((char const*)v, sizeof(*v));
+//   strm->write((char const*)&t, 1);
+//   strm->write((char const*)v, sizeof(*v));
+   strm->write(&t, 1);
+   strm->write(v, sizeof(*v));
 }
 void StorageStreamSimpleIostream::PutItem(const char* v){
    char t = 2;
    unsigned short len = strlen(v);
-   strm->write((char const*)&t, 1);
-   strm->write((char const*)&len, sizeof(len));
-   strm->write(v, len);
+//   strm->write((char const*)&t, 1);
+//   strm->write((char const*)&len, sizeof(len));
+//   strm->write(v, len);
+   strm->write(&t, 1);
+   strm->write(&len, sizeof(len));
+   strm->write((void *)v, len);
 }
 void StorageStreamSimpleIostream::PutItem(const void* v, int n){
    char t = 6;
    unsigned int len = n;
-   strm->write((char const*)&t, 1);
-   strm->write((char const*)&len, sizeof(len));
+//   strm->write((char const*)&t, 1);
+//   strm->write((char const*)&len, sizeof(len));
+//   if (len != 0) { // This check is mandatory.
+//      strm->write((char const*)v, len);
+//   }
+   strm->write(&t, 1);
+   strm->write(&len, sizeof(len));
    if (len != 0) { // This check is mandatory.
-      strm->write((char const*)v, len);
+      strm->write((void*)v, len);
    }
 }
 
@@ -440,10 +488,12 @@ void StorageStreamSimpleIostream::PutItem(const void* v, int n){
 //Indexed Binary storage
 //////////////////////
 
-StorageStreamIndexedBinary::StorageStreamIndexedBinary()
+StorageStreamIndexedBinary::StorageStreamIndexedBinary(StreamMedia *sm, StreamMedia *smi)
 :  saveindex(0),
    idxcntr(0),
-   f(),
+   //f(),
+   m_streamMedia(sm),
+   m_streamMediaIndex(smi),
    type(),
    ddata(),
    fdata(),
@@ -457,70 +507,93 @@ StorageStreamIndexedBinary::~StorageStreamIndexedBinary(){
    Close();
 }
 
-//stream initialization operation
-int StorageStreamIndexedBinary::OpenForWrite(const char * fname){
-   Close();
-   f=fopen(fname,"w+b");
-   if(!f) return 1;
-   saveindex=1;
-   indexfilename=fname;
-   indexfilename+=".idx";
-   return 0;
+////stream initialization operation
+//int StorageStreamIndexedBinary::OpenForWrite(const char * fname){
+//   Close();
+//   f=fopen(fname,"w+b");
+//   if(!f) return 1;
+//   saveindex=1;
+//   indexfilename=fname;
+//   indexfilename+=".idx";
+//   return 0;
+//}
+
+//int StorageStreamIndexedBinary::OpenForRead(const char * fname){
+//   Close();
+//   if(ReadIndex((std::string(fname)+".idx").c_str())) return 1;
+//   f=fopen(fname,"rb");
+//   if(!f) return 1;
+//   return 0;
+//}
+
+void gets(char*s, int maxCount, StreamMedia* sm){
+  int count = 0;
+  while(!sm->eos() && count < maxCount-1){
+    sm->read(s+count,1);
+    ++count;
+    if(s[count-1] == '\n')
+      break;
+  }
+  s[count]=0;
 }
 
-int StorageStreamIndexedBinary::OpenForRead(const char * fname){
-   Close();
-   if(ReadIndex((std::string(fname)+".idx").c_str())) return 1;
-   f=fopen(fname,"rb");
-   if(!f) return 1;
-   return 0;
-}
-
-int StorageStreamIndexedBinary::ReadIndex(const char * fname){
+//int StorageStreamIndexedBinary::ReadIndex(const char * fname){
+int StorageStreamIndexedBinary::ReadIndex(){
    //reading index
-   FILE *fidx=fopen(fname,"r+b");
-   if(!fidx) return 1;
+//   FILE *fidx=fopen(fname,"r+b");
+//   if(!fidx) return 1;
    int maxidx=0;
-   while(fidx && !feof(fidx)){
+   //while(fidx && !feof(fidx)){
+   while(!m_streamMediaIndex->eos()){
       char key[200],value[50];
-      fgets(key,200,fidx);
-      fgets(value,200,fidx);
-      key[strlen(key)-1]=0;
-      value[strlen(value)-1]=0;
-      int val=atoi(value);
-      str2int[key]=val;
-      if(val>maxidx) maxidx=val;
+//      fgets(key,200,fidx);
+//      fgets(value,200,fidx);
+      gets(key,200,m_streamMediaIndex);
+      gets(value,200,m_streamMediaIndex);
+      auto keylen = strlen(key);
+      auto vallen = strlen(value);
+      if(keylen != 0 && vallen !=0){
+        key[keylen-1]=value[vallen-1]=0;
+        int val=atoi(value);
+        str2int[key]=val;
+        maxidx= std::max(maxidx,val);
+      }
    }
    int2str.resize(maxidx+1);
    std::map<std::string, int>::iterator it;
    for(it=str2int.begin();it!=str2int.end();it++)
       int2str[it->second]=it->first.c_str();
-   fclose(fidx);
+   //fclose(fidx);
    return 0;
 }
 
-int StorageStreamIndexedBinary::WriteIndex(const char * fname){
+//int StorageStreamIndexedBinary::WriteIndex(const char * fname){
+int StorageStreamIndexedBinary::WriteIndex(){
    //writting index
-   FILE *fidx=fopen(fname,"w+b");
-   if(!fidx) return 1;
+   //FILE *fidx=fopen(fname,"w+b");
+   //if(!fidx) return 1;
    std::map<std::string, int>::iterator it;
    for(it=str2int.begin();it!=str2int.end();it++){
-      fprintf(fidx,"%s\n",it->first.c_str());
-      fprintf(fidx,"%i\n",it->second);
+     char buf[256];
+     auto bytes = sprintf_s(buf,"%s\n",it->first.c_str());
+     m_streamMediaIndex->write(buf, bytes);
+     bytes = sprintf_s(buf,"%i\n",it->second);
+     m_streamMediaIndex->write(buf, bytes);
    }
-   fclose(fidx);
+   //fclose(fidx);
    return 0;
 }
 
 
 void StorageStreamIndexedBinary::Close(){
-   if(f!=NULL){
-      fclose(f);
-      f=NULL;
-   }
+//   if(f!=NULL){
+//      fclose(f);
+//      f=NULL;
+//   }
    if(saveindex){
-      WriteIndex(indexfilename.c_str());
-      saveindex=0;      
+     //WriteIndex(indexfilename.c_str());
+     WriteIndex();
+     saveindex=0;
    }
    idxcntr=0;
    str2int.clear();
@@ -532,14 +605,18 @@ const char* StorageStreamIndexedBinary::GetNodeName(){
 }
 
 
-int StorageStreamIndexedBinary::NextItem(){   
-   //data set parsing   
-   fread(&type,1,1,f);
+int StorageStreamIndexedBinary::NextItem(){
+   //data set parsing
+   //fread(&type,1,1,f);
+  m_streamMedia->read(&type,1);
    int node_id;
-   if(!f || feof(f)) return 1;
+   //if(!f || feof(f)) return 1;
+   if(m_streamMedia->eos())
+     return 1;
    switch(type){
      case 0: { // start node
-         fread(&node_id,sizeof(int),1,f);
+         //fread(&node_id,sizeof(int),1,f);
+         m_streamMedia->read(&node_id,sizeof(node_id));
          char const* str = int2str[node_id];
          shortlen = biglen = strlen(str);
          strdata.resize(biglen + 1);
@@ -551,31 +628,37 @@ int StorageStreamIndexedBinary::NextItem(){
       case 2: // string
       case 6: // binary
          if (type == 6) {
-            fread(&biglen, 1, sizeof(biglen), f);
+            //fread(&biglen, 1, sizeof(biglen), f);
+           m_streamMedia->read(&biglen,sizeof(biglen));
             shortlen = biglen;
          } else {
-            fread(&shortlen, 1, sizeof(shortlen), f);
+            // fread(&shortlen, 1, sizeof(shortlen), f);
+            m_streamMedia->read(&shortlen,sizeof(shortlen));
             biglen = shortlen;
          }
          strdata.resize(biglen + 1);
-         fread(&strdata[0],1,biglen,f);
+         //fread(&strdata[0],1,biglen,f);
+         m_streamMedia->read(strdata.data(),biglen);
          strdata[biglen]='\0';
          return 2;
-      case 3: // data node string start node
-         fread(&idata,sizeof(idata),1,f);
+      case 3: // data node int
+         //fread(&idata,sizeof(idata),1,f);
+     m_streamMedia->read(&idata,sizeof(idata));
          return 2;
-      case 4: // data node string start node
-         fread(&fdata,sizeof(fdata),1,f);
+      case 4: // data node float
+         //fread(&fdata,sizeof(fdata),1,f);
+         m_streamMedia->read(&fdata,sizeof(fdata));
          return 2;
-      case 5: // data node string start node
-         fread(&ddata,sizeof(ddata),1,f);
+      case 5: // double
+         //fread(&ddata,sizeof(ddata),1,f);
+         m_streamMedia->read(&ddata,sizeof(ddata));
          return 2;
    }
    return 2;
 }
 
 void StorageStreamIndexedBinary::PutStartNode(const char *s){
-   std::pair< std::map<std::string,int>::iterator, bool> it = 
+   std::pair< std::map<std::string,int>::iterator, bool> it =
    str2int.insert(std::pair<std::string,int>(s,0));
    if(it.second)
       it.first->second=++idxcntr;
@@ -583,12 +666,15 @@ void StorageStreamIndexedBinary::PutStartNode(const char *s){
    int node_id = it.first->second;
 
    char t = 0;
-   fwrite(&t,1,1,f);
-   fwrite(&node_id,sizeof(int),1,f);
+   //fwrite(&node_id,sizeof(int),1,f);
+   //fwrite(&t,1,1,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(&node_id, sizeof(node_id));
 }
 void StorageStreamIndexedBinary::PutEndNode(const char *s){
    char t = 1;
-   fwrite(&t,1,1,f);
+   //fwrite(&t,1,1,f);
+   m_streamMedia->write(&t, 1);
 }
 void StorageStreamIndexedBinary::GetItem(int* v){
    switch(type){
@@ -657,11 +743,11 @@ void StorageStreamIndexedBinary::GetItem(char const** v){
          sprintf(&strdata[0], "%d", idata);
          *v = &strdata[0];
          break;
-	  case 4: // from float
+    case 4: // from float
          sprintf(&strdata[0], "%e", fdata);
          *v = &strdata[0];
          break;
-      case 5: // from double 
+      case 5: // from double
          sprintf(&strdata[0], "%e", ddata);
          *v = &strdata[0];
          break;
@@ -684,66 +770,60 @@ void StorageStreamIndexedBinary::GetItem(void const** v, int* n){
 
 void StorageStreamIndexedBinary::PutItem(int* v){
    char t = 3;
-   fwrite(&t,1,1,f);
-   fwrite(v,sizeof(int),1,f);
+//   fwrite(&t,1,1,f);
+//   fwrite(v,sizeof(int),1,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(v, sizeof(*v));
 }
 void StorageStreamIndexedBinary::PutItem(float* v){
    char t = 4;
-   fwrite(&t,1,1,f);
-   fwrite(v,sizeof(float),1,f);
+   //fwrite(&t,1,1,f);
+   //fwrite(v,sizeof(float),1,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(v, sizeof(*v));
 }
 void StorageStreamIndexedBinary::PutItem(double* v){
    char t = 5;
-   fwrite(&t,1,1,f);
-   fwrite(v,sizeof(double),1,f);
+   //fwrite(&t,1,1,f);
+   //fwrite(v,sizeof(double),1,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(v, sizeof(*v));
 }
 void StorageStreamIndexedBinary::PutItem(const char* v){
    char t = 2;
    unsigned short len = strlen(v);
-   fwrite(&t,1,1,f);
-   fwrite(&len,sizeof(len),1,f);
-   fwrite(v,1,len,f);
+   //fwrite(&t,1,1,f);
+   //fwrite(&len,sizeof(len),1,f);
+   //fwrite(v,1,len,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(&len, sizeof(len));
+   m_streamMedia->write(v, len);
 }
 void StorageStreamIndexedBinary::PutItem(void const* v, int n){
    char t = 6;
    unsigned int len = n;
-   fwrite(&t,1,1,f);
-   fwrite(&len,sizeof(len),1,f);
-   fwrite(v,1,len,f);
+   //fwrite(&t,1,1,f);
+   //fwrite(&len,sizeof(len),1,f);
+   //fwrite(v,1,len,f);
+   m_streamMedia->write(&t, 1);
+   m_streamMedia->write(&len, sizeof(len));
+   m_streamMedia->write(v, len);
 }
 
 
 //SimpleXML storage
 ////////////////////
 
-StorageStreamSimpleXML::StorageStreamSimpleXML()
-   :f(NULL)
-   ,tabsz(1){
+StorageStreamSimpleXML::StorageStreamSimpleXML(StreamMedia* sm)
+  :m_streamMedia(sm)
+  ,tabsz(1)
+{
    buf.resize(4096, '\0');
    strbegin = strend = &buf[0];
    bufBeginOff = 0;
    bufEndOff = 0;
 }
 StorageStreamSimpleXML::~StorageStreamSimpleXML(){
-   Close();
-}
-
-//stream initialization operation
-int StorageStreamSimpleXML::OpenForWrite(const char * fname){
-   Close();
-   f=fopen(fname,"w+t");
-   return !f;
-}
-int StorageStreamSimpleXML::OpenForRead(const char * fname){
-   Close();
-   f=fopen(fname,"rt");
-   return !f;
-}
-void StorageStreamSimpleXML::Close(){
-   if(f!=NULL){
-      fclose(f); 
-      f=NULL;
-   }
 }
 
 //atomic storage operations
@@ -758,11 +838,11 @@ bool StorageStreamSimpleXML::nextLine(char** begin, char** end)
       if (nl) {
          *begin = &buf[0] + bufBeginOff;
          *end = nl;
-		 if (nl != &buf[0] && nl[-1] == '\r') {
-			--*end;
-		 }
+     if (nl != &buf[0] && nl[-1] == '\r') {
+      --*end;
+     }
          **end = '\0';
-         
+
          bufBeginOff = (nl - &buf[0]) + 1;
          if (bufBeginOff == bufEndOff) {
             bufBeginOff = bufEndOff = 0;
@@ -771,7 +851,7 @@ bool StorageStreamSimpleXML::nextLine(char** begin, char** end)
          return true;
       }
    } while (readMore());
-   
+
    // So, we haven't found a newline symbol.
    // We are still going to set *begin and *end, putting
    // a null character to **end.
@@ -789,7 +869,7 @@ bool StorageStreamSimpleXML::nextLine(char** begin, char** end)
       bufBeginOff = bufEndOff = 0;
       return true;
    }
-   
+
    return false;
 }
 
@@ -806,23 +886,30 @@ bool StorageStreamSimpleXML::readMore()
       }
    }
 
-   int r = fread(&buf[0] + bufEndOff, 1, buf.size() - bufEndOff, f);
-   if (r <= 0) {
-      return false;
-   }
+   // FIX IT!
+   //int r = fread(&buf[0] + bufEndOff, 1, buf.size() - bufEndOff, f);
+//   if (r <= 0) {
+//      return false;
+//   }
+//   bufEndOff += r;
+
+   auto r = m_streamMedia->read(buf.data()+bufEndOff, buf.size()-bufEndOff);
    bufEndOff += r;
-   return true;
+   if(m_streamMedia->eos())
+     return false;
+   else
+     return true;
 }
 
 int StorageStreamSimpleXML::NextItem(){
    if (!nextLine(&strbegin, &strend)) {
       return 1; // end node
    }
-   
+
    for (; *strbegin == ' '; ++strbegin) {
       // skip initial whitespace
    }
-   
+
    if (*strbegin != '<' || strend[-1] != '>') {
       return 2; // data node
    }
@@ -830,33 +917,39 @@ int StorageStreamSimpleXML::NextItem(){
    ++strbegin; // skip the '<' character
    --strend; // trim the '>' character
    *strend = '\0';
-   
+
    if (*strbegin == '/') {
       ++strbegin;
       return 1; // end node
    }
-   
+
    if (strncmp(strbegin, "binary>", 7) != 0) {
       return 0; // start node
    }
-   
+
    if ((strend - strbegin) < 8 || strcmp(strend - 8, "</binary") != 0) {
       return 0; // start node
    }
    strbegin += 7; // strlen("binary>");
    strend -= 8; // strlen("</binary");
-   
+
    strend = decodeBase64InPlace(strbegin, strend);
    return 2; // data node
 }
 
 void StorageStreamSimpleXML::PutStartNode(const char *s){
-   fprintf(f, "%s<%s>\n", indent.c_str(), s);
+  char buf[256];
+   auto bytes = sprintf_s(buf, "%s<%s>\n", indent.c_str(), s);
+   m_streamMedia->write(buf, bytes);
+
    indent.resize(indent.size() + tabsz, ' ');
 }
 void StorageStreamSimpleXML::PutEndNode(const char *s){
    indent.resize(indent.size() - tabsz);
-   fprintf(f, "%s</%s>\n", indent.c_str(), s);
+   char buf[256];
+   auto bytes = sprintf_s(buf, "%s</%s>\n", indent.c_str(), s);
+   m_streamMedia->write(buf,bytes);
+
 }
 void StorageStreamSimpleXML::GetItem(int* v){
    *v = atoi(strbegin);
@@ -877,21 +970,36 @@ void StorageStreamSimpleXML::GetItem(void const** v, int* n){
 }
 
 void StorageStreamSimpleXML::PutItem(int* v){
-   fprintf(f, "%s%d\n", indent.c_str(), *v);   
+  char buf [256];
+  auto bytes = sprintf_s(buf, "%s%d\n", indent.c_str(), *v);
+  m_streamMedia->write(buf,bytes);
 }
 void StorageStreamSimpleXML::PutItem(float* v){
-   fprintf(f, "%s%e\n", indent.c_str(), *v);   
+   //fprintf(f, "%s%e\n", indent.c_str(), *v);
+   char buf [256];
+   auto bytes = sprintf_s(buf, "%s%e\n", indent.c_str(), *v);
+   m_streamMedia->write(buf,bytes);
 }
 void StorageStreamSimpleXML::PutItem(double* v){
-   fprintf(f, "%s%e\n", indent.c_str(), *v);   
+   //fprintf(f, "%s%e\n", indent.c_str(), *v);
+   char buf [256];
+   auto bytes = sprintf_s(buf, "%s%e\n", indent.c_str(), *v);
+   m_streamMedia->write(buf,bytes);
 }
 void StorageStreamSimpleXML::PutItem(const char* v){
-   fprintf(f, "%s%s\n", indent.c_str(), v);   
+   //fprintf(f, "%s%s\n", indent.c_str(), v);
+   char buf [256];
+   auto bytes = sprintf_s(buf, "%s%s\n", indent.c_str(), v);
+   m_streamMedia->write(buf,bytes);
 }
 void StorageStreamSimpleXML::PutItem(void const* v, int n)
 {
-   fprintf(f, "%s<binary>%s</binary>\n", indent.c_str(),
-      toBase64((char const*)v, (char const*)v + n).c_str());
+//   fprintf(f, "%s<binary>%s</binary>\n", indent.c_str(),
+//      toBase64((char const*)v, (char const*)v + n).c_str());
+   char buf [1024];
+   auto bytes = sprintf_s(buf, "%s<binary>%s</binary>\n", indent.c_str(),
+         toBase64((char const*)v, (char const*)v + n).c_str());
+   m_streamMedia->write(buf,bytes);
 }
 
 char* StorageStreamSimpleXML::decodeBase64InPlace(char* begin, char* end)
@@ -915,7 +1023,7 @@ char* StorageStreamSimpleXML::decodeBase64InPlace(char* begin, char* end)
       }
 
       *p++ = char((c1 << 2) | (c2 & 0x30) >> 4);
-      
+
       do {
          if (*g == '=') {
             goto done;
@@ -977,11 +1085,11 @@ std::string StorageStreamSimpleXML::toBase64(char const* begin, char const* end)
       out += m_base64EncodeChars[((c2 & 0x0F) << 2) | ((c3 & 0xC0) >> 6)];
       out += m_base64EncodeChars[c3 & 0x3F];
    }
-   
+
    return out;
 }
 
-char const StorageStreamSimpleXML::m_base64EncodeChars[] = 
+char const StorageStreamSimpleXML::m_base64EncodeChars[] =
    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 signed char const StorageStreamSimpleXML::m_base64DecodeChars[] = {
@@ -995,244 +1103,4 @@ signed char const StorageStreamSimpleXML::m_base64DecodeChars[] = {
     41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1
 };
 
-
-
-
-
-
-
-
-
-//THIS IS TEST CODE SECTION 
-// (uncomment last line to set debug on)
-////////////////////////////////////////
-
-
-
-class DynClassBase{
-public:
-   static int count;
-   static  DynClassBase *AskForObject(const char *cname);
-   virtual const char *AskForClassName()=0;
-   virtual void AskForData(Serializer *s)=0;
-};
-
-int DynClassBase::count = 0;
-
-class DynClassABC: public DynClassBase{
-public:
-   int a,b,c;
-   DynClassABC(){
-      a=count++;
-      b=count++;
-      c=count++;
-   }
-   const char *AskForClassName(){
-      return "DynClassABC";
-   }
-   void AskForData(Serializer *s){
-      s->Item("a",Sync(&a));
-      s->Item("b",Sync(&b));
-      s->Item("c",Sync(&c));
-   }
-};
-
-class DynClassABCD: public DynClassBase{
-public:
-   int a,b,c,d;
-   DynClassABCD(){
-      a=count++;
-      b=count++;
-      c=count++;
-      d=count++;
-   }
-   const char *AskForClassName(){
-      return "DynClassABCD";
-   }
-   void AskForData(Serializer *s){
-      s->Item("a",Sync(&a));
-      s->Item("b",Sync(&b));
-      s->Item("c",Sync(&c));
-      s->Item("d",Sync(&d));
-   }
-};
-
-DynClassBase *DynClassBase::AskForObject(const char *cname){
-   if(strcmp(cname,"DynClassABC")==0)
-      return new DynClassABC;
-   else if(strcmp(cname,"DynClassABCD")==0)
-      return new DynClassABCD;
-   // return 0 if object can not be constructed
-   return 0;
 }
-
-
-
-class EmbedObject2{
-public:
-   int otherint;
-   float otherfloat;
-
-   
-
-   void AskForData(Serializer *s){
-      s->Item("otherint",Sync(&otherint));
-      s->Item("otherfloat",Sync(&otherfloat));
-   }
-};
-
-class EmbedObject{
-public:
-   int otherint;
-   float otherfloat;
-   int n;
-
-   EmbedObject2 eobjA[1000];
-   EmbedObject2 eobjB;
-   EmbedObject2 eobjC;
-
-   EmbedObject(){
-      int i;
-      for(i=0;i<1000;i++){
-         eobjA[i].otherint=i;
-         eobjA[i].otherfloat=i+0.10f;
-      }    
-   }
-
-   void AskForData(Serializer *s){
-      n=100;
-      s->Item("otherint",Sync(&otherint));
-      s->Item("otherfloat",Sync(&otherfloat));
-      s->Item("Vector of EmbedObjectsA",Sync(eobjA,n));
-      s->Item("EmbedObjectB",Sync(&eobjB));
-      s->Item("EmbedObjectC",Sync(&eobjC));
-   }
-
-};
-
-
-
-
-
-
-
-
-class MainObject{
-public:
-   // this is a vector of pointer to the base class
-   // object class restored dynamically from stream
-   std::vector< CSrlzPtr<DynClassBase> > dynobjlist;
-
-   int testint;
-   float testfloat;
-   std::vector<EmbedObject> stdvect;
-   char name[200];
-   char chr;
-   std::list<int> intlist;
-   std::set<int> intset;
-   std::set<double> doubleset;
-
-   std::map<int,std::string> map_int_float;
-  
-
-   EmbedObject eobj;
-
-   MainObject(){
-      stdvect.resize(1000);
-      strcpy(name,"this is a test string");
-      intlist.push_back(1);
-      intlist.push_back(3);
-      intlist.push_back(7);
-      intlist.push_back(12);
-
-      intset.insert(10);
-      intset.insert(7);
-      intset.insert(2);
-      intset.insert(8);
-      intset.insert(4);
-      intset.insert(3);
-
-      doubleset.insert(10e20);
-      doubleset.insert(7e-20);
-      doubleset.insert(2e2);
-      doubleset.insert(8e0);
-      doubleset.insert(4);
-      doubleset.insert(3);
-
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABC));
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABC));
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABC));
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABCD));
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABCD));
-
-      
-      map_int_float[1]="one";
-      map_int_float[2]="two";
-      map_int_float[3]="tree";
-      map_int_float[4]="four";
-
-   }
-   void AskForData(Serializer *s){
-      s->Item("dynobjlist", Sync(&dynobjlist));
-      s->Item("map_int_float",Sync(&map_int_float));
-      s->Item("intlist",Sync(&intlist));
-      s->Item("intset",Sync(&intset));
-      s->Item("doubleset",Sync(&doubleset));
-      s->Item("TestInt",Sync(&testint));
-      s->Item("TestFloat",Sync(&testfloat));
-      s->Item("EmbedObject",Sync(&eobj));
-      s->Item("stdvector",Sync(&stdvect));
-      s->Item("TestChar",Sync(&chr));
-      s->Item("TestName",Sync(name,200));
-   }
-
-};
-
-
-
-
-class TestAll{
-public:
-   TestAll(){
-
-      MainObject mobj;
-      mobj.testfloat=123.456F;
-      mobj.testint=321;
-      mobj.eobj.otherfloat=1.005F;
-      mobj.eobj.otherint=22; 
-
-      
-      //StorageStreamSimpleXML2 ss;
-      StorageStreamSimpleBinary ss;
-      //StorageStreamIndexedBinary ss;
-
-      Serializer srlz(&ss);
-      srlz.Item("MainObject", Sync(&mobj));
-
-      if(!ss.OpenForWrite("test_data.txt")){
-         srlz.Store();
-         ss.Close();
-         printf("writting passed\n");
-      }
-
-      if(!ss.OpenForRead("test_data.txt")){
-         srlz.Load();
-         ss.Close();
-         printf("reading passed\n");
-      }
-
-      if(!ss.OpenForWrite("test_data1.txt")){
-         srlz.Store();
-         ss.Close();
-         printf("re-writting passed\n");
-      }
-
-      ss.Close();
-      printf("test finished\n");
-
-      //wait for key
-      char buf[200];
-      fgets(buf,200,stdin);
-   }
-};
-//static TestAll testall;

@@ -1,4 +1,5 @@
 #include "CommonComponents/mainwindow.h"
+#include "apputil/serializerV2test.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -8,6 +9,12 @@
 
 int main(int argc, char *argv[])
 {
+
+#if !serializerTest
+  sV2::TestAll testall;
+  return 0;
+#endif
+
   //QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 //  QGuiApplication::setAttribute(Qt::AA_Use96Dpi);
 //  QGuiApplication::setHighDpiScaleFactorRoundingPolicy(

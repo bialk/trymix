@@ -137,6 +137,8 @@ set(PROJECT_SOURCES
 
     CommonComponents/viewctrl.h CommonComponents/viewctrl.cpp
 
+    apputil/serializer.cpp apputil/serializer.h
+    apputil/serializerV2.cpp apputil/serializerV2.h
 
     mathlib/lapackcpp/lapackcpp.h
     mathlib/lapackcpp/invert.cpp
