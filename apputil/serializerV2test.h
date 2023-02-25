@@ -168,7 +168,8 @@ public:
 
    }
    void AskForData(Serializer *s){
-      s->Item("dynobjlist", Sync(&dynobjlist));
+      //s->Item("dynobjlist", Sync(&dynobjlist));
+      s->SyncAs("dynobjlist", dynobjlist);
       s->Item("map_int_float",Sync(&map_int_float));
       s->Item("intlist",Sync(&intlist));
       s->Item("intset",Sync(&intset));
@@ -257,10 +258,10 @@ public:
 
       auto makeStorageStream = [](sV2::StreamMediaFile& ssmedia,sV2::StreamMediaFile& ssmediaIndex) -> std::unique_ptr<StorageStream> {
 
-        //return std::unique_ptr<StorageStream>(new StorageStreamSimpleXML(&ssmedia));
+        return std::unique_ptr<StorageStream>(new StorageStreamSimpleXML(&ssmedia));
         //return std::unique_ptr<StorageStream>(new StorageStreamSimpleIostream(&ssmedia));
         //return std::unique_ptr<StorageStream>(new StorageStreamSimpleBinary(&ssmedia));
-        return std::unique_ptr<StorageStream>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
+        //return std::unique_ptr<StorageStream>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
       };
 
 
@@ -271,14 +272,16 @@ public:
         Serializer srlz(ss.get());
         srlz.Item("MainObject", Sync(&mobj));
         srlz.Store();
-        static_cast<StorageStreamIndexedBinary*>(ss.get())->WriteIndex();
+        if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
+           iss->WriteIndex();
       }
 
       {
         sV2::StreamMediaFile ssmedia("test_data.txt", true);
         sV2::StreamMediaFile ssmediaIndex("test_data.txt.idx",true);
         auto ss = makeStorageStream(ssmedia, ssmediaIndex);
-        static_cast<StorageStreamIndexedBinary*>(ss.get())->ReadIndex();
+        if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
+           iss->ReadIndex();
         Serializer srlz(ss.get());
         srlz.Item("MainObject", Sync(&mobj));
         srlz.Load();
@@ -291,7 +294,8 @@ public:
         Serializer srlz(ss.get());
         srlz.Item("MainObject", Sync(&mobj));
         srlz.Store();
-        static_cast<StorageStreamIndexedBinary*>(ss.get())->WriteIndex();
+        if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
+           iss->WriteIndex();
       }
 
 
