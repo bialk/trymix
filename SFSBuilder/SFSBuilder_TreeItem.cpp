@@ -194,7 +194,7 @@ SFSBuilder_TreeItem::showModel(DrawCntx* cx)
   m_lights->Draw(cx);
 
 
-#if !off
+#if off
   m_sfs->image_mode = ImagePlane::image_mode_image;
   m_sfs->shape_mode = ImagePlane::shape_mode_image;
   m_sfs->edit_mode = ImagePlane::edit_mode_off;

@@ -9,8 +9,6 @@ namespace sV2 {
 // (uncomment last line to set debug on)
 ////////////////////////////////////////
 
-
-
 class DynClassBase{
 public:
    static int count;
@@ -168,8 +166,8 @@ public:
 
    }
    void AskForData(Serializer *s){
-      //s->Item("dynobjlist", Sync(&dynobjlist));
-      s->SyncAs("dynobjlist", dynobjlist);
+      s->Item("dynobjlist", Sync(&dynobjlist));
+      //s->SyncAs("dynobjlist", dynobjlist);
       s->Item("map_int_float",Sync(&map_int_float));
       s->Item("intlist",Sync(&intlist));
       s->Item("intset",Sync(&intset));

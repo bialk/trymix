@@ -1,10 +1,6 @@
 #include "serializerV2.h"
 
-//#include "system.h"
-#include <string.h>
-#include <stdlib.h>
 #include <assert.h>
-#include <stdio.h>
 
 namespace sV2{
 
@@ -45,32 +41,12 @@ StorageStreamSimpleBinary::StorageStreamSimpleBinary(StreamMedia *sm)
 }
 
 StorageStreamSimpleBinary::~StorageStreamSimpleBinary(){
-   //Close();
 }
-
-////stream initialization operation
-//int StorageStreamSimpleBinary::OpenForWrite(const char * fname){
-//   Close();
-//   f=fopen(fname,"w+b");
-//   return !f;
-//}
-//int StorageStreamSimpleBinary::OpenForRead(const char * fname){
-//   Close();
-//   f=fopen(fname,"rb");
-//   return !f;
-//}
-//void StorageStreamSimpleBinary::Close(){
-//   if(f!=NULL){
-//      fclose(f);
-//      f=NULL;
-//   }
-//}
 
 //atomic storage operations
 const char* StorageStreamSimpleBinary::GetNodeName(){
    return &strdata[0];
 }
-
 
 int StorageStreamSimpleBinary::NextItem(){
    //data set parsing
@@ -83,31 +59,25 @@ int StorageStreamSimpleBinary::NextItem(){
       case 2: // string
       case 6: // binary
          if (type == 6) {
-            //fread(&biglen, 1, sizeof(biglen), f);
            m_streamMedia->read(&biglen, sizeof(biglen));
             shortlen = biglen;
          } else {
-            //fread(&shortlen, 1, sizeof(shortlen), f);
            m_streamMedia->read(&shortlen, sizeof(shortlen));
             biglen = shortlen;
          }
          strdata.resize(biglen + 1);
-         //fread(&strdata[0], 1, biglen, f);
          m_streamMedia->read(strdata.data(), biglen);
          strdata[biglen] = '\0';
          return type == 0 ? 0 : 2;
       case 1: // end node
          return 1;
       case 3: // int
-         //fread(&idata,sizeof(idata),1,f);
          m_streamMedia->read(&idata, sizeof(idata));
          return 2;
       case 4: // float
-         //fread(&fdata,sizeof(fdata),1,f);
          m_streamMedia->read(&fdata, sizeof(fdata));
          return 2;
       case 5: // double
-         //fread(&ddata,sizeof(ddata),1,f);
          m_streamMedia->read(&ddata, sizeof(ddata));
          return 2;
    }
@@ -120,18 +90,16 @@ void StorageStreamSimpleBinary::PutStartNode(const char *s){
    auto len_temp = strlen(s);
    assert(len_temp < std::numeric_limits<std::uint16_t>::max());
    std::uint16_t len = std::uint16_t(len_temp);
-//   fwrite(&t,1,1,f);
-//   fwrite(&len,sizeof(len),1,f);
-//   fwrite(s,1,len,f);
    m_streamMedia->write(&t, 1);
    m_streamMedia->write(&len, sizeof(len));
    m_streamMedia->write((void*)s, len);
 }
+
 void StorageStreamSimpleBinary::PutEndNode(const char *s){
    char t = 1;
-   //fwrite(&t,1,1,f);
    m_streamMedia->write(&t, 1);
 }
+
 void StorageStreamSimpleBinary::GetItem(int* v){
    switch(type){
       case 2: //from string
@@ -151,6 +119,7 @@ void StorageStreamSimpleBinary::GetItem(int* v){
          break;
    }
 }
+
 void StorageStreamSimpleBinary::GetItem(float* v){
    switch(type){
       case 2: //from string
@@ -229,25 +198,22 @@ void StorageStreamSimpleBinary::GetItem(void const** v, size_t* n){
 
 void StorageStreamSimpleBinary::PutItem(int* v){
    char t = 3;
-//   fwrite(&t,1,1,f);
-//   fwrite(v,sizeof(int),1,f);
    m_streamMedia->write(&t, 1);
    m_streamMedia->write(v, sizeof(*v));
 }
+
 void StorageStreamSimpleBinary::PutItem(float* v){
    char t = 4;
-//   fwrite(&t,1,1,f);
-//   fwrite(v,sizeof(float),1,f);
    m_streamMedia->write(&t, 1);
    m_streamMedia->write(v, sizeof(*v));
 }
+
 void StorageStreamSimpleBinary::PutItem(double* v){
    char t = 5;
-//   fwrite(&t,1,1,f);
-//   fwrite(v,sizeof(double),1,f);
    m_streamMedia->write(&t, 1);
    m_streamMedia->write(v, sizeof(*v));
 }
+
 void StorageStreamSimpleBinary::PutItem(const char* v){
    char t = 2;
 
@@ -255,13 +221,11 @@ void StorageStreamSimpleBinary::PutItem(const char* v){
    assert(len_temp < std::numeric_limits<std::uint16_t>::max());
    std::uint16_t len = std::uint16_t(len_temp);
 
-//   fwrite(&t,1,1,f);
-//   fwrite(&len,sizeof(len),1,f);
-//   fwrite(v,1,len,f);
    m_streamMedia->write(&t, 1);
    m_streamMedia->write(&len, sizeof(len));
    m_streamMedia->write((void *)v, len);
 }
+
 void StorageStreamSimpleBinary::PutItem(void const* v, size_t n)
 {
    char t = 6;
@@ -269,9 +233,6 @@ void StorageStreamSimpleBinary::PutItem(void const* v, size_t n)
    assert(n < std::numeric_limits<std::uint16_t>::max());
    std::uint16_t len = std::uint16_t(n);
 
-   //   fwrite(&t,1,1,f);
-//   fwrite(&len,sizeof(len),1,f);
-//   fwrite(v,1,len,f);
    m_streamMedia->write(&t, 1);
    m_streamMedia->write(&len, sizeof(len));
    if (len != 0) { // This check is mandatory.
@@ -305,11 +266,9 @@ const char* StorageStreamSimpleIostream::GetNodeName(){
    return &strdata[0];
 }
 
-
 int StorageStreamSimpleIostream::NextItem(){
    //data set parsing
    strm->read(&type, 1);
-   //if(!*strm) return 1;
    if(strm->eos()) return 1;
    switch(type){
       case 0: // start node
@@ -347,18 +306,16 @@ void StorageStreamSimpleIostream::PutStartNode(const char *s){
    auto len_temp = strlen(s);
    assert(len_temp < std::numeric_limits<std::uint16_t>::max());
    std::uint16_t len = std::uint16_t(len_temp);
-//   strm->write((char const*)&t, 1);
-//   strm->write((char const*)&len, sizeof(len));
-//   strm->write((char const*)s, len);
    strm->write(&t, 1);
    strm->write(&len, sizeof(len));
    strm->write((void*)s, len);
 }
+
 void StorageStreamSimpleIostream::PutEndNode(const char *s){
    char t = 1;
-   //strm->write((char const*)&t, 1);
    strm->write(&t, 1);
 }
+
 void StorageStreamSimpleIostream::GetItem(int* v){
    switch(type){
       case 2: //from string
@@ -378,6 +335,7 @@ void StorageStreamSimpleIostream::GetItem(int* v){
          break;
    }
 }
+
 void StorageStreamSimpleIostream::GetItem(float* v){
    switch(type){
       case 2: //from string
@@ -441,6 +399,7 @@ void StorageStreamSimpleIostream::GetItem(char const** v){
          break;
    }
 }
+
 void StorageStreamSimpleIostream::GetItem(void const** v, size_t* n){
    switch(type){
       case 2: //from string
@@ -451,28 +410,24 @@ void StorageStreamSimpleIostream::GetItem(void const** v, size_t* n){
    }
 }
 
-
 void StorageStreamSimpleIostream::PutItem(int* v){
    char t = 3;
-//   strm->write((char const*)&t, 1);
-//   strm->write((char const*)v, sizeof(*v));
    strm->write(&t, 1);
    strm->write(v, sizeof(*v));
 }
+
 void StorageStreamSimpleIostream::PutItem(float* v){
    char t = 4;
-//   strm->write((char const*)&t, 1);
-//   strm->write((char const*)v, sizeof(*v));
    strm->write(&t, 1);
    strm->write(v, sizeof(*v));
 }
+
 void StorageStreamSimpleIostream::PutItem(double* v){
    char t = 5;
-//   strm->write((char const*)&t, 1);
-//   strm->write((char const*)v, sizeof(*v));
    strm->write(&t, 1);
    strm->write(v, sizeof(*v));
 }
+
 void StorageStreamSimpleIostream::PutItem(const char* v){
    char t = 2;
 
@@ -480,24 +435,17 @@ void StorageStreamSimpleIostream::PutItem(const char* v){
    assert(len_temp < std::numeric_limits<std::uint16_t>::max());
    std::uint16_t len = std::uint16_t(len_temp);
 
-//   strm->write((char const*)&t, 1);
-//   strm->write((char const*)&len, sizeof(len));
-//   strm->write(v, len);
    strm->write(&t, 1);
    strm->write(&len, sizeof(len));
    strm->write((void *)v, len);
 }
+
 void StorageStreamSimpleIostream::PutItem(const void* v, size_t n){
    char t = 6;
 
    assert(n < std::numeric_limits<std::uint16_t>::max());
    std::uint16_t len = std::uint16_t(n);
 
-//   strm->write((char const*)&t, 1);
-//   strm->write((char const*)&len, sizeof(len));
-//   if (len != 0) { // This check is mandatory.
-//      strm->write((char const*)v, len);
-//   }
    strm->write(&t, 1);
    strm->write(&len, sizeof(len));
    if (len != 0) { // This check is mandatory.
@@ -512,7 +460,6 @@ void StorageStreamSimpleIostream::PutItem(const void* v, size_t n){
 StorageStreamIndexedBinary::StorageStreamIndexedBinary(StreamMedia *sm, StreamMedia *smi)
 :  saveindex(0),
    idxcntr(0),
-   //f(),
    m_streamMedia(sm),
    m_streamMediaIndex(smi),
    type(),
@@ -528,25 +475,6 @@ StorageStreamIndexedBinary::~StorageStreamIndexedBinary(){
    Close();
 }
 
-////stream initialization operation
-//int StorageStreamIndexedBinary::OpenForWrite(const char * fname){
-//   Close();
-//   f=fopen(fname,"w+b");
-//   if(!f) return 1;
-//   saveindex=1;
-//   indexfilename=fname;
-//   indexfilename+=".idx";
-//   return 0;
-//}
-
-//int StorageStreamIndexedBinary::OpenForRead(const char * fname){
-//   Close();
-//   if(ReadIndex((std::string(fname)+".idx").c_str())) return 1;
-//   f=fopen(fname,"rb");
-//   if(!f) return 1;
-//   return 0;
-//}
-
 void gets(char*s, int maxCount, StreamMedia* sm){
   int count = 0;
   while(!sm->eos() && count < maxCount-1){
@@ -558,17 +486,10 @@ void gets(char*s, int maxCount, StreamMedia* sm){
   s[count]=0;
 }
 
-//int StorageStreamIndexedBinary::ReadIndex(const char * fname){
 int StorageStreamIndexedBinary::ReadIndex(){
-   //reading index
-//   FILE *fidx=fopen(fname,"r+b");
-//   if(!fidx) return 1;
    int maxidx=0;
-   //while(fidx && !feof(fidx)){
    while(!m_streamMediaIndex->eos()){
       char key[256],value[50];
-//      fgets(key,200,fidx);
-//      fgets(value,200,fidx);
       gets(key,sizeof(key),m_streamMediaIndex);
       gets(value,sizeof(key),m_streamMediaIndex);
       auto keylen = strlen(key);
@@ -583,15 +504,12 @@ int StorageStreamIndexedBinary::ReadIndex(){
    int2str.resize(maxidx+1);   
    for(auto it=str2int.begin();it!=str2int.end();it++)
       int2str[it->second]=it->first.c_str();
-   //fclose(fidx);
    return 0;
 }
 
 //int StorageStreamIndexedBinary::WriteIndex(const char * fname){
 int StorageStreamIndexedBinary::WriteIndex(){
    //writting index
-   //FILE *fidx=fopen(fname,"w+b");
-   //if(!fidx) return 1;
    for(auto it=str2int.begin();it!=str2int.end();it++){
      char buf[256];
      auto bytes = sprintf_s(buf,"%s\n",it->first.c_str());
@@ -599,18 +517,11 @@ int StorageStreamIndexedBinary::WriteIndex(){
      bytes = sprintf_s(buf,"%i\n",it->second);
      m_streamMediaIndex->write(buf, bytes);
    }
-   //fclose(fidx);
    return 0;
 }
 
-
 void StorageStreamIndexedBinary::Close(){
-//   if(f!=NULL){
-//      fclose(f);
-//      f=NULL;
-//   }
    if(saveindex){
-     //WriteIndex(indexfilename.c_str());
      WriteIndex();
      saveindex=0;
    }
@@ -623,18 +534,14 @@ const char* StorageStreamIndexedBinary::GetNodeName(){
    return &strdata[0];
 }
 
-
 int StorageStreamIndexedBinary::NextItem(){
   //data set parsing
-  //fread(&type,1,1,f);
   m_streamMedia->read(&type,sizeof(type));
   std::uint32_t node_id;
-  //if(!f || feof(f)) return 1;
   if(m_streamMedia->eos())
     return 1;
   switch(type){
   case 0: { // start node
-    //fread(&node_id,sizeof(int),1,f);
     m_streamMedia->read(&node_id,sizeof(node_id));
     char const* str = int2str[node_id];
 
@@ -651,29 +558,23 @@ int StorageStreamIndexedBinary::NextItem(){
   case 2: // string
   case 6: // binary
     if (type == 6) { //this is for binary: case 6
-      //fread(&biglen, 1, sizeof(biglen), f);
       m_streamMedia->read(&biglen,sizeof(biglen));
       shortlen = biglen;
     } else { //this is for string: case 2
-      // fread(&shortlen, 1, sizeof(shortlen), f);
       m_streamMedia->read(&shortlen,sizeof(shortlen));
       biglen = shortlen;
     }
     strdata.resize(biglen + 1);
-    //fread(&strdata[0],1,biglen,f);
     m_streamMedia->read(strdata.data(),biglen);
     strdata[biglen]='\0';
     return 2;
   case 3: // data node int
-    //fread(&idata,sizeof(idata),1,f);
     m_streamMedia->read(&idata,sizeof(idata));
     return 2;
   case 4: // data node float
-    //fread(&fdata,sizeof(fdata),1,f);
     m_streamMedia->read(&fdata,sizeof(fdata));
     return 2;
   case 5: // double
-    //fread(&ddata,sizeof(ddata),1,f);
     m_streamMedia->read(&ddata,sizeof(ddata));
     return 2;
   }
@@ -688,15 +589,12 @@ void StorageStreamIndexedBinary::PutStartNode(const char *s){
    auto node_id = it.first->second;
    std::uint8_t t = 0;
 
-   //fwrite(&node_id,sizeof(int),1,f);
-   //fwrite(&t,1,1,f);
    m_streamMedia->write(&t, sizeof(t));
    m_streamMedia->write(&node_id, sizeof(node_id));
 }
 
 void StorageStreamIndexedBinary::PutEndNode(const char *s){
    std::uint8_t t = 1;
-   //fwrite(&t,1,1,f);
    m_streamMedia->write(&t, sizeof(t));
 }
 
@@ -719,6 +617,7 @@ void StorageStreamIndexedBinary::GetItem(int* v){
          break;
    }
 }
+
 void StorageStreamIndexedBinary::GetItem(float* v){
    switch(type){
       case 2: //from string
@@ -738,6 +637,7 @@ void StorageStreamIndexedBinary::GetItem(float* v){
          break;
    }
 }
+
 void StorageStreamIndexedBinary::GetItem(double* v){
    switch(type){
       case 2: //from string
@@ -757,6 +657,7 @@ void StorageStreamIndexedBinary::GetItem(double* v){
          break;
    }
 }
+
 void StorageStreamIndexedBinary::GetItem(char const** v){
    switch(type){
       case 2: //from string
@@ -777,6 +678,7 @@ void StorageStreamIndexedBinary::GetItem(char const** v){
          break;
    }
 }
+
 void StorageStreamIndexedBinary::GetItem(void const** v, size_t* n){
    switch(type){
       case 2: //from string
@@ -794,47 +696,39 @@ void StorageStreamIndexedBinary::GetItem(void const** v, size_t* n){
 
 void StorageStreamIndexedBinary::PutItem(int* v){
    std::uint8_t t = 3;
-//   fwrite(&t,1,1,f);
-//   fwrite(v,sizeof(int),1,f);
    m_streamMedia->write(&t, sizeof(t));
    m_streamMedia->write(v, sizeof(*v));
 }
+
 void StorageStreamIndexedBinary::PutItem(float* v){
    std::uint8_t t = 4;
-   //fwrite(&t,1,1,f);
-   //fwrite(v,sizeof(float),1,f);
    m_streamMedia->write(&t, sizeof(t));
    m_streamMedia->write(v, sizeof(*v));
 }
+
 void StorageStreamIndexedBinary::PutItem(double* v){
    std::uint8_t t = 5;
-   //fwrite(&t,1,1,f);
-   //fwrite(v,sizeof(double),1,f);
    m_streamMedia->write(&t, sizeof(t));
    m_streamMedia->write(v, sizeof(*v));
 }
+
 void StorageStreamIndexedBinary::PutItem(const char* v){
    std::uint8_t t = 2;
    auto len_temp = strlen(v);
    assert(std::numeric_limits<std::uint16_t>::max() >= len_temp);
    std::uint16_t len = (std::uint16_t)(len_temp);
 
-   //fwrite(&t,1,1,f);
-   //fwrite(&len,sizeof(len),1,f);
-   //fwrite(v,1,len,f);
    m_streamMedia->write(&t, sizeof(t));
    m_streamMedia->write(&len, sizeof(len));
    m_streamMedia->write(v, len);
 }
+
 void StorageStreamIndexedBinary::PutItem(void const* v, size_t n){
    std::uint8_t t = 6;
 
    assert(std::numeric_limits<std::uint32_t>::max() >= n);
    std::uint32_t len = std::uint32_t(n);
 
-   //fwrite(&t,1,1,f);
-   //fwrite(&len,sizeof(len),1,f);
-   //fwrite(v,1,len,f);
    m_streamMedia->write(&t, sizeof(t));
    m_streamMedia->write(&len, sizeof(len));
    m_streamMedia->write(v, len);
@@ -843,7 +737,6 @@ void StorageStreamIndexedBinary::PutItem(void const* v, size_t n){
 
 //SimpleXML storage
 ////////////////////
-
 StorageStreamSimpleXML::StorageStreamSimpleXML(StreamMedia* sm)
   :m_streamMedia(sm)
   ,tabsz(1)
@@ -853,6 +746,7 @@ StorageStreamSimpleXML::StorageStreamSimpleXML(StreamMedia* sm)
    bufBeginOff = 0;
    bufEndOff = 0;
 }
+
 StorageStreamSimpleXML::~StorageStreamSimpleXML(){
 }
 
@@ -974,6 +868,7 @@ void StorageStreamSimpleXML::PutStartNode(const char *s){
 
    indent.resize(indent.size() + tabsz, ' ');
 }
+
 void StorageStreamSimpleXML::PutEndNode(const char *s){
    indent.resize(indent.size() - tabsz);
    char buf[256];
@@ -981,18 +876,23 @@ void StorageStreamSimpleXML::PutEndNode(const char *s){
    m_streamMedia->write(buf,bytes);
 
 }
+
 void StorageStreamSimpleXML::GetItem(int* v){
    *v = atoi(strbegin);
 }
+
 void StorageStreamSimpleXML::GetItem(float* v){
    *v = (float)atof(strbegin);
 }
+
 void StorageStreamSimpleXML::GetItem(double* v){
    *v = atof(strbegin);
 }
+
 void StorageStreamSimpleXML::GetItem(char const** v){
    *v = strbegin;
 }
+
 void StorageStreamSimpleXML::GetItem(void const** v, size_t* n){
    // Binary data.
    *v = strbegin;
@@ -1004,36 +904,33 @@ void StorageStreamSimpleXML::PutItem(int* v){
   auto bytes = sprintf_s(buf, "%s%d\n", indent.c_str(), *v);
   m_streamMedia->write(buf,bytes);
 }
+
 void StorageStreamSimpleXML::PutItem(float* v){
-   //fprintf(f, "%s%e\n", indent.c_str(), *v);
    char buf [256];
    auto bytes = sprintf_s(buf, "%s%e\n", indent.c_str(), *v);
    m_streamMedia->write(buf,bytes);
 }
+
 void StorageStreamSimpleXML::PutItem(double* v){
-   //fprintf(f, "%s%e\n", indent.c_str(), *v);
    char buf [256];
    auto bytes = sprintf_s(buf, "%s%e\n", indent.c_str(), *v);
    m_streamMedia->write(buf,bytes);
 }
+
 void StorageStreamSimpleXML::PutItem(const char* v){
-   //fprintf(f, "%s%s\n", indent.c_str(), v);
    char buf [256];
    auto bytes = sprintf_s(buf, "%s%s\n", indent.c_str(), v);
    m_streamMedia->write(buf,bytes);
 }
-void StorageStreamSimpleXML::PutItem(void const* v, size_t n)
-{
-//   fprintf(f, "%s<binary>%s</binary>\n", indent.c_str(),
-//      toBase64((char const*)v, (char const*)v + n).c_str());
+
+void StorageStreamSimpleXML::PutItem(void const* v, size_t n){
    char buf [1024];
    auto bytes = sprintf_s(buf, "%s<binary>%s</binary>\n", indent.c_str(),
          toBase64((char const*)v, (char const*)v + n).c_str());
    m_streamMedia->write(buf,bytes);
 }
 
-char* StorageStreamSimpleXML::decodeBase64InPlace(char* begin, char* end)
-{
+char* StorageStreamSimpleXML::decodeBase64InPlace(char* begin, char* end){
    int c1, c2, c3, c4;
    char const* g = begin; // get ptr
    char* p = begin; // put ptr
@@ -1085,8 +982,7 @@ done:
    return p;
 }
 
-std::string StorageStreamSimpleXML::toBase64(char const* begin, char const* end)
-{
+std::string StorageStreamSimpleXML::toBase64(char const* begin, char const* end){
    std::string out;
 
    char const* g = begin;

@@ -2,7 +2,6 @@
 #define SERIALIZERV2_H
 
 #include <string>
-#include <string.h>
 #include <list>
 #include <vector>
 #include <map>
@@ -41,8 +40,6 @@ public:
   virtual int NextItem()=0;
 
   virtual const char* GetNodeName()=0;
-  virtual void PutStartNode(){};
-  virtual void PutEndNode(){};
 
   virtual void GetItem(int* v)=0;
   virtual void GetItem(float* v)=0;
@@ -54,7 +51,6 @@ public:
   virtual void PutStartNode(const char *s)=0;
   virtual void PutEndNode(const char *s)=0;
 
-  virtual void PutNodeName(const char* v){};
   virtual void PutItem(int* v)=0;
   virtual void PutItem(float* v)=0;
   virtual void PutItem(double* v)=0;
@@ -68,9 +64,6 @@ public:
   ~StorageStreamSimpleXML();
   
 protected:
-
-  void PutStartNode() override{};
-  void PutEndNode() override{};
 
   const char* GetNodeName() override;
   int NextItem() override;
@@ -686,7 +679,7 @@ public:
     }
   }
   void Store(Serializer *s) override{
-    int sz = obj->size();
+    int sz = (int)obj->size();
     s->ss->PutStartNode("size");
     s->ss->PutItem(&sz);
     s->ss->PutEndNode("size");
