@@ -95,6 +95,76 @@ bool StorageStreamSimpleJson::readMore()
 }
 
 int StorageStreamSimpleJson::NextItem(){
+
+  bool withinQuote = false;
+  bool withinSlash = false;
+  bool startingTrim = true;
+
+  std::string tockenCollector;
+
+  for(;;){
+    const char in = 'd'; //= readSymbol();
+    if(withinQuote){
+      if(withinSlash){
+        withinSlash = false;
+        tockenCollector.push_back(in);
+        continue;
+      }
+      else if(in == '\\'){
+        withinSlash = false;
+        continue;
+      }
+      else if(in == '\"'){
+        withinQuote = false;
+        return 0; // tocken in collector
+      }
+      else{
+        tockenCollector.push_back(in);
+        continue;
+      }
+    }
+    else if(in == '\"'){
+      withinQuote = true;
+      continue;
+    }
+    else if(in == '{'){
+      tockenCollector.push_back(in);
+      return 0; // new node;
+    }
+    else if(in == '[' ){
+      tockenCollector.push_back(in);
+      return 0; // new node;
+    }
+    else if(in == ']' ){
+      tockenCollector.push_back(in);
+      return 0; // end node;
+    }
+    else if(in == ']' ){
+      tockenCollector.push_back(in);
+      return 0; // end node;
+    }
+    else if(in == ',' ){
+      tockenCollector.push_back(in);
+      return 0; // end node;
+    }
+    else if(startingTrim == true && std::string("notwitespacesymbols").find(in) == std::string::npos){
+      continue; //trim symbols at start
+    }
+    else if(std::string("number").find(in) != std::string::npos){
+      startingTrim = false;
+      tockenCollector.push_back(in);
+      continue;
+    }
+    else {
+      return 0; // non quotted string;
+    }
+
+  }
+
+
+
+
+
   if (!nextLine(&strbegin, &strend)) {
     return 1; // end node
   }
@@ -158,7 +228,7 @@ void StorageStreamSimpleJson::PutStartNode(const char *s){
   if(context.top().itemCount == 0)
   {
     if(context.top().isVector){
-      auto bytes = sprintf_s(buf, "[\n%s ", indent.c_str(), s);
+      auto bytes = sprintf_s(buf, "[\n%s ", indent.c_str());
       m_streamMedia->write(buf, bytes);
     }
     else{
