@@ -559,6 +559,7 @@ public:
     s->ss->PutItem(&sz);
     s->ss->PutEndNode("size");
     int i;
+    s->ss->PutStartNode("vector");
     for(i=0;i<sz;i++){
       SyncDataInterface *sync = Sync(obj+i);
       s->ss->PutStartNode("item");
@@ -566,6 +567,7 @@ public:
       s->ss->PutEndNode("item");
       delete sync;
     }
+    s->ss->PutEndNode("vector");
   }
 };
 
@@ -624,16 +626,18 @@ public:
   }
   void Store(Serializer *s) override{
     typename std::map<T,R>::iterator it;
+    s->ss->PutStartNode("vector");
     for(it = obj->begin(); it != obj->end(); it++){
-      s->ss->PutStartNode("item");
+      s->ss->PutStartNode("vector");
       Serializer srlz=s;
       CStlPair<T,R> pair;
       pair.first=it->first;
       pair.second=it->second;
       pair.AskForData(&srlz);
       srlz.Store();
-      s->ss->PutEndNode("item");
+      s->ss->PutEndNode("vector");
     }
+    s->ss->PutEndNode("vector");
   }
 };
 
@@ -685,6 +689,7 @@ public:
     s->ss->PutEndNode("size");
     typename std::vector<T>::iterator it;
     
+    s->ss->PutStartNode("vector");
     for(it = obj->begin(); it != obj->end(); it++){
       SyncDataInterface *sync=Sync(&*it);
       s->ss->PutStartNode("item");
@@ -692,6 +697,7 @@ public:
       s->ss->PutEndNode("item");
       delete sync;
     }
+    s->ss->PutEndNode("vector");
   }
 };
 
@@ -730,6 +736,7 @@ public:
   }
   void Store(Serializer *s) override{
     typename std::list<T>::iterator it;
+    s->ss->PutStartNode("vector");
     for(it = obj->begin(); it != obj->end(); it++){
       SyncDataInterface *sync=Sync(&*it);
       s->ss->PutStartNode("item");
@@ -737,6 +744,7 @@ public:
       s->ss->PutEndNode("item");
       delete sync;
     }
+    s->ss->PutEndNode("vector");
   }
 };
 
@@ -776,6 +784,7 @@ public:
   }
   void Store(Serializer *s) override{
     typename std::set<T,K>::iterator it;
+    s->ss->PutStartNode("vector");
     for(it = obj->begin(); it != obj->end(); it++){
       SyncDataInterface *sync=Sync((T*)&*it);
       s->ss->PutStartNode("item");
@@ -783,6 +792,7 @@ public:
       s->ss->PutEndNode("item");
       delete sync;
     }
+    s->ss->PutEndNode("vector");
   }
 };
 

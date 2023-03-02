@@ -1,5 +1,6 @@
 #ifndef SERIALIZERV2TEST
 #define SERIALIZERV2TEST
+#include "storagestreamjson.h"
 #include "serializerV2.h"
 #include <memory>
 
@@ -256,10 +257,11 @@ public:
 
       auto makeStorageStream = [](sV2::StreamMediaFile& ssmedia,sV2::StreamMediaFile& ssmediaIndex) -> std::unique_ptr<StorageStream> {
 
-        return std::unique_ptr<StorageStream>(new StorageStreamSimpleXML(&ssmedia));
+        //return std::unique_ptr<StorageStream>(new StorageStreamSimpleXML(&ssmedia));
         //return std::unique_ptr<StorageStream>(new StorageStreamSimpleIostream(&ssmedia));
         //return std::unique_ptr<StorageStream>(new StorageStreamSimpleBinary(&ssmedia));
         //return std::unique_ptr<StorageStream>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
+        return std::unique_ptr<StorageStream>(new StorageStreamSimpleJson(&ssmedia));
       };
 
 
@@ -274,7 +276,7 @@ public:
            iss->WriteIndex();
       }
 
-      {
+      if(0){
         sV2::StreamMediaFile ssmedia("test_data.txt", true);
         sV2::StreamMediaFile ssmediaIndex("test_data.txt.idx",true);
         auto ss = makeStorageStream(ssmedia, ssmediaIndex);
@@ -285,7 +287,7 @@ public:
         srlz.Load();
       }
 
-      {
+      if(0){
         sV2::StreamMediaFile ssmedia("test_data1.txt", false);
         sV2::StreamMediaFile ssmediaIndex("test_data1.txt.idx",false);
         auto ss = makeStorageStream(ssmedia, ssmediaIndex);

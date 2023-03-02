@@ -4,6 +4,8 @@
 
 #include "serializerV2.h"
 
+#include <stack>
+
 namespace sV2{
 
   class StorageStreamSimpleJson: public StorageStream{
@@ -45,6 +47,14 @@ namespace sV2{
     std::string indent;
     char* strbegin;
     char* strend;
+
+    struct Context{
+      int itemCount = 0;
+      std::string nodeName;
+      bool isVector = false;
+    };
+
+    std::stack<Context> context;
 
     static char const m_base64EncodeChars[];
     static signed char const m_base64DecodeChars[];
