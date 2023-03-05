@@ -140,6 +140,7 @@ set(PROJECT_SOURCES
     apputil/serializer.cpp apputil/serializer.h
     apputil/serializerV2.cpp apputil/serializerV2.h
     apputil/storagestreamjson.h apputil/storagestreamjson.cpp
+    apputil/storagestreamsimplexml.h apputil/storagestreamsimplexml.cpp
 
     mathlib/lapackcpp/lapackcpp.h
     mathlib/lapackcpp/invert.cpp

@@ -224,73 +224,68 @@ void StorageStreamSimpleJson::GetItem(void const** v, size_t* n){
 
 void StorageStreamSimpleJson::PutStartNode(const char *s){
 
+  bool isVector = !strcmp(s,"vector");
+
   char buf[256];
-  if(context.top().itemCount == 0)
-  {
-    if(context.top().isVector){
-      auto bytes = sprintf_s(buf, "[\n%s ", indent.c_str());
-      m_streamMedia->write(buf, bytes);
+
+  if (!isVector){
+    if(context.top().itemCount == 0)
+    {
+      if(context.top().isVector){
+        auto bytes = sprintf_s(buf, "[\n%s ", indent.c_str());
+        m_streamMedia->write(buf, bytes);
+      }
+      else{
+        auto bytes = sprintf_s(buf, "{\n%s \"%s\": ", indent.c_str(), s);
+        m_streamMedia->write(buf, bytes);
+      }
     }
     else{
-      auto bytes = sprintf_s(buf, "{\n%s \"%s\": ", indent.c_str(), s);
-      m_streamMedia->write(buf, bytes);
+      if(context.top().isVector){
+        auto bytes = sprintf_s(buf, ",\n%s ", indent.c_str());
+        m_streamMedia->write(buf, bytes);
+      }
+      else{
+        auto bytes = sprintf_s(buf, ",\n%s \"%s\": ", indent.c_str(), s);
+        m_streamMedia->write(buf, bytes);
+      }
     }
-  }
-  else{
-    if(context.top().isVector){
-      auto bytes = sprintf_s(buf, ",\n%s ", indent.c_str());
-      m_streamMedia->write(buf, bytes);
-    }
-    else{
-      auto bytes = sprintf_s(buf, ",\n%s \"%s\": ", indent.c_str(), s);
-      m_streamMedia->write(buf, bytes);
-    }
+    context.top().itemCount++;
+    indent.insert(indent.size(), tabsz, ' ');
   }
 
-  bool isVector = !strcmp(s,"vector");
-  context.top().itemCount++;
   context.push({0,s,});
   context.top().isVector = isVector;
-  indent.insert(indent.size(), tabsz, ' ');
+
 }
 
 void StorageStreamSimpleJson::PutEndNode(const char *s){
+  // context.top().itemCount == 0 only for leave node - nodes, which does not
+  // have children - only have atomic values. Such items no need to be closed
   if(context.top().itemCount>0){
     if(context.top().isVector){
       char buf[256];
-      //auto bytes = sprintf_s(buf, "%s</%s>\n", indent.c_str(), s);
       auto bytes = sprintf_s(buf, "\n%s]", indent.c_str());
       m_streamMedia->write(buf,bytes);
     }
     else{
       char buf[256];
-      //auto bytes = sprintf_s(buf, "%s</%s>\n", indent.c_str(), s);
       auto bytes = sprintf_s(buf, "\n%s}", indent.c_str());
       m_streamMedia->write(buf,bytes);
     }
   }
-  else{
-    if(context.top().isVector){
-      char buf[256];
-      //auto bytes = sprintf_s(buf, "%s</%s>\n", indent.c_str(), s);
-      auto bytes = sprintf_s(buf, "%s]\n", indent.c_str());
-      m_streamMedia->write(buf,bytes);
-    }
-  }
-  indent.resize(indent.size() - tabsz);
 
+  if(!context.top().isVector){
+    indent.resize(indent.size() - tabsz);
+  }
   context.pop();
 
-  if(context.size()==1){
+  if(context.size()==1){ // last node shall be closed
     char buf[256];
-    //auto bytes = sprintf_s(buf, "%s</%s>\n", indent.c_str(), s);
     auto bytes = sprintf_s(buf, "\n%s}\n", indent.c_str());
     m_streamMedia->write(buf,bytes);
   }
 
-
-
-  //}
 }
 
 void StorageStreamSimpleJson::PutItem(int* v){

@@ -1,7 +1,8 @@
 #ifndef SERIALIZERV2TEST
 #define SERIALIZERV2TEST
-#include "storagestreamjson.h"
 #include "serializerV2.h"
+#include "storagestreamjson.h"
+#include "storagestreamsimplexml.h"
 #include <memory>
 
 namespace sV2 {

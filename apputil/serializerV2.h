@@ -7,6 +7,7 @@
 #include <map>
 #include <set>
 #include <iostream>
+#include <assert.h>
 
 namespace sV2{
 /*
@@ -58,54 +59,6 @@ public:
   virtual void PutItem(void const* v, size_t n)=0;
 };
 
-class StorageStreamSimpleXML: public StorageStream{
-public:
-  StorageStreamSimpleXML(StreamMedia* sm);
-  ~StorageStreamSimpleXML();
-  
-protected:
-
-  const char* GetNodeName() override;
-  int NextItem() override;
-  void GetItem(int* v) override;
-  void GetItem(float* v) override;
-  void GetItem(double* v) override;
-  void GetItem(char const** v) override;
-  void GetItem(void const** v, size_t* n) override;
-  
-  
-  void PutStartNode(const char *s) override;
-  void PutEndNode(const char *s) override;
-  
-  void PutItem(int* v) override;
-  void PutItem(float* v) override;
-  void PutItem(double* v) override;
-  void PutItem(const char* v) override;
-  void PutItem(void const* v, size_t n) override;
-private:
-  static char* decodeBase64InPlace(char* begin, char* end);
-  
-  static std::string toBase64(char const* begin, char const* end);
-  
-  bool nextLine(char** begin, char** end);
-  
-  bool readMore();
-  
-  
-  StreamMedia* m_streamMedia{nullptr};
-  
-  int tabsz;
-  std::string indent;
-  char* strbegin;
-  char* strend;
-  
-  static char const m_base64EncodeChars[];
-  static signed char const m_base64DecodeChars[];
-  
-  std::vector<char> buf;
-  size_t bufBeginOff;
-  size_t bufEndOff;
-};
 
 class StorageStreamSimpleBinary:public StorageStream{
 public:
@@ -314,7 +267,7 @@ public:
         }
       }
       else if(type==2){ //data node
-        //error: data stream is not syncronized
+        //assert(!"error of stream syncronization");
       }
     }
     
@@ -532,25 +485,25 @@ public:
       if(type==1){
         return;
       }
-      else if(type==0){
+      else if(type==0){        
         if(strcmp("size",s->ss->GetNodeName())==0 && i == 0){
           SyncDataInterface *sync=Sync(&size);
           sync->Load(s);
           delete sync;
           //obj->resize(size);
         }
-        else if(strcmp("item",s->ss->GetNodeName())==0 && size!=0 && i<sz){
-          SyncDataInterface *sync=Sync(obj+i);
-          sync->Load(s);
+        else if(strcmp("data",s->ss->GetNodeName())==0 && size!=0 && i<sz){
+          Serializer srlz(s);
+          s->Item("item",Sync(obj+i));
+          s->Load();
           i++;
-          delete sync;
         }
         else{
           Serializer(s).Load();
         }
       }
       else if(type==2){
-        // error of stream syncronization
+        assert(!"error of stream syncronization");
       }
     }
   }
@@ -559,15 +512,15 @@ public:
     s->ss->PutItem(&sz);
     s->ss->PutEndNode("size");
     int i;
+    s->ss->PutStartNode("data");
     s->ss->PutStartNode("vector");
     for(i=0;i<sz;i++){
-      SyncDataInterface *sync = Sync(obj+i);
-      s->ss->PutStartNode("item");
-      sync->Store(s);
-      s->ss->PutEndNode("item");
-      delete sync;
+      Serializer srlz(s);
+      srlz.Item("item",Sync(obj+i));
+      srlz.Store();
     }
     s->ss->PutEndNode("vector");
+    s->ss->PutEndNode("data");
   }
 };
 
@@ -610,9 +563,16 @@ public:
       else if(type==0){
         if(strcmp("item",s->ss->GetNodeName())==0){
           CStlPair<T,R> pair;
-          Serializer srlz(s);
-          pair.AskForData(&srlz);
-          srlz.Load();
+          {
+            Serializer srlz(s);
+            srlz.Item("item",Sync(&pair.first));
+            srlz.Load();
+          }
+          {
+            Serializer srlz(s);
+            srlz.Item("item",Sync(&pair.second));
+            srlz.Load();
+          }
           obj->insert(pair);
         }
         else{
@@ -620,22 +580,28 @@ public:
         }
       }
       else if(type==2){
-        // error of stream syncronization
+        assert(!"error of stream syncronization");
       }
     }
   }
   void Store(Serializer *s) override{
-    typename std::map<T,R>::iterator it;
     s->ss->PutStartNode("vector");
-    for(it = obj->begin(); it != obj->end(); it++){
+    for(auto it = obj->begin(); it != obj->end(); it++){
+      s->ss->PutStartNode("item");
       s->ss->PutStartNode("vector");
-      Serializer srlz=s;
       CStlPair<T,R> pair;
-      pair.first=it->first;
-      pair.second=it->second;
-      pair.AskForData(&srlz);
-      srlz.Store();
+      {
+        Serializer srlz(s);
+        srlz.Item("item",Sync((T*)&it->first));
+        srlz.Store();
+      }
+      {
+        Serializer srlz(s);
+        srlz.Item("item",Sync(&it->second));
+        srlz.Store();
+      }
       s->ss->PutEndNode("vector");
+      s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
   }
@@ -652,8 +618,7 @@ public:
   CSync_StlVector(std::vector<T> *t):obj(t){}
   
   void Load(Serializer *s) override{
-    int size=0;
-    typename std::vector<T>::iterator it = obj->begin();
+    int size=0;    
     while(1){
       int type=s->ss->NextItem();
       if(type==1){
@@ -664,40 +629,51 @@ public:
           SyncDataInterface *sync=Sync(&size);
           sync->Load(s);
           delete sync;
-          obj->resize(size);
-          it = obj->begin();
+          obj->resize(size);          
         }
-        else if(strcmp("item",s->ss->GetNodeName())==0 && size!=0){
-          SyncDataInterface *sync=Sync(&*it);
-          sync->Load(s);
-          it++;
-          delete sync;
+        else if(strcmp("data",s->ss->GetNodeName())==0 && size!=0){
+          for(auto it = obj->begin(); it != obj->end(); ++it){
+            auto type = s->ss->NextItem();
+            if(type == 1){
+              break;
+            }
+            else if(type == 0){
+              Serializer srlz(s);
+              srlz.Item("item",Sync(&*it));
+              srlz.Load();
+            }
+            else if(type == 2){
+              assert(!"error of stream syncronization");
+            }
+          }
         }
         else{
           Serializer(s).Load();
         }
       }
       else if(type==2){
-        // error of stream syncronization
+        assert(!"error of stream syncronization");
       }
     }
   }
   void Store(Serializer *s) override{
     int sz = (int)obj->size();
-    s->ss->PutStartNode("size");
-    s->ss->PutItem(&sz);
-    s->ss->PutEndNode("size");
-    typename std::vector<T>::iterator it;
-    
+//    s->ss->PutStartNode("size");
+//    s->ss->PutItem(&sz);
+//    s->ss->PutEndNode("size");
+    Serializer srlz(s);
+    srlz.Item("size",Sync(&sz));
+    srlz.Store();
+
+    s->ss->PutStartNode("data");
     s->ss->PutStartNode("vector");
-    for(it = obj->begin(); it != obj->end(); it++){
-      SyncDataInterface *sync=Sync(&*it);
-      s->ss->PutStartNode("item");
-      sync->Store(s);
-      s->ss->PutEndNode("item");
-      delete sync;
+    for(auto it = obj->begin(); it != obj->end(); it++){
+      Serializer srlz(s);
+      srlz.Item("item",Sync(&*it));
+      srlz.Store();
     }
     s->ss->PutEndNode("vector");
+    s->ss->PutEndNode("data");
   }
 };
 
@@ -718,19 +694,14 @@ public:
         return;
       }
       else if(type==0){
-        if(strcmp("item",s->ss->GetNodeName())==0){
-          T item;
-          SyncDataInterface *sync=Sync(&item);
-          sync->Load(s);
-          obj->push_back(item);
-          delete sync;
-        }
-        else{
-          Serializer(s).Load();
-        }
+        Serializer srlz(s);
+        T item;
+        srlz.Item("item",Sync(&item));
+        srlz.Load();
+        obj->push_back(item);
       }
       else if(type==2){
-        // error of stream syncronization
+        assert(!"error of stream synchronisation");
       }
     }
   }
@@ -738,11 +709,9 @@ public:
     typename std::list<T>::iterator it;
     s->ss->PutStartNode("vector");
     for(it = obj->begin(); it != obj->end(); it++){
-      SyncDataInterface *sync=Sync(&*it);
-      s->ss->PutStartNode("item");
-      sync->Store(s);
-      s->ss->PutEndNode("item");
-      delete sync;
+      Serializer srlz(s);
+      srlz.Item("item",Sync(&*it));
+      srlz.Store();
     }
     s->ss->PutEndNode("vector");
   }
@@ -766,19 +735,14 @@ public:
         return;
       }
       else if(type==0){
-        if(strcmp("item",s->ss->GetNodeName())==0){
-          T item;
-          SyncDataInterface *sync=Sync(&item);
-          sync->Load(s);
-          obj->insert(item);
-          delete sync;
-        }
-        else{
-          Serializer(s).Load();
-        }
+        Serializer srlz(s);
+        T item;
+        srlz.Item("item",Sync(&item));
+        srlz.Load();
+        obj->insert(item);
       }
       else if(type==2){
-        // error of stream syncronization
+        assert(!"error of stream syncronization");
       }
     }
   }
@@ -786,11 +750,9 @@ public:
     typename std::set<T,K>::iterator it;
     s->ss->PutStartNode("vector");
     for(it = obj->begin(); it != obj->end(); it++){
-      SyncDataInterface *sync=Sync((T*)&*it);
-      s->ss->PutStartNode("item");
-      sync->Store(s);
-      s->ss->PutEndNode("item");
-      delete sync;
+      Serializer srlz(s);
+      srlz.Item("item",Sync((T*)&*it));
+      srlz.Store();
     }
     s->ss->PutEndNode("vector");
   }
@@ -832,7 +794,7 @@ public:
         }
       }
       else if(type==2){
-        // error of stream syncronization
+        assert(!"error of stream syncronization");
       }
     }
   }
