@@ -1,6 +1,7 @@
 #include "storagestreamjson.h"
 
 #include <assert.h>
+#include <functional>
 
 namespace sV2{
 
@@ -15,6 +16,77 @@ StorageStreamSimpleJson::StorageStreamSimpleJson(StreamMedia* sm)
    bufBeginOff = 0;
    bufEndOff = 0;
    context.push({});
+
+
+
+   l1gram = {
+     [&](char c){ // InString
+        if(c == '\\'){
+          pState = InStringSlash;
+        }
+        else if(c == '"'){
+          found_tokens.push_back(token);
+          token.clear();
+          pState = InSpace;
+        }
+        else{
+          // collect symbol to string
+          token.push_back(c);
+        }
+     },
+     [&](char c){ // InStringSlash
+       //collect symbol to string
+       token.push_back(c);
+       pState = InString;
+     },
+     [&](char c){ // InTocken
+        if(specialsymbol.find(c) !=  std::string::npos){
+         //collect symbol to string
+          found_tokens.push_back(token);
+          token.clear();
+          found_tokens.push_back({c});
+          pState = InSpace;
+        }
+        else if(whitespace.find(c) !=  std::string::npos ){
+          found_tokens.push_back(token);
+          token.clear();
+          pState = InSpace;
+        }
+        else{
+          //collect symbol to string
+          token.push_back(c);
+        }
+     },
+     [&](char c){ // InSpace
+        if(whitespace.find(c) !=  std::string::npos ){
+          // do nothing to string
+        }
+        else if(specialsymbol.find(c) !=  std::string::npos){
+          found_tokens.push_back({c});
+        }
+        else if(c == '\"'){
+          //collect symbol to string
+          pState = InString;
+        }
+        else {
+          token.push_back(c);
+          pState = InToken;
+        }
+     }
+   };
+
+   readSymbol = [&](){
+     if(bufferCounter == 0){
+       if(m_streamMedia->eos())
+         return '\x0';
+       else{
+         bufferCounter = m_streamMedia->read((void*)buffer,1024);
+         position = 0;
+       }
+     }
+     bufferCounter--;
+     return buffer[position++];
+   };
 }
 
 StorageStreamSimpleJson::~StorageStreamSimpleJson(){
@@ -22,7 +94,7 @@ StorageStreamSimpleJson::~StorageStreamSimpleJson(){
 
 //atomic storage operations
 const char* StorageStreamSimpleJson::GetNodeName(){
-  return strbegin;
+  return nodename.c_str();
 }
 
 bool StorageStreamSimpleJson::nextLine(char** begin, char** end)
@@ -94,132 +166,100 @@ bool StorageStreamSimpleJson::readMore()
     return true;
 }
 
-int StorageStreamSimpleJson::NextItem(){
-
-  bool withinQuote = false;
-  bool withinSlash = false;
-  bool startingTrim = true;
-
-  std::string tockenCollector;
+std::string StorageStreamSimpleJson::nextTocken(){
 
   for(;;){
-    const char in = 'd'; //= readSymbol();
-    if(withinQuote){
-      if(withinSlash){
-        withinSlash = false;
-        tockenCollector.push_back(in);
-        continue;
+    if(!found_tokens.empty()){
+      auto out = found_tokens.front();
+      found_tokens.pop_front();
+      return out;
+    }
+    char const nextSymbol = readSymbol();
+    if(nextSymbol == 0)
+      found_tokens.push_back("}");
+    else
+      l1gram[pState](nextSymbol);
+  }
+}
+
+int StorageStreamSimpleJson::NextItem(){
+
+  for(;;){
+    if(!found_types.empty()){
+      auto ret = found_types.front();
+      found_types.pop_front();
+      return ret;
+    }
+
+    auto token = nextTocken();
+    symbols.second = symbols.first;
+    symbols.first = token[0];
+
+    switch(symbols.first){
+    case ':':
+      break;
+    case ',':
+      if(specialsymbol.find(symbols.second) ==  std::string::npos){
+        found_types.push_back(0);
+        found_types.push_back(2);
+        found_types.push_back(1);
       }
-      else if(in == '\\'){
-        withinSlash = false;
-        continue;
+      break;
+    case '{':
+    case '[':
+      if(symbols.second == ':')
+        nodename = value;
+      else
+        nodename = "item";
+      return 0; //start node
+      break;
+    case '}':
+    case ']':
+      if(specialsymbol.find(symbols.second) ==  std::string::npos){
+        found_types.push_back(0);
+        found_types.push_back(2);
+        found_types.push_back(1);
       }
-      else if(in == '\"'){
-        withinQuote = false;
-        return 0; // tocken in collector
-      }
-      else{
-        tockenCollector.push_back(in);
-        continue;
-      }
-    }
-    else if(in == '\"'){
-      withinQuote = true;
-      continue;
-    }
-    else if(in == '{'){
-      tockenCollector.push_back(in);
-      return 0; // new node;
-    }
-    else if(in == '[' ){
-      tockenCollector.push_back(in);
-      return 0; // new node;
-    }
-    else if(in == ']' ){
-      tockenCollector.push_back(in);
-      return 0; // end node;
-    }
-    else if(in == ']' ){
-      tockenCollector.push_back(in);
-      return 0; // end node;
-    }
-    else if(in == ',' ){
-      tockenCollector.push_back(in);
-      return 0; // end node;
-    }
-    else if(startingTrim == true && std::string("notwitespacesymbols").find(in) == std::string::npos){
-      continue; //trim symbols at start
-    }
-    else if(std::string("number").find(in) != std::string::npos){
-      startingTrim = false;
-      tockenCollector.push_back(in);
-      continue;
-    }
-    else {
-      return 0; // non quotted string;
+      found_types.push_back(1); // end node
+      break;
+    default:
+      if(symbols.second == ':')
+        nodename = value;
+      else
+        nodename = "item";
+      value = token;
+      break;
     }
 
   }
-
-
-
-
-
-  if (!nextLine(&strbegin, &strend)) {
-    return 1; // end node
-  }
-
-  for (; *strbegin == ' '; ++strbegin) {
-    // skip initial whitespace
-  }
-
-  if (*strbegin != '<' || strend[-1] != '>') {
-    return 2; // data node
-  }
-
-  ++strbegin; // skip the '<' character
-  --strend; // trim the '>' character
-  *strend = '\0';
-
-  if (*strbegin == '/') {
-    ++strbegin;
-    return 1; // end node
-  }
-
-  if (strncmp(strbegin, "binary>", 7) != 0) {
-    return 0; // start node
-  }
-
-  if ((strend - strbegin) < 8 || strcmp(strend - 8, "</binary") != 0) {
-    return 0; // start node
-  }
-  strbegin += 7; // strlen("binary>");
-  strend -= 8; // strlen("</binary");
-
-  strend = decodeBase64InPlace(strbegin, strend);
-  return 2; // data node
 }
 
 void StorageStreamSimpleJson::GetItem(int* v){
-  *v = atoi(strbegin);
+  //*v = atoi(strbegin);
+  *v = atoi(value.c_str());
 }
 
 void StorageStreamSimpleJson::GetItem(float* v){
-  *v = (float)atof(strbegin);
+  //*v = (float)atof(strbegin);
+  *v = atof(value.c_str());
 }
 
 void StorageStreamSimpleJson::GetItem(double* v){
-  *v = atof(strbegin);
+  //*v = atof(strbegin);
+  *v = atof(value.c_str());
 }
 
 void StorageStreamSimpleJson::GetItem(char const** v){
-  *v = strbegin;
+  //*v = strbegin;
+  *v = value.c_str();
 }
 
 void StorageStreamSimpleJson::GetItem(void const** v, size_t* n){
   // Binary data.
-  *v = strbegin;
-  *n = strend - strbegin;
+  //*v = strbegin;
+  //*n = strend - strbegin;
+  *v=value.c_str();
+  *n=value.size();
 }
 
 void StorageStreamSimpleJson::PutStartNode(const char *s){
@@ -262,6 +302,8 @@ void StorageStreamSimpleJson::PutStartNode(const char *s){
 void StorageStreamSimpleJson::PutEndNode(const char *s){
   // context.top().itemCount == 0 only for leave node - nodes, which does not
   // have children - only have atomic values. Such items no need to be closed
+  // also special node with name "vector" also does not have children
+  // thus there is no close braket for it.
   if(context.top().itemCount>0){
     if(context.top().isVector){
       char buf[256];

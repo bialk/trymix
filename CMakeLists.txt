@@ -18,6 +18,9 @@ include(this_project_utils)
 # path to thirdparty dirs
 set(WINDOWS_EXTERNAL_LIBS_PATH  "D:/trymix/test_omi" "D:/zero-devel")
 
+if(MSVC)
+    add_compile_options("/JMC")
+endif()
 
 #set(glm_DIR <installation prefix>/lib/cmake/glm) # if necessary
 find_path_by_regex(glm_DIR "glm/install/lib/cmake/glm" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
@@ -141,6 +144,7 @@ set(PROJECT_SOURCES
     apputil/serializerV2.cpp apputil/serializerV2.h
     apputil/storagestreamjson.h apputil/storagestreamjson.cpp
     apputil/storagestreamsimplexml.h apputil/storagestreamsimplexml.cpp
+    apputil/storagestreamindexedbinary.h apputil/storagestreamindexedbinary.cpp
 
     mathlib/lapackcpp/lapackcpp.h
     mathlib/lapackcpp/invert.cpp

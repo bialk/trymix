@@ -88,7 +88,7 @@ bool StorageStreamSimpleXML::readMore()
 
    auto r = m_streamMedia->read(buf.data()+bufEndOff, buf.size()-bufEndOff);
    bufEndOff += r;
-   if(m_streamMedia->eos())
+   if(m_streamMedia->eos() && r == 0)
      return false;
    else
      return true;

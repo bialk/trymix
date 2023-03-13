@@ -3,6 +3,7 @@
 #include "serializerV2.h"
 #include "storagestreamjson.h"
 #include "storagestreamsimplexml.h"
+#include "storagestreamindexedbinary.h"
 #include <memory>
 
 namespace sV2 {
@@ -75,8 +76,6 @@ public:
    int otherint;
    float otherfloat;
 
-
-
    void AskForData(Serializer *s){
       s->Item("otherint",Sync(&otherint));
       s->Item("otherfloat",Sync(&otherfloat));
@@ -96,9 +95,15 @@ public:
    EmbedObject(){
       int i;
       for(i=0;i<1000;i++){
-         eobjA[i].otherint=i;
-         eobjA[i].otherfloat=i+0.10f;
+         eobjA[i].otherint=DynClassBase::count++;
+         eobjA[i].otherfloat=DynClassBase::count+0.10f;
       }
+      eobjB.otherint = DynClassBase::count++;
+      eobjB.otherfloat = DynClassBase::count++;
+      eobjC.otherint = DynClassBase::count++;
+      eobjC.otherfloat = DynClassBase::count++;
+      otherint = DynClassBase::count++;
+      otherfloat = DynClassBase::count++;
    }
 
    void AskForData(Serializer *s){
@@ -118,23 +123,23 @@ public:
    // object class restored dynamically from stream
    std::vector< CSrlzPtr<DynClassBase> > dynobjlist;
 
-   int testint;
-   float testfloat;
+   int testint = DynClassBase::count++;
+   float testfloat = DynClassBase::count++;
    std::vector<EmbedObject> stdvect;
    char name[200];
-   char chr;
+   char chr = 'X';
    std::list<int> intlist;
    std::set<int> intset;
    std::set<double> doubleset;
 
    std::map<int,std::string> map_int_float;
-
-
    EmbedObject eobj;
 
    MainObject(){
       stdvect.resize(1000);
-      strcpy(name,"this is a test string");
+
+      sprintf_s(name, 200, "this is a test string name %i", DynClassBase::count++);
+
       intlist.push_back(1);
       intlist.push_back(3);
       intlist.push_back(7);
@@ -227,11 +232,16 @@ public:
   }
 
   size_t write(void const * buf, size_t size) override{
-    return ::fwrite(buf,1,size,m_f);
+    auto n = ::fwrite(buf,1,size,m_f);
+    positionCounter+=n;
+    fflush(m_f);
+    return n;
   }
 
   size_t read(void * buf, size_t size) override{
-    return ::fread(buf,1,size,m_f);
+    auto n = ::fread(buf,1,size,m_f);
+    positionCounter+=n;
+    return n;
   }
 
   bool eos() override {
@@ -240,6 +250,7 @@ public:
 
 
 private:
+  size_t positionCounter = 0;
   FILE *m_f{nullptr};
 };
 }
@@ -249,11 +260,16 @@ public:
    TestAll(){
 
       MainObject mobj;
-      mobj.testfloat=123.456F;
-      mobj.testint=321;
-      mobj.eobj.otherfloat=1.005F;
-      mobj.eobj.otherint=22;
 
+      if(0){
+        sV2::StreamMediaFile ssmediaIndex("test_data.txt",true);
+        auto jsonStream = std::unique_ptr<StorageStreamSimpleJson>(new StorageStreamSimpleJson(&ssmediaIndex));
+
+        for(;;){
+          auto t = jsonStream->nextTocken();
+          std::cout << t << std::endl;
+        }
+      }
 
 
       auto makeStorageStream = [](sV2::StreamMediaFile& ssmedia,sV2::StreamMediaFile& ssmediaIndex) -> std::unique_ptr<StorageStream> {
@@ -264,7 +280,6 @@ public:
         //return std::unique_ptr<StorageStream>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
         return std::unique_ptr<StorageStream>(new StorageStreamSimpleJson(&ssmedia));
       };
-
 
       {
         sV2::StreamMediaFile ssmedia("test_data.txt",false);
@@ -277,28 +292,30 @@ public:
            iss->WriteIndex();
       }
 
-      if(0){
+      MainObject mobj2;
+      if(1){
         sV2::StreamMediaFile ssmedia("test_data.txt", true);
         sV2::StreamMediaFile ssmediaIndex("test_data.txt.idx",true);
         auto ss = makeStorageStream(ssmedia, ssmediaIndex);
         if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
            iss->ReadIndex();
         Serializer srlz(ss.get());
-        srlz.Item("MainObject", Sync(&mobj));
+        if(auto iss = dynamic_cast<StorageStreamSimpleJson*>(ss.get()))
+           ss->NextItem();
+        srlz.Item("MainObject", Sync(&mobj2));
         srlz.Load();
       }
 
-      if(0){
+      if(1){
         sV2::StreamMediaFile ssmedia("test_data1.txt", false);
         sV2::StreamMediaFile ssmediaIndex("test_data1.txt.idx",false);
         auto ss = makeStorageStream(ssmedia, ssmediaIndex);
         Serializer srlz(ss.get());
-        srlz.Item("MainObject", Sync(&mobj));
+        srlz.Item("MainObject", Sync(&mobj2));
         srlz.Store();
         if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
            iss->WriteIndex();
       }
-
 
       printf("test finished\n");
 

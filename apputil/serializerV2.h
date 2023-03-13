@@ -60,164 +60,6 @@ public:
 };
 
 
-class StorageStreamSimpleBinary:public StorageStream{
-public:
-  StorageStreamSimpleBinary(StreamMedia* sm);
-  ~StorageStreamSimpleBinary();
-  //   int  OpenForWrite(const char * fname);
-  //   int  OpenForRead(const char * fname);
-  //   void Close();
-protected:
-  const char* GetNodeName() override;
-  int NextItem() override;
-  void GetItem(int* v) override;
-  void GetItem(float* v) override;
-  void GetItem(double* v) override;
-  void GetItem(char const** v) override;
-  void GetItem(void const** v, size_t* n) override;
-  
-  
-  void PutStartNode(const char *s) override;
-  void PutEndNode(const char *s) override;
-  
-  void PutItem(int* v) override;
-  void PutItem(float* v) override;
-  void PutItem(double* v) override;
-  void PutItem(const char* v) override;
-  void PutItem(void const* v, size_t n) override;
-  
-private:
-  //FILE *f;
-  StreamMedia* m_streamMedia{nullptr};
-  
-  // aux data type to keep current item
-  char type; // 0 - start node, 1 - end node,
-  // 2 - data node string, 3 - data node int, 4 - data node float,
-  // 5 - data node double, 6 - data node blob
-  double ddata;
-  float fdata;
-  int   idata;
-  
-  // These two are synchronized.
-  unsigned short shortlen;
-  unsigned int biglen;
-  
-  std::vector<char> strdata;
-};
-
-/**
- * This one is binary compatible with StorageStreamSimpleBinary.
- * It works with std::iostream subclasses, which makes it possible
- * to use it both with files (std::fstream) and with memory buffers
- * (std::stringstream).
- */
-class StorageStreamSimpleIostream:public StorageStream{
-public:
-  /**
-    * Construct a storage stream from an std::iostream derivative,
-  * which must already be opened in appropriate mode.
-  */
-  //StorageStreamSimpleIostream(std::iostream* strm);
-  StorageStreamSimpleIostream(StreamMedia* sm);
-  ~StorageStreamSimpleIostream();
-protected:
-  const char* GetNodeName() override;
-  int NextItem() override;
-  void GetItem(int* v) override;
-  void GetItem(float* v) override;
-  void GetItem(double* v) override;
-  void GetItem(char const** v) override;
-  void GetItem(void const** v, size_t *n) override;
-  
-  
-  void PutStartNode(const char *s) override;
-  void PutEndNode(const char *s) override;
-  
-  void PutItem(int* v) override;
-  void PutItem(float* v) override;
-  void PutItem(double* v) override;
-  void PutItem(const char* v) override;
-  void PutItem(void const* v, size_t n) override;
-  
-private:
-  //std::iostream* strm;
-  StreamMedia* strm{nullptr};
-  
-  // aux data type to keep current item
-  char type; // 0 - start node, 1 - end node,
-  // 2 - data node string, 3 - data node int, 4 - data node float,
-  // 5 - data node double, 6 - data node blob
-  double ddata;
-  float fdata;
-  int   idata;
-  
-  // These two are syncrhonized.
-  unsigned short shortlen;
-  unsigned biglen;
-  
-  std::vector<char> strdata;
-};
-
-class StorageStreamIndexedBinary:public StorageStream{
-public:
-  StorageStreamIndexedBinary(StreamMedia* sm, StreamMedia* smi);
-  ~StorageStreamIndexedBinary();
-  
-  int  ReadIndex();
-  int  WriteIndex();
-  
-private:
-  //index support structure
-  int saveindex{0};
-  std::string indexfilename;
-  int idxcntr;
-  StreamMedia* m_streamMedia{nullptr};
-  StreamMedia* m_streamMediaIndex{nullptr};
-  
-  std::map<std::string, std::uint32_t> str2int;
-  std::vector<const char*> int2str;
-  
-  // aux data type to keep current item
-  std::uint8_t  type; // 0 - start node, 1 - end node,
-  // 2 - data node string, 3 - data node int, 4 - data node float,
-  // 5 - data node double, 6 - data node binary
-  double ddata;
-  float fdata;
-  int   idata;
-  
-  // These two are synchronized.
-  std::uint16_t shortlen;
-  std::uint32_t biglen;
-  
-  std::vector<char> strdata;
-  
-  //public:
-  //   int  OpenForWrite(const char * fname);
-  //   int  OpenForRead(const char * fname);
-  //   int  ReadIndex(const char * fname);
-  //   int  WriteIndex(const char * fname);
-  void Close();
-  
-protected:
-  const char* GetNodeName() override;
-  int NextItem() override;
-  void GetItem(int* v) override;
-  void GetItem(float* v) override;
-  void GetItem(double* v) override;
-  void GetItem(char const** v) override;
-  void GetItem(void const** v, size_t *n) override;
-  
-  
-  void PutStartNode(const char *s) override;
-  void PutEndNode(const char *s) override;
-  
-  void PutItem(int* v) override;
-  void PutItem(float* v) override;
-  void PutItem(double* v) override;
-  void PutItem(const char* v) override;
-  void PutItem(void const* v, size_t n) override;
-};
-
 class Serializer{
 public:
   
@@ -228,13 +70,7 @@ public:
   Serializer(StorageStream *s):ss(s){}
   Serializer(Serializer *s):ss(s->ss){}
   
-  ~Serializer(){
-    //delete all syncronizers
-    std::list<std::pair<std::string,SyncDataInterface*> >::iterator it;
-    for(it=datalist.begin();it!=datalist.end();it++){
-      delete (it->second);
-    }
-  }
+  ~Serializer();
 
   template<typename T>
   void SyncAs(const char* name, T& data){
@@ -244,43 +80,11 @@ public:
   }
 
   // call back to build index of element for node
-  void Item(const char* name, SyncDataInterface* sdi){
-    dataset[name]=sdi;
-    datalist.push_back(std::pair<std::string,SyncDataInterface*>(std::string(name),sdi));
-  };
+  void Item(const char* name, SyncDataInterface* sdi);
   
   //two technique for load/storing data from/into storage
-  void Load(){
-    std::map<std::string, SyncDataInterface*>::iterator it;
-    while(1){
-      int type = ss->NextItem();
-      if(type == 1){ //endnode
-        return;
-      }
-      else if(type == 0){ //start node
-        it=dataset.find(ss->GetNodeName());
-        if(it!=dataset.end()){
-          it->second->Load(this);
-        }
-        else{
-          Serializer(this).Load();
-        }
-      }
-      else if(type==2){ //data node
-        //assert(!"error of stream syncronization");
-      }
-    }
-    
-  };
-  
-  void Store(){
-    std::list<std::pair<std::string,SyncDataInterface*> >::iterator it;
-    for(it=datalist.begin();it!=datalist.end();it++){
-      ss->PutStartNode(it->first.c_str());
-      it->second->Store(this);
-      ss->PutEndNode(it->first.c_str());
-    }
-  };
+  void Load();
+  void Store();
   
   //atomic storage operations
 };
@@ -479,24 +283,45 @@ public:
   int sz;
   CSyncVector(T *t, int n): obj(t), sz(n){}
   void Load(Serializer *s) override{
-    int size=0, i=0;
+    int size=0;
     while(1){
       int type=s->ss->NextItem();
       if(type==1){
         return;
       }
       else if(type==0){        
-        if(strcmp("size",s->ss->GetNodeName())==0 && i == 0){
+        if(strcmp("size",s->ss->GetNodeName())==0){
           SyncDataInterface *sync=Sync(&size);
           sync->Load(s);
           delete sync;
           //obj->resize(size);
         }
-        else if(strcmp("data",s->ss->GetNodeName())==0 && size!=0 && i<sz){
-          Serializer srlz(s);
-          s->Item("item",Sync(obj+i));
-          s->Load();
-          i++;
+        else if(strcmp("data",s->ss->GetNodeName())==0){
+//          Serializer srlz(s);
+//          s->Item("item",Sync(obj+i));
+//          s->Load();
+//          i++;
+          auto i = 0;
+          for(;;){
+            auto type = s->ss->NextItem();
+            if(type == 1){
+              break;
+            }
+            else if(type == 0){
+              if(strcmp("item",s->ss->GetNodeName())==0 && i < sz){
+                SyncDataInterface *sync=Sync(obj+i);
+                sync->Load(s);
+                delete sync;
+                i++;
+              }
+              else{
+                Serializer(s).Load(); // by pass unknown elements
+              }
+            }
+            else if(type == 2){
+              assert(!"error of stream syncronization");
+            }
+          }
         }
         else{
           Serializer(s).Load();
@@ -562,18 +387,54 @@ public:
       }
       else if(type==0){
         if(strcmp("item",s->ss->GetNodeName())==0){
-          CStlPair<T,R> pair;
-          {
-            Serializer srlz(s);
-            srlz.Item("item",Sync(&pair.first));
-            srlz.Load();
+          for(;;){
+            T key;
+            auto type = s->ss->NextItem();
+            if(type == 1){
+              break;
+            }
+            else if(type == 0){
+              if(strcmp("item",s->ss->GetNodeName())==0){
+                SyncDataInterface *sync=Sync(&key);
+                sync->Load(s);
+                delete sync;
+              }
+              else{
+                Serializer(s).Load();
+              }
+            }
+
+            type = s->ss->NextItem();
+            if(type == 1){
+              break;
+            }
+            else if(type == 0){
+              if( strcmp("item",s->ss->GetNodeName())==0){
+                R value;
+                SyncDataInterface *sync=Sync(&value);
+                sync->Load(s);
+                delete sync;
+                obj->insert(std::pair(key,value));
+              }
+              else{
+                Serializer(s).Load();
+              }
+            }
+
+
+//            CStlPair<T,R> pair;
+//            {
+//              Serializer srlz(s);
+//              srlz.Item("item",Sync(&pair.first));
+//              srlz.Load();
+//            }
+//            {
+//              Serializer srlz(s);
+//              srlz.Item("item",Sync(&pair.second));
+//              srlz.Load();
+//            }
+//            obj->insert(pair);
           }
-          {
-            Serializer srlz(s);
-            srlz.Item("item",Sync(&pair.second));
-            srlz.Load();
-          }
-          obj->insert(pair);
         }
         else{
           Serializer(s).Load();
@@ -631,16 +492,26 @@ public:
           delete sync;
           obj->resize(size);          
         }
-        else if(strcmp("data",s->ss->GetNodeName())==0 && size!=0){
-          for(auto it = obj->begin(); it != obj->end(); ++it){
+        else if(strcmp("data",s->ss->GetNodeName())==0){
+          auto it = obj->begin();
+          for(;;){
             auto type = s->ss->NextItem();
             if(type == 1){
               break;
             }
             else if(type == 0){
-              Serializer srlz(s);
-              srlz.Item("item",Sync(&*it));
-              srlz.Load();
+              if(strcmp("item",s->ss->GetNodeName())==0 && it != obj->end()){
+                SyncDataInterface *sync=Sync(&*it);
+                sync->Load(s);
+                delete sync;
+                it++;
+                //                Serializer srlz(s);
+                //                srlz.Item("item",Sync(&*it));
+                //                srlz.Load();
+              }
+              else{
+                Serializer(s).Load(); // by pass unknown elements
+              }
             }
             else if(type == 2){
               assert(!"error of stream syncronization");
@@ -694,11 +565,20 @@ public:
         return;
       }
       else if(type==0){
-        Serializer srlz(s);
-        T item;
-        srlz.Item("item",Sync(&item));
-        srlz.Load();
-        obj->push_back(item);
+        if(strcmp("item",s->ss->GetNodeName())==0){
+          T& item = obj->emplace_back();
+          SyncDataInterface *sync=Sync(&item);
+          sync->Load(s);
+          delete sync;
+//        Serializer srlz(s);
+//        T item;
+//        srlz.Item("item",Sync(&item));
+//        srlz.Load();
+//        obj->push_back(item);
+        }
+        else{
+          Serializer(s).Load();
+        }
       }
       else if(type==2){
         assert(!"error of stream synchronisation");
@@ -735,11 +615,22 @@ public:
         return;
       }
       else if(type==0){
-        Serializer srlz(s);
-        T item;
-        srlz.Item("item",Sync(&item));
-        srlz.Load();
-        obj->insert(item);
+        if(strcmp("item",s->ss->GetNodeName())==0){
+          T item;// = obj->emplace_back();
+          SyncDataInterface *sync=Sync(&item);
+          sync->Load(s);
+          delete sync;
+          obj->emplace(item);
+        }
+        else{
+          Serializer(s).Load(); // by pass unknown elements
+        }
+
+//        Serializer srlz(s);
+//        T item;
+//        srlz.Item("item",Sync(&item));
+//        srlz.Load();
+//        obj->insert(item);
       }
       else if(type==2){
         assert(!"error of stream syncronization");

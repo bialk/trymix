@@ -5,6 +5,7 @@
 #include "serializerV2.h"
 
 #include <stack>
+#include <functional>
 
 namespace sV2{
 
@@ -31,7 +32,42 @@ namespace sV2{
      void PutItem(double* v) override;
      void PutItem(const char* v) override;
      void PutItem(void const* v, size_t n) override;
+
+  public:
+
+     enum ParserState{
+       InString = 0,
+       InStringSlash,
+       InToken,
+       InSpace,
+     };
+
+     ParserState pState = InSpace;
+
+     std::string whitespace = " \t\n\r";
+     std::string specialsymbol = "{}[]:,";
+
+     std::deque<std::string> found_tokens;
+     std::string token;
+
+     char buffer[1024];
+     size_t bufferCounter=0;
+     size_t position = 0;
+
+     std::vector<std::function<void(char c)>> l1gram;
+     std::string nextTocken();
+     std::function<char()> readSymbol;
+     std::string nodename;
+     std::string value;
+     std::pair<char,char> symbols{' ',' '};
+     char prevType=0;
+     //std::stack<std::string> tokens_stack;
+     std::deque<int> found_types;
+
+
   private:
+
+
      static char* decodeBase64InPlace(char* begin, char* end);
 
      static std::string toBase64(char const* begin, char const* end);
