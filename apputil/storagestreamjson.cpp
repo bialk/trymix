@@ -241,7 +241,7 @@ void StorageStreamSimpleJson::GetItem(int* v){
 
 void StorageStreamSimpleJson::GetItem(float* v){
   //*v = (float)atof(strbegin);
-  *v = atof(value.c_str());
+  *v = (float)atof(value.c_str());
 }
 
 void StorageStreamSimpleJson::GetItem(double* v){

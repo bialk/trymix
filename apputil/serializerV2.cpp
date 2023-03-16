@@ -38,15 +38,14 @@ void Serializer::Item(const char* name, SyncDataInterface* sdi){
 };
 
 //two technique for load/storing data from/into storage
-void Serializer::Load(){
-  std::map<std::string, SyncDataInterface*>::iterator it;
+void Serializer::Load(){  
   while(1){
     int type = ss->NextItem();
     if(type == 1){ //endnode
       return;
     }
     else if(type == 0){ //start node
-      it=dataset.find(ss->GetNodeName());
+      auto it=dataset.find(ss->GetNodeName());
       if(it!=dataset.end()){
         it->second->Load(this);
       }
@@ -58,7 +57,6 @@ void Serializer::Load(){
       //assert(!"error of stream syncronization");
     }
   }
-
 };
 
 void Serializer::Store(){
