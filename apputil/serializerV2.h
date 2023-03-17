@@ -82,29 +82,55 @@ public:
   // call back to build index of element for node
   void Item(const char* name, SyncDataInterface* sdi);
   
-  //two technique for load/storing data from/into storage
-  void Load();
-  void Store();
 };
 
+class EmptyObject{
+public:
+  void AskForData(Serializer *s){}
+};
 
-//syncronizers for objects
 template<class T> class CSyncObj: public SyncDataInterface{
 public:
   T *obj;
   CSyncObj(T *t):obj(t){}
-  
+
   void Load(Serializer *s) override{
     Serializer srlz(s);
     obj->AskForData(&srlz);
-    srlz.Load();
+
+    while(1){
+      int type = srlz.ss->NextItem();
+      if(type == 1){ //endnode
+        return;
+      }
+      else if(type == 0){ //start node
+        auto it=srlz.dataset.find(srlz.ss->GetNodeName());
+        if(it!=srlz.dataset.end()){
+          it->second->Load(&srlz);
+        }
+        else{
+          EmptyObject eo;
+          CSyncObj<EmptyObject>(&eo).Load(&srlz);
+        }
+      }
+      else if(type==2){ //data node
+        // bypass atomic data
+      }
+    }
+
   }
   void Store(Serializer *s) override{
     Serializer srlz(s);
     obj->AskForData(&srlz);
-    srlz.Store();
+    for(auto& it: srlz.datalist){
+      srlz.ss->PutStartNode(it.first.c_str());
+      it.second->Store(&srlz);
+      srlz.ss->PutEndNode(it.first.c_str());
+    }
   }
 };
+
+
 
 template<class T> inline SyncDataInterface* Sync(T *t){
   return  new CSyncObj<T>(t);
@@ -122,7 +148,8 @@ public:
         return;
       }
       else if(type==0){
-        Serializer(s).Load();
+        EmptyObject eo;
+        CSyncObj<EmptyObject>(&eo).Load(s);
       }
       else if(type==2){
         s->ss->GetItem(obj);
@@ -147,7 +174,8 @@ public:
         return;
       }
       else if(type==0){
-        Serializer(s).Load();
+        EmptyObject eo;
+        CSyncObj<EmptyObject>(&eo).Load(s);
       }
       else if(type==2){
         R i;
@@ -215,7 +243,9 @@ public:
         *obj = str;
       }
       else if(type==0){
-        Serializer(s).Load();
+        EmptyObject eo;
+        CSyncObj<EmptyObject>(&eo).Load(s);
+        //Serializer(s).Load();
       }
     }
   }
@@ -248,7 +278,8 @@ public:
         n /= sizeof(T);
         std::vector<T>(begin, begin + n).swap(*vec);
       } else {
-        Serializer(s).Load();
+        EmptyObject eo;
+        CSyncObj<EmptyObject>(&eo).Load(s);
       }
     }
   }
@@ -285,13 +316,12 @@ void LoadListOfItems(Serializer *s, T* obj, size_t sz)
     }
     else if(type == 0){
       if(strcmp("item",s->ss->GetNodeName())==0 && i < sz){
-        SyncDataInterface *sync=Sync(obj+i);
-        sync->Load(s);
-        delete sync;
+        std::unique_ptr<SyncDataInterface>(Sync(obj+i))->Load(s);
         i++;
       }
       else{
-        Serializer(s).Load(); // by pass unknown elements
+        EmptyObject eo;
+        CSyncObj<EmptyObject>(&eo).Load(s);
       }
     }
     else if(type == 2){
@@ -299,25 +329,6 @@ void LoadListOfItems(Serializer *s, T* obj, size_t sz)
     }
   }
 };
-
-
-
-
-
-template<typename T>
-class IterableObjWrapper{
-public:
-  T *items{nullptr};
-  int counter{0};
-  int sz{0};
-  void AskForData(Serializer *s){
-    if(counter < sz){
-      s->Item("item", Sync(items+counter));
-      counter++;
-    }
-  }
-};
-
 
 // syncronizers for plain vector container
 template<typename T>
@@ -329,22 +340,7 @@ public:
   CSyncVector(T *t, int n): obj(t), sz(n){}
 
   void Load(Serializer *s) override{
-//    IterableObjWrapper<T> owrp;
-//    owrp.items = obj;
-//    Serializer srlz(s);
-//    srlz.Item("size",Sync(&owrp.sz));
-//    srlz.Item("data",Sync(&owrp));
-//    srlz.Load();
-//    return;
-
-
-
     int size=0;
-//    Serializer srlz(s);
-//    s->Item("size",Sync(&size));
-//    s->Item("data",Sync(obj));
-//    s->Load();
-
     while(1){
       int type=s->ss->NextItem();
       if(type==1){
@@ -352,15 +348,14 @@ public:
       }
       else if(type==0){
         if(strcmp("size",s->ss->GetNodeName())==0){
-          SyncDataInterface *sync=Sync(&size);
-          sync->Load(s);
-          delete sync;
+          std::unique_ptr<SyncDataInterface>(Sync(&size))->Load(s);
         }
         else if(strcmp("data",s->ss->GetNodeName())==0){
           LoadListOfItems(s, obj, sz);
         }
         else{
-          Serializer(s).Load();
+          EmptyObject eo;
+          CSyncObj<EmptyObject>(&eo).Load(s);
         }
       }
       else if(type==2){
@@ -368,61 +363,6 @@ public:
       }
     }
   }
-
-#ifdef off
-  void Load(Serializer *s) override{
-    int size=0;
-    while(1){
-      int type=s->ss->NextItem();
-      if(type==1){
-        return;
-      }
-      else if(type==0){        
-        if(strcmp("size",s->ss->GetNodeName())==0){
-          SyncDataInterface *sync=Sync(&size);
-          sync->Load(s);
-          delete sync;
-          //obj->resize(size);
-        }
-        else if(strcmp("data",s->ss->GetNodeName())==0){
-//          Serializer srlz(s);
-//          s->Item("item",Sync(obj+i));
-//          s->Load();
-//          i++;
-
-
-          auto i = 0;
-          for(;;){
-            auto type = s->ss->NextItem();
-            if(type == 1){
-              break;
-            }
-            else if(type == 0){
-              if(strcmp("item",s->ss->GetNodeName())==0 && i < sz){
-                SyncDataInterface *sync=Sync(obj+i);
-                sync->Load(s);
-                delete sync;
-                i++;
-              }
-              else{
-                Serializer(s).Load(); // by pass unknown elements
-              }
-            }
-            else if(type == 2){
-              assert(!"error of stream syncronization");
-            }
-          }
-        }
-        else{
-          Serializer(s).Load();
-        }
-      }
-      else if(type==2){
-        assert(!"error of stream syncronization");
-      }
-    }
-  }
-#endif
 
   void Store(Serializer *s) override{
     s->ss->PutStartNode("size");
@@ -431,9 +371,9 @@ public:
     s->ss->PutStartNode("data");
     s->ss->PutStartNode("vector");
     for(int i=0;i<sz;i++){
-      Serializer srlz(s);
-      srlz.Item("item",Sync(obj+i));
-      srlz.Store();
+      s->ss->PutStartNode("item");
+      std::unique_ptr<SyncDataInterface>(Sync(obj+i))->Store(s);
+      s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
     s->ss->PutEndNode("data");
@@ -455,16 +395,6 @@ template<typename T, int N> inline SyncDataInterface* Sync(T (*arr)[N]){
 
 
 // syncronizers for stl containers with non atomic types (objects)
-
-// template<typename T, typename R> class CStlPair:public std::pair<T,R>{
-// public:
-//   CStlPair(){}
-//   void AskForData(Serializer *s){
-//     s->Item("key",Sync(& this->first));
-//     s->Item("value",Sync(& this->second));
-//   }
-// };
-
 template<typename T, typename R> class CSync_StlMap: public SyncDataInterface{
 public:
   std::map<T,R> *obj;
@@ -486,12 +416,11 @@ public:
             }
             else if(type == 0){
               if(strcmp("item",s->ss->GetNodeName())==0){
-                SyncDataInterface *sync=Sync(&key);
-                sync->Load(s);
-                delete sync;
+                std::unique_ptr<SyncDataInterface>(Sync(&key))->Load(s);
               }
               else{
-                Serializer(s).Load();
+                EmptyObject eo;
+                CSyncObj<EmptyObject>(&eo).Load(s);
               }
             }
 
@@ -502,33 +431,19 @@ public:
             else if(type == 0){
               if( strcmp("item",s->ss->GetNodeName())==0){
                 R value;
-                SyncDataInterface *sync=Sync(&value);
-                sync->Load(s);
-                delete sync;
+                std::unique_ptr<SyncDataInterface>(Sync(&value))->Load(s);
                 obj->insert(std::pair(key,value));
               }
               else{
-                Serializer(s).Load();
+                EmptyObject eo;
+                CSyncObj<EmptyObject>(&eo).Load(s);
               }
             }
-
-
-//            CStlPair<T,R> pair;
-//            {
-//              Serializer srlz(s);
-//              srlz.Item("item",Sync(&pair.first));
-//              srlz.Load();
-//            }
-//            {
-//              Serializer srlz(s);
-//              srlz.Item("item",Sync(&pair.second));
-//              srlz.Load();
-//            }
-//            obj->insert(pair);
           }
         }
         else{
-          Serializer(s).Load();
+          EmptyObject eo;
+          CSyncObj<EmptyObject>(&eo).Load(s);
         }
       }
       else if(type==2){
@@ -540,19 +455,15 @@ public:
     s->ss->PutStartNode("vector");
     for(auto it = obj->begin(); it != obj->end(); it++){
       s->ss->PutStartNode("item");
-      s->ss->PutStartNode("vector");
-      std::pair<T,R> pair;
-      {
-        Serializer srlz(s);
-        srlz.Item("item",Sync((T*)&it->first)); // key is const - using cast!
-        srlz.Store();
-      }
-      {
-        Serializer srlz(s);
-        srlz.Item("item",Sync(&it->second));
-        srlz.Store();
-      }
-      s->ss->PutEndNode("vector");
+        s->ss->PutStartNode("vector");
+          std::pair<T,R> pair;
+          s->ss->PutStartNode("item");
+          std::unique_ptr<SyncDataInterface>(Sync((T*)&it->first))->Store(s);
+          s->ss->PutEndNode("item");
+          s->ss->PutStartNode("item");
+          std::unique_ptr<SyncDataInterface>(Sync(&it->second))->Store(s);
+          s->ss->PutEndNode("item");
+        s->ss->PutEndNode("vector");
       s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
@@ -578,12 +489,11 @@ public:
       }
       else if(type==0){
         if(strcmp("size",s->ss->GetNodeName())==0){
-          SyncDataInterface *sync=Sync(&size);
-          sync->Load(s);
-          delete sync;
+          std::unique_ptr<SyncDataInterface>(Sync(&size))->Load(s);
           obj->resize(size);          
         }
         else if(strcmp("data",s->ss->GetNodeName())==0){
+//          LoadListOfItems(s,obj,obj->size());
           auto it = obj->begin();
           for(;;){
             auto type = s->ss->NextItem();
@@ -592,16 +502,12 @@ public:
             }
             else if(type == 0){
               if(strcmp("item",s->ss->GetNodeName())==0 && it != obj->end()){
-                SyncDataInterface *sync=Sync(&*it);
-                sync->Load(s);
-                delete sync;
+                std::unique_ptr<SyncDataInterface>(Sync(&*it))->Load(s);
                 it++;
-                //                Serializer srlz(s);
-                //                srlz.Item("item",Sync(&*it));
-                //                srlz.Load();
               }
               else{
-                Serializer(s).Load(); // by pass unknown elements
+                EmptyObject eo;
+                CSyncObj<EmptyObject>(&eo).Load(s);
               }
             }
             else if(type == 2){
@@ -610,7 +516,8 @@ public:
           }
         }
         else{
-          Serializer(s).Load();
+          EmptyObject eo;
+          CSyncObj<EmptyObject>(&eo).Load(s);
         }
       }
       else if(type==2){
@@ -627,9 +534,9 @@ public:
     s->ss->PutStartNode("data");
     s->ss->PutStartNode("vector");
     for(auto it = obj->begin(); it != obj->end(); it++){
-      Serializer srlz(s);
-      srlz.Item("item",Sync(&*it));
-      srlz.Store();
+      s->ss->PutStartNode("item");
+      std::unique_ptr<SyncDataInterface>(Sync((T*)&*it))->Store(s);
+      s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
     s->ss->PutEndNode("data");
@@ -655,17 +562,11 @@ public:
       else if(type==0){
         if(strcmp("item",s->ss->GetNodeName())==0){
           T& item = obj->emplace_back();
-          SyncDataInterface *sync=Sync(&item);
-          sync->Load(s);
-          delete sync;
-//        Serializer srlz(s);
-//        T item;
-//        srlz.Item("item",Sync(&item));
-//        srlz.Load();
-//        obj->push_back(item);
+          std::unique_ptr<SyncDataInterface>(Sync(&item))->Load(s);
         }
         else{
-          Serializer(s).Load();
+          EmptyObject eo;
+          CSyncObj<EmptyObject>(&eo).Load(s);
         }
       }
       else if(type==2){
@@ -677,9 +578,9 @@ public:
     typename std::list<T>::iterator it;
     s->ss->PutStartNode("vector");
     for(it = obj->begin(); it != obj->end(); it++){
-      Serializer srlz(s);
-      srlz.Item("item",Sync(&*it));
-      srlz.Store();
+      s->ss->PutStartNode("item");
+      std::unique_ptr<SyncDataInterface>(Sync(&*it))->Store(s);
+      s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
   }
@@ -704,20 +605,13 @@ public:
       else if(type==0){
         if(strcmp("item",s->ss->GetNodeName())==0){
           T item;// = obj->emplace_back();
-          SyncDataInterface *sync=Sync(&item);
-          sync->Load(s);
-          delete sync;
+          std::unique_ptr<SyncDataInterface>(Sync(&item))->Load(s);
           obj->emplace(item);
         }
         else{
-          Serializer(s).Load(); // by pass unknown elements
+          EmptyObject eo;
+          CSyncObj<EmptyObject>(&eo).Load(s);
         }
-
-//        Serializer srlz(s);
-//        T item;
-//        srlz.Item("item",Sync(&item));
-//        srlz.Load();
-//        obj->insert(item);
       }
       else if(type==2){
         assert(!"error of stream syncronization");
@@ -728,9 +622,9 @@ public:
     typename std::set<T,K>::iterator it;
     s->ss->PutStartNode("vector");
     for(it = obj->begin(); it != obj->end(); it++){
-      Serializer srlz(s);
-      srlz.Item("item",Sync((T*)&*it));
-      srlz.Store();
+      s->ss->PutStartNode("item");
+      std::unique_ptr<SyncDataInterface>(Sync((T*)&*it))->Store(s);
+      s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
   }
@@ -756,18 +650,15 @@ public:
       else if(type==0){
         if(strcmp("ClassName",s->ss->GetNodeName())==0){
           char cname[200];
-          SyncDataInterface *sync=Sync(cname,200);
-          sync->Load(s);
-          delete sync;
+          std::unique_ptr<SyncDataInterface>(Sync(cname,200))->Load(s);
           ptr = T::AskForObject(cname); // create object of class cname
         }
         else if(ptr && strcmp("ClassData",s->ss->GetNodeName())==0){
-          SyncDataInterface *sync=Sync(ptr);
-          sync->Load(s);
-          delete sync;
+          std::unique_ptr<SyncDataInterface>(Sync(ptr))->Load(s);
         }
         else{
-          Serializer(s).Load();
+          EmptyObject eo;
+          CSyncObj<EmptyObject>(&eo).Load(s);
         }
       }
       else if(type==2){
@@ -782,9 +673,9 @@ public:
       s->ss->PutItem(ptr->AskForClassName());
       s->ss->PutEndNode("ClassName");
 
-      Serializer srlz(s);
-      srlz.Item("ClassData",Sync(ptr));
-      srlz.Store();
+      s->ss->PutStartNode("ClassData");
+      std::unique_ptr<SyncDataInterface>(Sync(ptr))->Store(s);
+      s->ss->PutEndNode("ClassData");
     }
   }
 };
