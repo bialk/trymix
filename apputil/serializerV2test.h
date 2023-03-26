@@ -123,6 +123,8 @@ public:
    // object class restored dynamically from stream
    std::vector< CSrlzPtr<DynClassBase> > dynobjlist;
 
+   int x_float[100];
+
    int testint = DynClassBase::count++;
    float testfloat = DynClassBase::count++;
    std::vector<EmbedObject> stdvect;
@@ -139,6 +141,10 @@ public:
       stdvect.resize(1000);
 
       sprintf_s(name, 200, "this is a test string name %i", DynClassBase::count++);
+
+      int counter = 0;
+      for(auto&i: x_float)
+        i = counter += 2;
 
       intlist.push_back(1);
       intlist.push_back(3);
@@ -175,7 +181,7 @@ public:
    void AskForData(Serializer *s){
       s->Item("dynobjlist", Sync(&dynobjlist));
       //s->SyncAs("dynobjlist", dynobjlist);
-      s->Item("map_int_float",Sync(&map_int_float));
+      s->Item("map_int_float",Sync(&map_int_float));      
       s->Item("intlist",Sync(&intlist));
       s->Item("intset",Sync(&intset));
       s->Item("doubleset",Sync(&doubleset));
@@ -185,6 +191,8 @@ public:
       s->Item("stdvector",Sync(&stdvect));
       s->Item("TestChar",Sync(&chr));
       s->Item("TestName",Sync(name,200));
+
+      s->Item("x_float",Sync(x_float,100));
    }
 
 };

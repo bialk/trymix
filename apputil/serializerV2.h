@@ -28,12 +28,14 @@ public:
   virtual bool eos() = 0;
 };
 
+
 class SyncDataInterface{
 public:
   virtual ~SyncDataInterface(){}
   virtual void Load(Serializer *s){};
   virtual void Store(Serializer *s){};
 };
+
 
 class StorageStream{
 public:
@@ -84,12 +86,14 @@ public:
   
 };
 
+
 class EmptyObject{
 public:
   void AskForData(Serializer *s){}
 };
 
-template<class T> class CSyncObj: public SyncDataInterface{
+
+template<typename T, typename = void> class CSyncObj: public SyncDataInterface{
 public:
   T *obj;
   CSyncObj(T *t):obj(t){}
@@ -117,8 +121,8 @@ public:
         // bypass atomic data
       }
     }
-
   }
+
   void Store(Serializer *s) override{
     Serializer srlz(s);
     obj->AskForData(&srlz);
@@ -131,16 +135,22 @@ public:
 };
 
 
-
 template<class T> inline SyncDataInterface* Sync(T *t){
-  return  new CSyncObj<T>(t);
+  return  new CSyncObj(t);
 }
 
+
+template<typename T> struct atomic_type { static const bool value = false; };
+template<> struct atomic_type<int>      { static const bool value = true;  };
+template<> struct atomic_type<double>   { static const bool value = true;  };
+template<> struct atomic_type<float>    { static const bool value = true;  };
+template<> struct atomic_type<char>     { static const bool value = true;  };
+
+
 // syncronizers for atomic types (float,double,int,char,...)
-template<class T> class CSyncVar: public SyncDataInterface{
+template<typename T> class CSyncObj<T, typename std::enable_if<atomic_type<T>::value>::type>: public SyncDataInterface{
 public:
-  T *obj;
-  CSyncVar(T *t):obj(t){}
+  CSyncObj(T *t):obj(t){}
   void Load(Serializer *s) override{
     while(1){
       int type=s->ss->NextItem();
@@ -159,7 +169,10 @@ public:
   void Store(Serializer *s) override{
     s->ss->PutItem(obj);
   }
+private:
+  T *obj;
 };
+
 
 // serialize one type vs another type (this will convert variation of one type to canonitcal
 // i.e. unsigned int32, int16, etc.. to int
@@ -190,18 +203,22 @@ public:
   }
 };
 
+
 //specialization for atomic types
 template<> inline SyncDataInterface* Sync<double>(double *t){
-  return new CSyncVar<double>(t);
+  return new CSyncObj(t);
 }
+
 
 template<> inline SyncDataInterface* Sync<float>(float *t){
-  return new CSyncVar<float>(t);
+  return new CSyncObj(t);
 }
 
+
 template<> inline SyncDataInterface* Sync<int>(int *t){
-  return new CSyncVar<int>(t);
+  return new CSyncObj(t);
 }
+
 
 //note: this is only one symbol as int not a char array
 template<> inline SyncDataInterface* Sync<char>(char *t){
@@ -210,27 +227,46 @@ template<> inline SyncDataInterface* Sync<char>(char *t){
 
 
 // syncronizer for char string* arrays with fixed length
-class CSync_CStr: public SyncDataInterface{
+template<>
+class CSyncObj<char*>: public SyncDataInterface{
 public:
   char *obj;
   int sz;
-  CSync_CStr(char *t,int n):obj(t),sz(n){}
-  void Load(Serializer *s) override;
+  CSyncObj(char *t,int n):obj(t),sz(n){}
+  void Load(Serializer *s) override{
+    while(1){
+      int type=s->ss->NextItem();
+      if(type==1) {
+        return;
+      } else if(type==2) {
+        char const* str;
+        s->ss->GetItem(&str);
+        // writes str to obj till /0 met or sz-1 reached and fill obj[zs-1] it with zero.
+        strncpy_s(obj,sz,str,sz-1);
+      } else if(type==0) {
+        EmptyObject eo;
+        CSyncObj<EmptyObject>(&eo).Load(s);
+      }
+    }
+  }
+
   void Store(Serializer *s) override{
     s->ss->PutItem(obj);
   }
 };
 
+template<typename T> CSyncObj(T*, int) -> CSyncObj<T*>;
+
 inline SyncDataInterface* Sync(char *t, int sz){
-  return new CSync_CStr(t,sz);
+  return new CSyncObj(t, sz);
 }
 
-
 // syncronizers for std::string type
-class CSync_STLStr: public SyncDataInterface{
+template<>
+class CSyncObj<std::string, void>: public SyncDataInterface{
 public:
   std::string *obj;
-  CSync_STLStr(std::string *t):obj(t){}
+  CSyncObj(std::string *t):obj(t){}
   void Load(Serializer *s) override{
     while(1){
       int type=s->ss->NextItem();
@@ -245,7 +281,6 @@ public:
       else if(type==0){
         EmptyObject eo;
         CSyncObj<EmptyObject>(&eo).Load(s);
-        //Serializer(s).Load();
       }
     }
   }
@@ -254,16 +289,18 @@ public:
   }
 };
 
+template<typename T> CSyncObj(T*) -> CSyncObj<T, void>;
+
 inline SyncDataInterface* Sync(std::string *t){
-  return new CSync_STLStr(t);
+  return new CSyncObj(t);
 }
 
 // syncronizes a std::vector of atomic types (char, int, float, ...)
 // in storage efficient manner (binary way)
-template<class T> class CSyncVarVector:public SyncDataInterface{
+template<typename T> class CSyncObj<typename std::vector<T>, typename std::enable_if<atomic_type<T>::value>::type>: public SyncDataInterface{
 public:
   std::vector<T>* vec;
-  CSyncVarVector(std::vector<T>* v): vec(v){}
+  CSyncObj(std::vector<T>* v): vec(v){}
   void Load(Serializer *s) override{
     while(1){
       int type=s->ss->NextItem();
@@ -290,19 +327,19 @@ public:
 };
 
 inline SyncDataInterface* SyncPacked(std::vector<char> *t){
-  return new CSyncVarVector<char>(t);
+  return new CSyncObj(t);
 }
 
 inline SyncDataInterface* SyncPacked(std::vector<int> *t){
-  return new CSyncVarVector<int>(t);
+  return new CSyncObj(t);
 }
 
 inline SyncDataInterface* SyncPacked(std::vector<float> *t){
-  return new CSyncVarVector<float>(t);
+  return new CSyncObj(t);
 }
 
 inline SyncDataInterface* SyncPacked(std::vector<double> *t){
-  return new CSyncVarVector<double>(t);
+  return new CSyncObj(t);
 }
 
 template<typename T>
@@ -330,14 +367,15 @@ void LoadListOfItems(Serializer *s, T* obj, size_t sz)
   }
 };
 
-// syncronizers for plain vector container
+
+// syncronizers for plain array container
 template<typename T>
-class CSyncVector:public SyncDataInterface{
+class CSyncObj<T*, void>:public SyncDataInterface{
 public:
   T *obj;
   int sz;
 
-  CSyncVector(T *t, int n): obj(t), sz(n){}
+  CSyncObj(T *t, int n): obj(t), sz(n){}
 
   void Load(Serializer *s) override{
     int size=0;
@@ -380,25 +418,17 @@ public:
   }
 };
 
-template<class T> inline SyncDataInterface* Sync(T *t, int n){
-  return new CSyncVector<T>(t,n);
+template <typename T>
+inline SyncDataInterface* Sync(T* t, int n){
+  return new CSyncObj(t, n);
 }
-
-template<typename T, int N> inline SyncDataInterface* Sync(T (&arr)[N]){
-  return new CSyncVector<T>(&arr[0], N);
-}
-
-template<typename T, int N> inline SyncDataInterface* Sync(T (*arr)[N]){
-  return new CSyncVector<T>(&(*arr)[0], N);
-}
-
 
 
 // syncronizers for stl containers with non atomic types (objects)
-template<typename T, typename R> class CSync_StlMap: public SyncDataInterface{
+template<typename T, typename R> class CSyncObj<std::map<T,R>>: public SyncDataInterface{
 public:
   std::map<T,R> *obj;
-  CSync_StlMap(std::map<T,R> *t):obj(t){}
+  CSyncObj(std::map<T,R> *t):obj(t){}
   void Load(Serializer *s) override{
     obj->clear();
     while(1){
@@ -470,18 +500,20 @@ public:
   }
 };
 
-template<typename T,typename R> inline SyncDataInterface* Sync(std::map<T,R> *t){
-  return new CSync_StlMap<T,R>(t);
+template<typename T, typename R> CSyncObj(std::map<T,R>* ) -> CSyncObj<std::map<T,R>>;
+
+template<typename T,typename R> inline SyncDataInterface* Sync2(std::map<T,R> *t){
+  return new CSyncObj(t);
 }
 
 
-template<typename T> class CSync_StlVector: public SyncDataInterface{
+template<typename T> class CSyncObj<std::vector<T>>: public SyncDataInterface{
 public:
   std::vector<T> *obj;
-  CSync_StlVector(std::vector<T> *t):obj(t){}
-  
+  CSyncObj(std::vector<T> *t):obj(t){}
+
   void Load(Serializer *s) override{
-    int size=0;    
+    int size=0;
     while(1){
       int type=s->ss->NextItem();
       if(type==1){
@@ -490,7 +522,7 @@ public:
       else if(type==0){
         if(strcmp("size",s->ss->GetNodeName())==0){
           std::unique_ptr<SyncDataInterface>(Sync(&size))->Load(s);
-          obj->resize(size);          
+          obj->resize(size);
         }
         else if(strcmp("data",s->ss->GetNodeName())==0){
 //          LoadListOfItems(s,obj,obj->size());
@@ -544,13 +576,14 @@ public:
 };
 
 template<typename T> inline SyncDataInterface* Sync(std::vector<T> *t){
-  return new CSync_StlVector<T>(t);
+  return new CSyncObj(t);
 }
 
-template<typename T> class CSync_StlList: public SyncDataInterface{
+
+template<typename T> class CSyncObj<std::list<T>>: public SyncDataInterface{
 public:
   std::list<T> *obj;
-  CSync_StlList(std::list<T> *t):obj(t){}
+  CSyncObj(std::list<T> *t):obj(t){}
   
   void Load(Serializer *s) override{
     obj->clear();
@@ -587,13 +620,13 @@ public:
 };
 
 template<typename T> inline SyncDataInterface* Sync(std::list<T> *t){
-  return new CSync_StlList<T>(t);
+  return new CSyncObj(t);
 }
 
-template<typename T, typename K> class CSync_StlSet: public SyncDataInterface{
+template<typename T, typename K> class CSyncObj<std::set<T,K>>: public SyncDataInterface{
 public:
   std::set<T,K> *obj;
-  CSync_StlSet(std::set<T,K> *t):obj(t){}
+  CSyncObj(std::set<T,K> *t):obj(t){}
   
   void Load(Serializer *s) override{
     obj->clear();
@@ -604,7 +637,7 @@ public:
       }
       else if(type==0){
         if(strcmp("item",s->ss->GetNodeName())==0){
-          T item;// = obj->emplace_back();
+          T item;
           std::unique_ptr<SyncDataInterface>(Sync(&item))->Load(s);
           obj->emplace(item);
         }
@@ -631,14 +664,14 @@ public:
 };
 
 template<typename T,typename K> inline SyncDataInterface* Sync(std::set<T,K> *t){
-  return new CSync_StlSet<T,K>(t);
+  return new CSyncObj(t);
 }
 
 // dynamical object pointers created during loading and populated
-template<class T> class CSyncPtr: public SyncDataInterface{
+template<class T> class CSyncObj<T*&>: public SyncDataInterface{
 public:
   T *&ptr;
-  CSyncPtr(T *&p):ptr(p){}
+  CSyncObj(T *&p):ptr(p){}
   void Load(Serializer *s) override{
     if(ptr) delete ptr;
     ptr=0;
@@ -682,7 +715,7 @@ public:
 
 //Syncronizer Dynamical Pointer
 template<class T> inline SyncDataInterface* SyncPtr(T *&t){
-  return  new CSyncPtr<T>(t);
+  return  new CSyncObj<T>(t);
 }
 
 
