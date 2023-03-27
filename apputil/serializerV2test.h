@@ -34,9 +34,9 @@ public:
       return "DynClassABC";
    }
    void AskForData(Serializer *s){
-      s->Item("a",Sync(&a));
-      s->Item("b",Sync(&b));
-      s->Item("c",Sync(&c));
+      s->SyncAs("a",a);
+      s->SyncAs("b",b);
+      s->SyncAs("c",c);
    }
 };
 
@@ -53,10 +53,10 @@ public:
       return "DynClassABCD";
    }
    void AskForData(Serializer *s){
-      s->Item("a",Sync(&a));
-      s->Item("b",Sync(&b));
-      s->Item("c",Sync(&c));
-      s->Item("d",Sync(&d));
+     s->SyncAs("a",a);
+     s->SyncAs("b",b);
+     s->SyncAs("c",c);
+     s->SyncAs("d",d);
    }
 };
 
@@ -77,8 +77,8 @@ public:
    float otherfloat;
 
    void AskForData(Serializer *s){
-      s->Item("otherint",Sync(&otherint));
-      s->Item("otherfloat",Sync(&otherfloat));
+     s->SyncAs("otherint",otherint);
+     s->SyncAs("otherfloat",otherfloat);
    }
 };
 
@@ -108,13 +108,12 @@ public:
 
    void AskForData(Serializer *s){
       n=100;
-      s->Item("otherint",Sync(&otherint));
-      s->Item("otherfloat",Sync(&otherfloat));
-      s->Item("Vector of EmbedObjectsA",Sync(eobjA,n));
-      s->Item("EmbedObjectB",Sync(&eobjB));
-      s->Item("EmbedObjectC",Sync(&eobjC));
+      s->SyncAs("otherint",otherint);
+      s->SyncAs("otherfloat",otherfloat);
+      s->SyncAs("Vector of EmbedObjectsA",eobjA,n);
+      s->SyncAs("EmbedObjectB",eobjB);
+      s->SyncAs("EmbedObjectC",eobjC);
    }
-
 };
 
 class MainObject{
@@ -123,7 +122,7 @@ public:
    // object class restored dynamically from stream
    std::vector< CSrlzPtr<DynClassBase> > dynobjlist;
 
-   int x_float[100];
+   unsigned short int x_float[100];
 
    int testint = DynClassBase::count++;
    float testfloat = DynClassBase::count++;
@@ -179,20 +178,19 @@ public:
 
    }
    void AskForData(Serializer *s){
-      s->Item("dynobjlist", Sync(&dynobjlist));
-      //s->SyncAs("dynobjlist", dynobjlist);
-      s->Item("map_int_float",Sync(&map_int_float));      
-      s->Item("intlist",Sync(&intlist));
-      s->Item("intset",Sync(&intset));
-      s->Item("doubleset",Sync(&doubleset));
-      s->Item("TestInt",Sync(&testint));
-      s->Item("TestFloat",Sync(&testfloat));
-      s->Item("EmbedObject",Sync(&eobj));
-      s->Item("stdvector",Sync(&stdvect));
-      s->Item("TestChar",Sync(&chr));
-      s->Item("TestName",Sync(name,200));
+      s->SyncAs("dynobjlist", dynobjlist);
+      s->SyncAs("map_int_float",map_int_float);
+      s->SyncAs("intlist",intlist);
+      s->SyncAs("intset",intset);
+      s->SyncAs("doubleset",doubleset);
+      s->SyncAs("TestInt",testint);
+      s->SyncAs("TestFloat",testfloat);
+      s->SyncAs("EmbedObject",eobj);
+      s->SyncAs("stdvector",stdvect);
+      s->SyncAs("TestChar",chr);
+      s->SyncAs("TestName",name,200);
+      s->SyncAs("x_float",x_float,100);
 
-      s->Item("x_float",Sync(x_float,100));
    }
 
 };
@@ -296,7 +294,8 @@ public:
 
         Serializer srlz(ss.get());
         srlz.ss->PutStartNode("MainObject");
-        std::unique_ptr<SyncDataInterface>(Sync(&mobj))->Store(&srlz);
+        //std::unique_ptr<SyncDataInterface>(Sync(&mobj))->Store(&srlz);
+        CSyncObj(&mobj).Store(&srlz);
         srlz.ss->PutEndNode("MainObject");
 
         if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
@@ -314,7 +313,8 @@ public:
         if(auto iss = dynamic_cast<StorageStreamSimpleJson*>(ss.get()))
            ss->NextItem();
         ss->NextItem();
-        std::unique_ptr<SyncDataInterface>(Sync(&mobj2))->Load(&srlz);
+        //std::unique_ptr<SyncDataInterface>(Sync(&mobj2))->Load(&srlz);
+        CSyncObj(&mobj2).Load(&srlz);
       }
 
       if(1){
@@ -323,7 +323,8 @@ public:
         auto ss = makeStorageStream(ssmedia, ssmediaIndex);
         Serializer srlz(ss.get());
         srlz.ss->PutStartNode("MainObject");
-        std::unique_ptr<SyncDataInterface>(Sync(&mobj2))->Store(&srlz);
+        //std::unique_ptr<SyncDataInterface>(Sync(&mobj2))->Store(&srlz);
+        CSyncObj(&mobj2).Store(&srlz);
         srlz.ss->PutEndNode("MainObject");
 
         if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
