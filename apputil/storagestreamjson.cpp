@@ -256,10 +256,10 @@ void StorageStreamSimpleJson::GetItem(char const** v){
 
 void StorageStreamSimpleJson::GetItem(void const** v, size_t* n){
   // Binary data.
-  //*v = strbegin;
-  //*n = strend - strbegin;
   *v=value.c_str();
   *n=value.size();
+  auto endofDecoding = decodeBase64InPlace((char*)*v,(char*)*v + (*n));
+  *n = (char*)endofDecoding - (char*)*v; // counting number of bytes
 }
 
 void StorageStreamSimpleJson::PutStartNode(const char *s){

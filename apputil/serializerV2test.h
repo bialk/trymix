@@ -129,6 +129,7 @@ public:
    std::vector<EmbedObject> stdvect;
    char name[200];
    char chr = 'X';
+   std::vector<int> intvector;
    std::list<int> intlist;
    std::set<int> intset;
    std::set<double> doubleset;
@@ -144,6 +145,9 @@ public:
       int counter = 0;
       for(auto&i: x_float)
         i = counter += 2;
+
+      for(int i=0;i<33; i+=3)
+        intvector.push_back(i);
 
       intlist.push_back(1);
       intlist.push_back(3);
@@ -180,6 +184,7 @@ public:
    void AskForData(Serializer *s){
       s->SyncAs("dynobjlist", dynobjlist);
       s->SyncAs("map_int_float",map_int_float);
+      s->SyncAs("intvector",intvector);
       s->SyncAs("intlist",intlist);
       s->SyncAs("intset",intset);
       s->SyncAs("doubleset",doubleset);
@@ -190,7 +195,6 @@ public:
       s->SyncAs("TestChar",chr);
       s->SyncAs("TestName",name,200);
       s->SyncAs("x_float",x_float,100);
-
    }
 
 };
@@ -293,10 +297,10 @@ public:
         auto ss = makeStorageStream(ssmedia, ssmediaIndex);
 
         Serializer srlz(ss.get());
-        srlz.ss->PutStartNode("MainObject");
+        ss->PutStartNode("MainObject");
         //std::unique_ptr<SyncDataInterface>(Sync(&mobj))->Store(&srlz);
         CSyncObj(&mobj).Store(&srlz);
-        srlz.ss->PutEndNode("MainObject");
+        ss->PutEndNode("MainObject");
 
         if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
            iss->WriteIndex();
@@ -322,10 +326,10 @@ public:
         sV2::StreamMediaFile ssmediaIndex("test_data1.txt.idx",false);
         auto ss = makeStorageStream(ssmedia, ssmediaIndex);
         Serializer srlz(ss.get());
-        srlz.ss->PutStartNode("MainObject");
+        ss->PutStartNode("MainObject");
         //std::unique_ptr<SyncDataInterface>(Sync(&mobj2))->Store(&srlz);
         CSyncObj(&mobj2).Store(&srlz);
-        srlz.ss->PutEndNode("MainObject");
+        ss->PutEndNode("MainObject");
 
         if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
            iss->WriteIndex();
