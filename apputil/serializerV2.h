@@ -674,15 +674,45 @@ public:
   }
 };
 
+// this class left for reference it is historically used (in fact it is acting like std::unique_ptr)
+template<class T> class CSrlzPtr{
+public:
+  T *ptr{nullptr};
+  CSrlzPtr(T *p=0):ptr(p){}
+  ~CSrlzPtr(){ Clear();} // this object should not delete a pointer
+
+  CSrlzPtr<T>(const CSrlzPtr<T>&) = delete;
+  CSrlzPtr<T>& operator=(const CSrlzPtr<T>&) = delete;
+
+  CSrlzPtr(CSrlzPtr<T> &&op){
+    std::swap(op.ptr, ptr);
+  }
+
+  CSrlzPtr<T>& operator=(CSrlzPtr<T> &&op) {
+    Clear();
+    std::swap(op.ptr, ptr);
+    return *this;
+  }
+
+  bool operator == (const CSrlzPtr<T> &op) const{
+    return op.ptr==ptr;
+  }
+
+  void Clear(){
+    if(ptr)
+      delete ptr;
+    ptr=nullptr;
+  }
+};
 
 // dynamical object pointers created during loading and populated
-template<class T> class CSyncObj<T*&>: public SyncDataInterface{
+template<typename T> class CSyncObj<CSrlzPtr<T>>: public SyncDataInterface{
 public:
-  T *&ptr;
-  CSyncObj(T *&p):ptr(p){}
+  CSrlzPtr<T> *crlzptr{nullptr};
+  CSyncObj(CSrlzPtr<T> *p):crlzptr(p){}
   void Load(Serializer *s) override{
-    if(ptr) delete ptr;
-    ptr=0;
+    if(crlzptr->ptr) delete crlzptr->ptr;
+    crlzptr->ptr=0;
     while(1){
       int type=s->ss->NextItem();
       if(type==1){
@@ -691,11 +721,11 @@ public:
       else if(type==0){
         if(strcmp("ClassName",s->ss->GetNodeName())==0){
           char cname[200];
-          CSyncObj(cname,200).Load(s);
-          ptr = T::AskForObject(cname); // create object of class cname
+          CSyncObj<char*>(cname,200).Load(s);
+          crlzptr->ptr = T::AskForObject(cname); // create object of class cname
         }
-        else if(ptr && strcmp("ClassData",s->ss->GetNodeName())==0){
-          CSyncObj(ptr).Load(s);
+        else if(crlzptr && strcmp("ClassData",s->ss->GetNodeName())==0){
+          CSyncObj<T>(crlzptr->ptr).Load(s);
         }
         else{
           MissingObject eo;
@@ -709,33 +739,61 @@ public:
   }
 
   void Store(Serializer *s) override{
-    if(ptr){
+    if(crlzptr){
       s->ss->PutStartNode("ClassName");
-      s->ss->PutItem(ptr->AskForClassName());
+      s->ss->PutItem(crlzptr->ptr->AskForClassName());
       s->ss->PutEndNode("ClassName");
 
       s->ss->PutStartNode("ClassData");
-      CSyncObj(ptr).Store(s);
+      CSyncObj<T>(crlzptr->ptr).Store(s);
       s->ss->PutEndNode("ClassData");
     }
   }
 };
 
 
-template<class T> class CSrlzPtr{
+// dynamical object pointers created during loading and populated
+template<typename T> class CSyncObj<std::unique_ptr<T>>: public SyncDataInterface{
 public:
-  T *ptr;
-  CSrlzPtr(T *p=0):ptr(p){}
-  //~CSrlzPtr(){ Clear();} // this object should not delete a pointer
-  
-  void AskForData(Serializer *s){
-    s->SyncAs("CSrlzPtr", *ptr);
+  std::unique_ptr<T> *ptr{nullptr};
+  CSyncObj(std::unique_ptr<T> *p):ptr(p){}
+  void Load(Serializer *s) override{
+    while(1){
+      int type=s->ss->NextItem();
+      if(type==1){
+        return;
+      }
+      else if(type==0){
+        if(strcmp("ClassName",s->ss->GetNodeName())==0){
+          char cname[200];
+          CSyncObj<char*>(cname,200).Load(s);
+          ptr->reset(T::AskForObject(cname)); // create object of class cname
+        }
+        else if(ptr && strcmp("ClassData",s->ss->GetNodeName())==0){
+          CSyncObj<T>(ptr->get()).Load(s);
+        }
+        else{
+          MissingObject eo;
+          CSyncObj<MissingObject>(&eo).Load(s);
+        }
+      }
+      else if(type==2){
+        assert(!"error of stream syncronization");
+      }
+    }
   }
-  bool operator == (const CSrlzPtr<T> &op){
-    return op.ptr==ptr;
+
+  void Store(Serializer *s) override{
+    s->ss->PutStartNode("ClassName");
+    s->ss->PutItem((*ptr)->AskForClassName());
+    s->ss->PutEndNode("ClassName");
+
+    s->ss->PutStartNode("ClassData");
+    CSyncObj<T>(ptr->get()).Store(s);
+    s->ss->PutEndNode("ClassData");
   }
-  void Clear(){ if(ptr) delete ptr; ptr=0; }
 };
+
 
 };
 
