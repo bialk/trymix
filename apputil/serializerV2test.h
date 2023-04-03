@@ -302,7 +302,6 @@ public:
       };
 
       for(int i = 0; i<5; ++i){
-        //std::string test_data;
         std::stringstream test_data_a; test_data_a << "test_data_a" << std::to_string(i) << ".txt";
         std::stringstream test_data_a_idx; test_data_a_idx << "test_data_a" << std::to_string(i) << ".txt.idx";
         std::stringstream test_data_b; test_data_b << "test_data_b" << std::to_string(i) << ".txt";
@@ -326,17 +325,15 @@ public:
           auto ss = makeStorageStream(i, ssmedia, ssmediaIndex);
           if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
             iss->ReadIndex();
+
           Serializer(ss.get()).LoadAs("MainObject", mobj2);
-//          Serializer srlz(ss.get());
-//          ss->NextItem();
-//          if(strcmp("MainObject", ss->GetNodeName()) == 0)
-//            CSyncObj(&mobj2).Load(&srlz);
         }
 
         if(1){
           sV2::StreamMediaFile ssmedia(test_data_b.str().c_str(),false);
           sV2::StreamMediaFile ssmediaIndex(test_data_b_idx.str().c_str(),false);
           auto ss = makeStorageStream(i, ssmedia, ssmediaIndex);
+
           Serializer(ss.get()).StoreAs("MainObject", mobj2);
 
           if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
