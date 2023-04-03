@@ -5,88 +5,90 @@
 
 namespace sV2{
 
-//SimpleXML storage
-////////////////////
+//Json storage
+//
+
 StorageStreamSimpleJson::StorageStreamSimpleJson(StreamMedia* sm)
   :m_streamMedia(sm)
   ,tabsz(1)
 {
-   buf.resize(4096, '\0');
-   strbegin = strend = &buf[0];
-   bufBeginOff = 0;
-   bufEndOff = 0;
-   context.push({});
+    //prepare ring buffer
+    buf.resize(4096, '\0');
+    strbegin = strend = &buf[0];
+    bufBeginOff = 0;
+    bufEndOff = 0;
 
+    //reset context
+    context.push({});
 
+    l1gram = {
+        [&](char c){ // InString
+            if(c == '\\'){
+                pState = InStringSlash;
+            }
+            else if(c == '"'){
+                found_tokens.push_back(token);
+                token.clear();
+                pState = InSpace;
+            }
+            else{
+                // collect symbol to string
+                token.push_back(c);
+            }
+        },
+        [&](char c){ // InStringSlash
+            //collect symbol to string
+            token.push_back(c);
+            pState = InString;
+        },
+        [&](char c){ // InTocken
+            if(specialsymbol.find(c) !=  std::string::npos){
+                //collect symbol to string
+                found_tokens.push_back(token);
+                token.clear();
+                found_tokens.push_back({c});
+                pState = InSpace;
+            }
+            else if(whitespace.find(c) !=  std::string::npos ){
+                found_tokens.push_back(token);
+                token.clear();
+                pState = InSpace;
+            }
+            else{
+                //collect symbol to string
+                token.push_back(c);
+            }
+        },
+        [&](char c){ // InSpace
+            if(whitespace.find(c) !=  std::string::npos ){
+                // do nothing to string
+            }
+            else if(specialsymbol.find(c) !=  std::string::npos){
+                found_tokens.push_back({c});
+            }
+            else if(c == '\"'){
+                //collect symbol to string
+                pState = InString;
+            }
+            else {
+                token.push_back(c);
+                pState = InToken;
+            }
+        }
+    };
 
-   l1gram = {
-     [&](char c){ // InString
-        if(c == '\\'){
-          pState = InStringSlash;
+    readSymbol = [&](){
+        if(bufferCounter == 0){
+            if(m_streamMedia->eos())
+                return '\x0';
+            else{
+                bufferCounter = m_streamMedia->read((void*)buffer,1024);
+                position = 0;
+            }
         }
-        else if(c == '"'){
-          found_tokens.push_back(token);
-          token.clear();
-          pState = InSpace;
-        }
-        else{
-          // collect symbol to string
-          token.push_back(c);
-        }
-     },
-     [&](char c){ // InStringSlash
-       //collect symbol to string
-       token.push_back(c);
-       pState = InString;
-     },
-     [&](char c){ // InTocken
-        if(specialsymbol.find(c) !=  std::string::npos){
-         //collect symbol to string
-          found_tokens.push_back(token);
-          token.clear();
-          found_tokens.push_back({c});
-          pState = InSpace;
-        }
-        else if(whitespace.find(c) !=  std::string::npos ){
-          found_tokens.push_back(token);
-          token.clear();
-          pState = InSpace;
-        }
-        else{
-          //collect symbol to string
-          token.push_back(c);
-        }
-     },
-     [&](char c){ // InSpace
-        if(whitespace.find(c) !=  std::string::npos ){
-          // do nothing to string
-        }
-        else if(specialsymbol.find(c) !=  std::string::npos){
-          found_tokens.push_back({c});
-        }
-        else if(c == '\"'){
-          //collect symbol to string
-          pState = InString;
-        }
-        else {
-          token.push_back(c);
-          pState = InToken;
-        }
-     }
-   };
-
-   readSymbol = [&](){
-     if(bufferCounter == 0){
-       if(m_streamMedia->eos())
-         return '\x0';
-       else{
-         bufferCounter = m_streamMedia->read((void*)buffer,1024);
-         position = 0;
-       }
-     }
-     bufferCounter--;
-     return buffer[position++];
-   };
+        bufferCounter--;
+        return buffer[position++];
+    };
 }
 
 StorageStreamSimpleJson::~StorageStreamSimpleJson(){
@@ -97,74 +99,6 @@ const char* StorageStreamSimpleJson::GetNodeName(){
   return nodename.c_str();
 }
 
-bool StorageStreamSimpleJson::nextLine(char** begin, char** end)
-{
-  do {
-    char* nl = (char*)memchr(&buf[0] + bufBeginOff, '\n', bufEndOff - bufBeginOff);
-    if (nl) {
-      *begin = &buf[0] + bufBeginOff;
-      *end = nl;
-      if (nl != &buf[0] && nl[-1] == '\r') {
-        --*end;
-      }
-      **end = '\0';
-
-      bufBeginOff = (nl - &buf[0]) + 1;
-      if (bufBeginOff == bufEndOff) {
-        bufBeginOff = bufEndOff = 0;
-      }
-      return true;
-    }
-  } while (readMore());
-
-  // So, we haven't found a newline symbol.
-  // We are still going to set *begin and *end, putting
-  // a null character to **end.
-  if (bufEndOff != buf.size()) {
-    buf[bufEndOff] = '\0';
-  } else {
-    buf.push_back('\0');
-  }
-  *begin = &buf[0] + bufBeginOff;
-  *end = &buf[0] + bufEndOff;
-
-  if (bufBeginOff != bufEndOff) {
-    // We have something in the buffer, but it's not a newline.
-    // Let's pretend it does end with a newline.
-    bufBeginOff = bufEndOff = 0;
-    return true;
-  }
-
-  return false;
-}
-
-bool StorageStreamSimpleJson::readMore()
-{
-  if (buf.size() == bufEndOff) {
-    if (bufEndOff - bufBeginOff < buf.size() / 2) {
-      // Move the data to the beginning of the buffer.
-      memmove(&buf[0], &buf[0] + bufBeginOff, bufEndOff - bufBeginOff);
-      bufEndOff -= bufBeginOff;
-      bufBeginOff = 0;
-    } else {
-      buf.resize(buf.size() * 2);
-    }
-  }
-
-  // FIX IT!
-  //int r = fread(&buf[0] + bufEndOff, 1, buf.size() - bufEndOff, f);
-  //   if (r <= 0) {
-  //      return false;
-  //   }
-  //   bufEndOff += r;
-
-  auto r = m_streamMedia->read(buf.data()+bufEndOff, buf.size()-bufEndOff);
-  bufEndOff += r;
-  if(m_streamMedia->eos())
-    return false;
-  else
-    return true;
-}
 
 std::string StorageStreamSimpleJson::nextTocken(){
 
@@ -206,11 +140,13 @@ int StorageStreamSimpleJson::NextItem(){
       }
       break;
     case '{':
+      if(symbols.second == ' ') // we get first open bracket
+        break;
     case '[':
       if(symbols.second == ':')
         nodename = value;
       else
-        nodename = "item";
+        nodename = "item";      
       return 0; //start node
       break;
     case '}':
@@ -235,22 +171,18 @@ int StorageStreamSimpleJson::NextItem(){
 }
 
 void StorageStreamSimpleJson::GetItem(int* v){
-  //*v = atoi(strbegin);
   *v = atoi(value.c_str());
 }
 
 void StorageStreamSimpleJson::GetItem(float* v){
-  //*v = (float)atof(strbegin);
   *v = (float)atof(value.c_str());
 }
 
 void StorageStreamSimpleJson::GetItem(double* v){
-  //*v = atof(strbegin);
   *v = atof(value.c_str());
 }
 
 void StorageStreamSimpleJson::GetItem(char const** v){
-  //*v = strbegin;
   *v = value.c_str();
 }
 
@@ -294,7 +226,7 @@ void StorageStreamSimpleJson::PutStartNode(const char *s){
     indent.insert(indent.size(), tabsz, ' ');
   }
 
-  context.push({0,s,});
+  context.push({0,s});
   context.top().isVector = isVector;
 
 }

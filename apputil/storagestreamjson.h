@@ -68,14 +68,9 @@ namespace sV2{
   private:
 
 
-     static char* decodeBase64InPlace(char* begin, char* end);
+    static char* decodeBase64InPlace(char* begin, char* end);
 
-     static std::string toBase64(char const* begin, char const* end);
-
-     bool nextLine(char** begin, char** end);
-
-     bool readMore();
-
+    static std::string toBase64(char const* begin, char const* end);
 
     StreamMedia* m_streamMedia{nullptr};
 

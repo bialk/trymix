@@ -83,6 +83,20 @@ public:
     datalist.push_back(*dataset.emplace(name, new CSyncObj(data, sz)).first);
   }
 
+  template<typename T>
+  void StoreAs(const char* name, T& data){
+    ss->PutStartNode(name);
+    CSyncObj(&data).Store(this);
+    ss->PutEndNode(name);
+  }
+
+  template<typename T>
+  void LoadAs(const char* name, T& data){
+    if(ss->NextItem()==0 && strcmp(name, ss->GetNodeName()) == 0)
+        CSyncObj(&data).Load(this);
+  }
+
+
 private:
   StorageStream *ss{nullptr};
   std::map<std::string, SyncDataInterface*> dataset;

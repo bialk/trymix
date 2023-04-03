@@ -313,11 +313,7 @@ public:
           sV2::StreamMediaFile ssmediaIndex(test_data_a_idx.str().c_str(),false);
           auto ss = makeStorageStream(i, ssmedia, ssmediaIndex);
 
-          Serializer srlz(ss.get());
-          ss->PutStartNode("MainObject");
-          //std::unique_ptr<SyncDataInterface>(Sync(&mobj))->Store(&srlz);
-          CSyncObj(&mobj).Store(&srlz);
-          ss->PutEndNode("MainObject");
+          Serializer(ss.get()).StoreAs("MainObject", mobj);
 
           if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
             iss->WriteIndex();
@@ -330,23 +326,18 @@ public:
           auto ss = makeStorageStream(i, ssmedia, ssmediaIndex);
           if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
             iss->ReadIndex();
-          Serializer srlz(ss.get());
-          if(auto iss = dynamic_cast<StorageStreamSimpleJson*>(ss.get()))
-            ss->NextItem();
-          ss->NextItem();
-          //std::unique_ptr<SyncDataInterface>(Sync(&mobj2))->Load(&srlz);
-          CSyncObj(&mobj2).Load(&srlz);
+          Serializer(ss.get()).LoadAs("MainObject", mobj2);
+//          Serializer srlz(ss.get());
+//          ss->NextItem();
+//          if(strcmp("MainObject", ss->GetNodeName()) == 0)
+//            CSyncObj(&mobj2).Load(&srlz);
         }
 
         if(1){
           sV2::StreamMediaFile ssmedia(test_data_b.str().c_str(),false);
           sV2::StreamMediaFile ssmediaIndex(test_data_b_idx.str().c_str(),false);
           auto ss = makeStorageStream(i, ssmedia, ssmediaIndex);
-          Serializer srlz(ss.get());
-          ss->PutStartNode("MainObject");
-          //std::unique_ptr<SyncDataInterface>(Sync(&mobj2))->Store(&srlz);
-          CSyncObj(&mobj2).Store(&srlz);
-          ss->PutEndNode("MainObject");
+          Serializer(ss.get()).StoreAs("MainObject", mobj2);
 
           if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
             iss->WriteIndex();
