@@ -10,7 +10,7 @@
 int main(int argc, char *argv[])
 {
 
-#if !serializerTest
+#if serializerTest
   sV2::TestAll testall;
   return 0;
 #endif

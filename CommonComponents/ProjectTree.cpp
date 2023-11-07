@@ -2,6 +2,7 @@
 #include "Projects_TreeItem.h"
 #include "PolygonTests/PolygonTests_TreeItem.h"
 #include "SFSBuilder/SFSBuilder_TreeItem.h"
+#include "BlurTests/BlurTests_TreeItem.h"
 #include "CentralWidget.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -63,7 +64,8 @@ std::vector<std::pair<QString,std::function<ProjectTreeItem*()>>>
 ProjectTree::TreeItemFactoryList(){
   return {
     {QObject::tr("Polygon Test"), [](){ return new PolygonTests_TreeItem;}},
-    {QObject::tr("SFS Builder"),  [](){ return new SFSBuilder_TreeItem;}}
+    {QObject::tr("SFS Builder"),  [](){ return new SFSBuilder_TreeItem;}},
+    {QObject::tr("Blur Test"),    [](){ return new BlurTests_TreeItem;}}
   };
 }
 

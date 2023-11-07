@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
+cmake_policy(SET CMP0074 NEW)
+
 project(omi_triang VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -19,7 +21,8 @@ include(this_project_utils)
 set(WINDOWS_EXTERNAL_LIBS_PATH  "D:/trymix/test_omi" "D:/zero-devel")
 
 if(MSVC)
-    add_compile_options("/JMC")
+    add_compile_options("/JMC" "/Zi" "/Od" "/MD")
+    add_link_options("/DEBUG:FULL" "/OPT:REF" "/OPT:ICF" "/INCREMENTAL:NO" "/IGNORE:4099")
 endif()
 
 #set(glm_DIR <installation prefix>/lib/cmake/glm) # if necessary
@@ -40,6 +43,12 @@ find_package(Boost REQUIRED)
 ################### OpenGL ######################
 
 find_package(OpenGL REQUIRED)
+
+################### OpenGL ######################
+
+# example to specify version: CUDAToolkit_ROOT = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1"
+find_package(CUDAToolkit 12.1 REQUIRED)
+#find_package(OpenCL REQUIRED)
 
 ##################### CGAL ######################
 
@@ -172,6 +181,11 @@ set(PROJECT_SOURCES
     SFSBuilder/mousectrl.h SFSBuilder/mousectrl.cpp
     SFSBuilder/mathstruct.h SFSBuilder/mathstruct.cpp
 
+    BlurTests/BlurTests_TreeItem.cpp BlurTests/BlurTests_TreeItem.h
+    BlurTests/BlurTests_Panel.ui
+    BlurTests/BlurTests.cpp BlurTests/BlurTests.cpp
+
+
     omi_triang.qrc
 
     ${TS_FILES}
@@ -259,6 +273,7 @@ target_link_libraries(omi_triang PRIVATE
     ${FREEIMAGE_LIB}
     OpenGL::GL    
     glm::glm
+    CUDA::OpenCL
 )
 
 set_target_properties(omi_triang PROPERTIES
