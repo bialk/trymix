@@ -224,7 +224,7 @@ BlurTests_TreeItem::showModel(DrawCntx* cx){
 
   p.setTransform(t, true);
 
-  p.drawImage(QRect{-m_img.width()/2,-m_img.height()/2,m_img.width()/2,m_img.height()/2}, m_img);
+  p.drawImage(-m_img.width()/2,-m_img.height()/2, m_img);
 //  p.drawPolyline(polygentest->getPolyline());
 //  p.setPen(QPen(Qt::red, 2/vpc->vpc.scaleX, Qt::DotLine));
 //  p.drawLines(polygentest->getEdges());

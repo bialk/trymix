@@ -1,4 +1,5 @@
 #include "BlurTests.h"
+#include "BoxBlur.h"
 
 #include <QDebug>
 #include <QImage>
@@ -6,36 +7,19 @@
 #include <CL/cl.hpp>
 #include <vector>
 #include <thread>
-
-
-//##################################################################################################
-template<typename T>
-void parallel(T worker)
-{
-//  TPMutex mutex{TPM};
-//  auto locker = [&](auto closure){mutex.locked(TPMc closure);};
-
-  size_t threads = std::thread::hardware_concurrency();
-  std::vector<std::thread> workers;
-  workers.reserve(threads);
-  for(size_t i=0; i<threads; i++)
-    workers.emplace_back([&]{worker(i);});
-  for(auto& thread : workers)
-    thread.join();
-}
+#include <limits>
 
 
 void fillChessBoard(float *img, int w, int h, int stride, int boxSize){
   std::atomic<size_t> row{0};
-  w*=4;
-  auto boxSize4 = boxSize*4;
+  auto w3 = w*3;
+  auto boxSize3 = boxSize*3;
   parallel([&](int i){
     for( auto r = row++; r<h; r = row++){
-      auto rp = img + r*stride*4;
-      for(int c=0; c < w; c+=4){
-        auto fill = (c/boxSize4)%2 == (r/boxSize)%2;
+      auto rp = img + r*stride*3;
+      for(int c=0; c < w3; c+=3){
+        auto fill = (c/boxSize3)%2 == (r/boxSize)%2;
         rp[c+0] = rp[c+1] = rp[c+2] = (fill? 1:0);
-        rp[c+3] = 1;
       }
     }
   });
@@ -43,11 +27,34 @@ void fillChessBoard(float *img, int w, int h, int stride, int boxSize){
 
 void blurTest(int radius, QImage& qimg)
 {
-  int const w=1024, h=1024;
-  QImage input(w,h,QImage::Format_RGBA32FPx4);
-  fillChessBoard((float*)input.bits(), w, h, w, 64);
-  qimg = input;
+  int w = 15000;
+  int h = 15000;
+  std::unique_ptr<float[]> testImageIn(new float[w*h*3]);
+  std::unique_ptr<float[]> testImage(new float[w*h*3]);
+  auto testImagePtr = testImage.get();
+  fillChessBoard(testImageIn.get(), w, h, w, 640);
 
+  gaussBlur_4(testImageIn.get(),testImagePtr, w, h, radius);
+
+  QImage out(w,h,QImage::Format_RGBA32FPx4);
+  float* outPtr = reinterpret_cast<float*>(out.bits());
+  std::atomic<size_t> row{0};
+  auto w4 =w*4;
+  parallel([&](int i){
+    for( auto r = row++; r<h; r = row++){
+      auto rdestp = outPtr + r*w*4;
+      auto rsrcp  = testImagePtr + r*w*3;
+      auto csrc = 0;
+      for(int cdst=0; cdst < w4; cdst+=4, csrc += 3){
+        rdestp[cdst+0] = rsrcp[csrc+0];
+        rdestp[cdst+1] = rsrcp[csrc+1];
+        rdestp[cdst+2] = rsrcp[csrc+2];
+        rdestp[cdst+3] = 1.0;
+      }
+    }
+  });
+  out.convertTo(QImage::Format_RGB888);
+  qimg = out;
 
   return;
 
