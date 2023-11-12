@@ -36,6 +36,7 @@ private:
     Ui::CentralWidget *ui;
     ProjectTree* m_projectTree = nullptr;
     TreeEventFilter* m_treeEventFilter = nullptr;
+    int m_w{0}, m_h{0};
 };
 
 #endif // CENTRALWIDGET_H

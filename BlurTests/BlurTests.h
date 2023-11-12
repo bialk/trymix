@@ -3,6 +3,6 @@
 
 class QImage;
 
-void blurTest(int radius, QImage& qimg);
+void blurTest(int width, int height, int radius, int chessBoxSize, QImage& qimg, bool opencl_bool);
 
 #endif

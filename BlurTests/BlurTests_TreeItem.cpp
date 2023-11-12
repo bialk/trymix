@@ -1,7 +1,4 @@
 #include "BlurTests_TreeItem.h"
-//#include "BlurTests/PolygonTestConvexPartitioning.h"
-//#include "BlurTests/PolygonTestMonotonePartitioning.h"
-//#include "BlurTests/PolygonTestConformingDelanay.h"
 #include "BlurTests.h"
 #include "CommonComponents/CentralWidget.h"
 #include "CommonComponents/mainwindow.h"
@@ -14,6 +11,7 @@
 #include <QPushButton>
 #include <QMouseEvent>
 #include <QDebug>
+#include <QDateTime>
 
 
 namespace {
@@ -125,7 +123,10 @@ public:
 
     addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
     {
-      vpc.beginScale(cx.x(), cx.y()); // inverted y axis
+      // Setting center of rotation shifted to the half of the viewport area. This is due
+      // to additional transformation we apply before (see paint method). We set coordinate
+      // system being centered to the viewport thus we apply reverse transformations
+      vpc.beginScale(cx.x() - m_offsetx, cx.y()  - m_offsety ); // inverted y axis
       m_startXY[0] = cx.x();
       m_startXY[1] = cx.y();
       cx.update();
@@ -140,10 +141,15 @@ public:
       cx.update();
       cx.pushHandler(&m_mouseDragTranslate);
     };
-
   }
+
+  inline void setOffset(int x, int y){
+    m_offsetx = x; m_offsety = y;
+  }
+
 private:
   int m_startXY[2] = {0,0};
+  int m_offsetx = 0, m_offsety = 0;
   EventHandler3D m_mouseDragScale;
   EventHandler3D m_mouseDragTranslate;
 };
@@ -162,21 +168,38 @@ BlurTests_TreeItem::BlurTests_TreeItem()
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());
 
+  blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
+           m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, false);
 
-  QObject::connect(m_panel.pushButton_runBlur, &QPushButton::clicked,
-    [=]{
+
+  QObject::connect(m_panel.pushButton_runBlurCPU, &QPushButton::clicked,
+    [&]{
+       auto startTime = QDateTime::currentDateTime();
        QApplication::setOverrideCursor(Qt::WaitCursor);
-       blurTest(m_panel.spinBox_radius->value(), m_img);
+       blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
+                m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, false);
        findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
        QApplication::restoreOverrideCursor();
+       m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms")
+                                            .arg(startTime.msecsTo(QDateTime::currentDateTime())));
+    });
+  QObject::connect(m_panel.pushButton_runBlurOpenCL, &QPushButton::clicked,
+    [&]{
+       auto startTime = QDateTime::currentDateTime();
+       QApplication::setOverrideCursor(Qt::WaitCursor);
+       blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
+                m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, true);
+       findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
+       QApplication::restoreOverrideCursor();
+       m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms")
+                                            .arg(startTime.msecsTo(QDateTime::currentDateTime())));
     });
 
-  auto& vpc = static_cast<EventHandler_PositionController*>(m_vpceh.get())->vpc;
-
+   auto& vpc = static_cast<EventHandler_PositionController*>(m_vpceh.get())->vpc;
   // initial postioning
-  vpc.scaleX = 1./2;
-  vpc.translationXY[0] = 100;
-  vpc.translationXY[1] = 100;
+  vpc.scaleX = 0.5;
+  // vpc.translationXY[0] = 100;
+  // vpc.translationXY[1] = 100;
 }
 
 BlurTests_TreeItem::~BlurTests_TreeItem(){
@@ -207,42 +230,29 @@ void
 BlurTests_TreeItem::showModel(DrawCntx* cx){
 
   QPainter p(cx->glWidget());
-  auto h = cx->glWidget()->height(); auto w = cx->glWidget()->width();
-  // viewport set automatically from logical size of the canvas
-  // it may not correspond to the physical size in pixels
-  //p.setWindow(0, h, w, -h);
-  p.setPen(QPen(Qt::white, 3));
 
+  // Note that, viewport set automatically from logical size of the canvas
+  // it may not correspond to the physical size of the canvas in pixels
   auto vpc = dynamic_cast<EventHandler_PositionController*>(m_vpceh.get());
+
+  auto offsetx = cx->glWidget()->width()*0.5f;
+  auto offsety = cx->glWidget()->height()*0.5f;
+
   QTransform vpt;
-  vpt.translate(vpc->vpc.translationXY[0],vpc->vpc.translationXY[1]);
-  vpt.scale(vpc->vpc.scaleX,vpc->vpc.scaleX);
+  // this is extra constant transformation shifting origin of the viewport
+  // transformation to the centre of the window
+  vpt.translate(offsetx,offsety);
+  // remember offset as we centered viewport coordinate system
+  // this is needed to do scaling control around mouse cursor
+  vpc->setOffset(offsetx, offsety);
+
+  // applying image translate/scale (view point) transformation
+  vpt.translate(vpc->vpc.translationXY[0], vpc->vpc.translationXY[1]);
+  vpt.scale(vpc->vpc.scaleX, vpc->vpc.scaleX);
+
+  // centering image coordinate space - the origin in the middle of the image
+  vpt.translate(-m_img.width()*0.5, -m_img.height()*0.5);
   p.setTransform(vpt, true);
 
-  QTransform t;
-  t.translate(w,h);
-
-  p.setTransform(t, true);
-
-  p.drawImage(-m_img.width()/2,-m_img.height()/2, m_img);
-//  p.drawPolyline(polygentest->getPolyline());
-//  p.setPen(QPen(Qt::red, 2/vpc->vpc.scaleX, Qt::DotLine));
-//  p.drawLines(polygentest->getEdges());
+  p.drawImage(0, 0, m_img);
 }
-
-/*
-void BlurTests_TreeItem::tryConvexPartitioning(int polygonSize){
-  polygentest.reset(new PolygonTestConvexPartitioning(polygonSize));
-  findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
-}
-
-void BlurTests_TreeItem::tryMonotonePartitioning(int polygonSize){
-  polygentest.reset(new PolygonTestMonotonePartitioning(polygonSize));
-  findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
-}
-
-void BlurTests_TreeItem::tryConformingDelanay(int polygonSize, float meshCellSize){
-  polygentest.reset(new PolygonTestConformingDelanay(polygonSize, meshCellSize));
-  findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
-}
-*/
