@@ -9,6 +9,8 @@
 namespace
 {
 
+using float3 = glm::vec3;
+
 //##################################################################################################
 template<typename T>
 void parallel(T worker)
@@ -52,8 +54,8 @@ std::vector<size_t> boxesForGauss(float sigma, size_t n)
 //##################################################################################################
 void boxBlurH_4(float* scl_, float* tcl_, size_t w, size_t h, size_t r)
 {
-  glm::vec3* scl = reinterpret_cast<glm::vec3*>(scl_);
-  glm::vec3* tcl = reinterpret_cast<glm::vec3*>(tcl_);
+  float3* scl = reinterpret_cast<float3*>(scl_);
+  float3* tcl = reinterpret_cast<float3*>(tcl_);
   const size_t nHead = r+1;
   const size_t nTail = r;
   const size_t nBody = w-(nHead+nTail);
@@ -75,30 +77,30 @@ void boxBlurH_4(float* scl_, float* tcl_, size_t w, size_t h, size_t r)
         size_t li = ti;
         size_t ri = ti + r;
 
-        glm::vec3* liSCL = &scl[li];
-        glm::vec3* riSCL = &scl[ri];
-        glm::vec3* tiTCL = &tcl[ti];
+        float3* liSCL = &scl[li];
+        float3* riSCL = &scl[ri];
+        float3* tiTCL = &tcl[ti];
 
-        glm::vec3 fv = scl[ti];
-        glm::vec3 lv = scl[ti + w - 1];
-        glm::vec3 val = float(r + 1)*fv;
+        float3 fv = scl[ti];
+        float3 lv = scl[ti + w - 1];
+        float3 val = float(r + 1)*fv;
 
         for(size_t j=0; j<r; j++)
           val += scl[ti+j];
 
-        for(glm::vec3* tiTCLMax=tiTCL+nHead; tiTCL<tiTCLMax; riSCL++, tiTCL++)
+        for(float3* tiTCLMax=tiTCL+nHead; tiTCL<tiTCLMax; riSCL++, tiTCL++)
         {
           val += *riSCL - fv;
           (*tiTCL) = val*iarr;
         }
 
-        for(glm::vec3* tiTCLMax=tiTCL+nBody; tiTCL<tiTCLMax; liSCL++, riSCL++, tiTCL++)
+        for(float3* tiTCLMax=tiTCL+nBody; tiTCL<tiTCLMax; liSCL++, riSCL++, tiTCL++)
         {
           val += *riSCL - *liSCL;
           (*tiTCL) = val*iarr;
         }
 
-        for(glm::vec3* tiTCLMax=tiTCL+nTail; tiTCL<tiTCLMax; liSCL++, tiTCL++)
+        for(float3* tiTCLMax=tiTCL+nTail; tiTCL<tiTCLMax; liSCL++, tiTCL++)
         {
           val += lv - *liSCL;
           (*tiTCL) = val*iarr;
@@ -111,8 +113,8 @@ void boxBlurH_4(float* scl_, float* tcl_, size_t w, size_t h, size_t r)
 //##################################################################################################
 void boxBlurT_4(float* scl_, float* tcl_, size_t w, size_t h, size_t r)
 {
-  glm::vec3* scl = reinterpret_cast<glm::vec3*>(scl_);
-  glm::vec3* tcl = reinterpret_cast<glm::vec3*>(tcl_);
+  float3* scl = reinterpret_cast<float3*>(scl_);
+  float3* tcl = reinterpret_cast<float3*>(tcl_);
 
   float iarr = 1.0f / float(r + r + 1);
 
@@ -130,9 +132,9 @@ void boxBlurT_4(float* scl_, float* tcl_, size_t w, size_t h, size_t r)
       size_t li = ti;
       size_t ri = ti + r * w;
 
-      glm::vec3 fv = scl[ti];
-      glm::vec3 lv = scl[ti + w * (h - 1)];
-      glm::vec3 val = float(r + 1)*fv;
+      float3 fv = scl[ti];
+      float3 lv = scl[ti + w * (h - 1)];
+      float3 val = float(r + 1)*fv;
 
       for(size_t j=0; j<r; j++)
         val += scl[ti + j * w];
@@ -167,10 +169,7 @@ void boxBlurT_4(float* scl_, float* tcl_, size_t w, size_t h, size_t r)
 //##################################################################################################
 void boxBlur_4(float* scl, float* tcl, size_t w, size_t h, size_t r)
 {
-//  glm::vec3* scl = reinterpret_cast<glm::vec3*>(scl_);
-//  glm::vec3* tcl = reinterpret_cast<glm::vec3*>(tcl_);
-
-  std::memcpy(tcl, scl, sizeof(glm::vec3)*w*h);
+  std::memcpy(tcl, scl, sizeof(float3)*w*h);
   boxBlurH_4(tcl, scl, w, h, r);
   boxBlurT_4(scl, tcl, w, h, r);
 }
