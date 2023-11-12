@@ -13,7 +13,7 @@ class GLTexSetHandle{
   }
   void clear(){
     if(!texid.empty()){
-      glDeleteTextures(texid.size(),&texid[0]);
+      glDeleteTextures((GLsizei)texid.size(),texid.data());
       texid.clear();
     }
   }
@@ -21,7 +21,7 @@ class GLTexSetHandle{
     if(texid.size()!=i){
       clear();
       texid.resize(i);
-      glGenTextures(texid.size(),&texid[0]);
+      glGenTextures((GLsizei)texid.size(),texid.data());
     }
   }
 };

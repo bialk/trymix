@@ -184,6 +184,7 @@ set(PROJECT_SOURCES
     BlurTests/BlurTests_TreeItem.cpp BlurTests/BlurTests_TreeItem.h
     BlurTests/BlurTests_Panel.ui
     BlurTests/BlurTests.cpp BlurTests/BlurTests.cpp
+    BlurTests/BoxBlur2.cpp BlurTests/BoxBlur2.h
 
 
     omi_triang.qrc

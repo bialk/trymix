@@ -1,21 +1,19 @@
 #include "BlurTests.h"
-#include "BoxBlur.h"
 #include "BoxBlur2.h"
+//#include "BoxBlur.h"
 
 #include <QDebug>
 #include <QImage>
+#include <QDateTime>
 
-#include <CL/cl.hpp>
 #include <vector>
-#include <thread>
-#include <limits>
 
 
 void fillChessBoard(float *img, int w, int h, int stride, int boxSize){
   std::atomic<size_t> row{0};
   auto w3 = w*3;
   auto boxSize3 = boxSize*3;
-  parallel([&](int i){
+  parallel([&](size_t i){
     for( auto r = row++; r<h; r = row++){
       auto rp = img + r*stride*3;
       for(int c=0; c < w3; c+=3){
@@ -27,18 +25,27 @@ void fillChessBoard(float *img, int w, int h, int stride, int boxSize){
   });
 }
 
-void blurTest(int width, int height, int radius, int chessBoxSize, QImage& qimg, bool opencl_bool)
+int blurTest(int width, int height, int radius, int chessBoxSize, QImage& qimg, bool opencl_bool)
 {
   std::unique_ptr<float[]> testImageIn(new float[width*height*3]);
   std::unique_ptr<float[]> testImageOut(new float[width*height*3]);
   fillChessBoard(testImageIn.get(), width, height, width, chessBoxSize);
 
-  if(opencl_bool)
-    opencl_test::
-        gaussBlur_4_opencl(testImageIn.get(),testImageOut.get(), width, height, radius);
-  else
-    opencl_test::gaussBlur_4(testImageIn.get(),testImageOut.get(), width, height, radius);
+  auto startTime = QDateTime::currentDateTime();
+  if(opencl_bool){
+    //opencl_test::gaussBlur_4_opencl(testImageIn.get(),testImageOut.get(), width, height, radius);
 
+    static opencl_test::GaussBlur_opencl gb;
+
+    gb.gaussBlur_4_opencl(testImageIn.get(),testImageOut.get(), width, height, radius);
+
+    //gaussBlur_4(testImageIn.get(),testImageOut.get(), width, height, radius);
+  }
+  else{
+    opencl_test::gaussBlur_4_cpu(testImageIn.get(),testImageOut.get(), width, height, radius);
+    std::swap(testImageIn,testImageOut);
+  }
+  auto msec_spent = startTime.msecsTo(QDateTime::currentDateTime());
 
   qimg = QImage(width,height,QImage::Format_RGBA32FPx4);
   float* qimgPtr = reinterpret_cast<float*>(qimg.bits());
@@ -58,6 +65,5 @@ void blurTest(int width, int height, int radius, int chessBoxSize, QImage& qimg,
       }
     }
   });
-
-  qimg.convertTo(QImage::Format_RGB888);
+  return msec_spent;
 }

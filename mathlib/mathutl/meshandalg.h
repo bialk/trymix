@@ -459,9 +459,9 @@ public:
 
     // prepare structure for index transformation
     ijmap.resize(src->vtx.size());
-    sz = src->vtx.size();
+    sz = (int)src->vtx.size();
     for(i=0;i<sz;i++)  ijmap[i]=0;
-    sz = src->trg.size();
+    sz = (int)src->trg.size();
     for(i=0;i<sz;i++){
       Surf::TTrg &trg = src->trg[i];
       if(trg.i1 < trg.i2 ) ijmap[trg.i1]++;
@@ -471,7 +471,7 @@ public:
       if(trg.i3 < trg.i1 ) ijmap[trg.i3]++;
       else                 ijmap[trg.i1]++;
     }
-    sz = src->vtx.size();
+    sz = (int)src->vtx.size();
     int suml=0;
     for(i=0;i<sz;i++){
       int l = ijmap[i]*2+1;
@@ -489,7 +489,7 @@ public:
     vlastpos = sz;
 
     // insert vertexes on edges
-    sz = src->trg.size();
+    sz = (int)src->trg.size();
     for(i=0;i<sz;i++){
       Surf::TTrg &trg = src->trg[i];
       edgvtx(trg.i1, trg.i2);
@@ -499,8 +499,8 @@ public:
     
 
     // insert vertices inside triangles
-    sz=src->trg.size();
-    float w = 1.0/(n-1);
+    sz=(int)src->trg.size();
+    float w = 1.0f/(n-1);
     for(i=0;i<sz;i++){
       Surf::TTrg *trg = &src->trg[i];
       Surf::TVtx &vtx1 = src->vtx[trg->i1];
@@ -516,10 +516,10 @@ public:
 
           int a = idxget(trg->i1,trg->i2,trg->i3,j,k);
           if(a >= vlastpos) {
-            Ptn p = (p1*l + p2*j  + p3*k)*w;
+            Ptn p = (p1*float(l) + p2*float(j)  + p3*float(k))*w;
             Surf::TVtx vtx;
             vtx.d=p.norma();
-            vtx.p=p*(1.0/vtx.d);
+            vtx.p=p*(1.0f/vtx.d);
             //test string (to see the new parts surface)
             //vtx.d+=1;
             dst->vtx.push_back(vtx);
@@ -537,7 +537,7 @@ public:
           dst->trg.push_back(t);
         }
       }
-      vlastpos=dst->vtx.size();
+      vlastpos=(int)dst->vtx.size();
     }
     reset();
   }
@@ -567,16 +567,16 @@ public:
   int idx;
   void operator()(Tpg *_tpg, Surf *_surf){
     surf=_surf; tpg=_tpg;
-    int i,sz=surf->trg.size();
+    int sz=(int)surf->trg.size();
     pairinit();
-    for(i=0;i<sz;i++){
+    for(int i=0;i<sz;i++){
       Surf::TTrg *trg = &surf->trg[i];
       pairins(trg->i1,trg->i2,trg->i3);
       pairins(trg->i2,trg->i3,trg->i1);
       pairins(trg->i3,trg->i1,trg->i2);
     }
-    sz=surf->vtx.size();
-    for(i=0;i<sz;i++){
+    sz=(int)surf->vtx.size();
+    for(int i=0;i<sz;i++){
       pairsort(i);
     }
     pairs.clear();
@@ -622,11 +622,11 @@ public:
   }
   void pairinit(){
     unsigned int i;
-    unsigned int sz=surf->vtx.size();
+    unsigned int sz=(int)surf->vtx.size();
     ipairs.resize(surf->vtx.size());
     for(i=0;i<sz;i++) ipairs[i]=0;
 
-    sz=surf->trg.size();
+    sz=(int)surf->trg.size();
     for(i=0;i<sz;i++){
       Surf::TTrg *trg = &surf->trg[i];
       ipairs[trg->i1]++;
@@ -634,7 +634,7 @@ public:
       ipairs[trg->i3]++;
     }
 
-    sz=surf->vtx.size();
+    sz=(int)surf->vtx.size();
     unsigned int sumidx=0;
     for(i=0;i<surf->vtx.size();i++){
       int n = ipairs[i];
@@ -693,7 +693,7 @@ public:
 
   void move(){
     int i;
-    int sz = surf->vtx.size();
+    int sz = (int)surf->vtx.size();
     std::bit_vector color(sz);
     std::vector<short int> closed(sz);
 
@@ -778,7 +778,7 @@ public:
     std::vector<bnd> bndflat(szX*szY);
     int i;
     if(surf){
-      int sz = surf->trg.size();
+      int sz = (int)surf->trg.size();
       for(i=0;i<sz;i++){
         Surf::TTrg &trg = surf->trg[i];
         Surf::TVtx &vtx1 = surf->vtx[trg.i1];

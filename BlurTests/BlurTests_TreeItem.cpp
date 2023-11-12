@@ -10,8 +10,8 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QMouseEvent>
-#include <QDebug>
 #include <QDateTime>
+#include <QDebug>
 
 
 namespace {
@@ -174,25 +174,23 @@ BlurTests_TreeItem::BlurTests_TreeItem()
 
   QObject::connect(m_panel.pushButton_runBlurCPU, &QPushButton::clicked,
     [&]{
-       auto startTime = QDateTime::currentDateTime();
        QApplication::setOverrideCursor(Qt::WaitCursor);
-       blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
+       auto msec = blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
                 m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, false);
        findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
        QApplication::restoreOverrideCursor();
-       m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms")
-                                            .arg(startTime.msecsTo(QDateTime::currentDateTime())));
+       m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms").arg(msec));
+       m_img.convertTo(QImage::Format_RGB888);
     });
   QObject::connect(m_panel.pushButton_runBlurOpenCL, &QPushButton::clicked,
     [&]{
-       auto startTime = QDateTime::currentDateTime();
        QApplication::setOverrideCursor(Qt::WaitCursor);
-       blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
+       auto msec = blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
                 m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, true);
        findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
        QApplication::restoreOverrideCursor();
-       m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms")
-                                            .arg(startTime.msecsTo(QDateTime::currentDateTime())));
+       m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms").arg(msec));
+       m_img.convertTo(QImage::Format_RGB888);
     });
 
    auto& vpc = static_cast<EventHandler_PositionController*>(m_vpceh.get())->vpc;

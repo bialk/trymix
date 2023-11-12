@@ -72,11 +72,7 @@ CentralWidget::initializeGL(){
 }
 
 void
-CentralWidget::resizeGL(int w, int h) {
-  m_w = devicePixelRatioFScale();
-  m_h = devicePixelRatioFScale();
-  qDebug() << "reisizeGL: " << m_w << m_h << Qt::endl;
-}
+CentralWidget::resizeGL(int w, int h) {}
 
 void
 CentralWidget::paintGL(){
