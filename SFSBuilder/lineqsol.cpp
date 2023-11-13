@@ -1,5 +1,9 @@
 #include "lineqsol.h"
 
+#ifdef WIN32
+#define _CRT_NO_TIME_T
+#endif
+
 extern "C" {
 #include <spoolesMT.h>
 #include <misc.h>
@@ -11,7 +15,7 @@ extern "C" {
 /*--------------------------------------------------------------------*/ 
 
 
-LinSolver::LinSolver():mtxA(0),mtxX(0),mtxY(0){}
+LinSolver::LinSolver():mtxA(0),mtxY(0),mtxX(0){}
 
 LinSolver::~LinSolver(){
   clear();

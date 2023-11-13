@@ -21,7 +21,8 @@ include(this_project_utils)
 set(WINDOWS_EXTERNAL_LIBS_PATH  "D:/trymix/test_omi" "D:/zero-devel")
 
 if(MSVC)
-    add_compile_options("/JMC" "/Zi" "/Od" "/MD")
+    #add_compile_options("/JMC" "/Zi" "/Od" "/MD")
+    add_compile_options("/Zi" "/Od" "/MD")
     add_link_options("/DEBUG:FULL" "/OPT:REF" "/OPT:ICF" "/INCREMENTAL:NO" "/IGNORE:4099")
 endif()
 
@@ -184,8 +185,8 @@ set(PROJECT_SOURCES
     BlurTests/BlurTests_TreeItem.cpp BlurTests/BlurTests_TreeItem.h
     BlurTests/BlurTests_Panel.ui
     BlurTests/BlurTests.cpp BlurTests/BlurTests.cpp
-    BlurTests/BoxBlur2.cpp BlurTests/BoxBlur2.h
-
+    BlurTests/BoxBlur.cpp BlurTests/BoxBlur.h
+    BlurTests/GaussBlurEngine.cpp BlurTests/GaussBlurEngine.h
 
     omi_triang.qrc
 
@@ -234,7 +235,8 @@ target_include_directories(omi_triang PRIVATE
     ${EIGEN_INCLUDE_DIRS}
 )
 
-target_compile_options(omi_triang PRIVATE "-D_TIMESPEC_DEFINED")
+#target_compile_options(omi_triang PRIVATE "-D_TIMESPEC_DEFINED -DCL_TARGET_OPENCL_VERSION=3.0")
+target_compile_options(omi_triang PRIVATE "-D_TIMESPEC_DEFINED ")
 
 #left example for debugging checking properties on target
 #print_target_properties(CGAL::CGAL)
