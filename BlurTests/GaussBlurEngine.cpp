@@ -8,16 +8,14 @@
 #include <atomic>
 #include <sstream>
 
-#ifndef NO_OPENCL
+#ifdef USE_OPENCL
 #include <CL/cl.hpp>
-#endif
 
 #define CaseReturnString(x) case x: return #x;
 
 namespace
 {
 
-#ifndef NO_OPENCL
 const char *opencl_errstr(cl_int err)
 {
     switch (err)
@@ -197,14 +195,14 @@ void kernel boxBlurT_4(global float* scl_, global float* tcl_, int w, int h, int
 }
 )V0G0N";
 
+} //namespace
+
 #endif
 
 
-} //namespace
-
 namespace BlurTests{
 
-#ifndef NO_OPENCL
+#ifdef USE_OPENCL
 
 class GaussBlurEngine::GaussBlurAccelerator{
 
@@ -265,7 +263,7 @@ public:
     queue = cl::CommandQueue(context,default_device);
   }
 
-  void doBlur(float* scl, float* tcl, size_t w, size_t h, size_t r)
+  void doBlur(float* scl, size_t w, size_t h, size_t r)
   {
     if(!isFailed()){
       //For arrays source, target, we need to allocate the space on the device:
@@ -343,12 +341,12 @@ GaussBlurEngine::~GaussBlurEngine(){}
 
 void GaussBlurEngine::doBlur(float* scl, float* tcl, size_t w, size_t h, size_t r)
 {
-#ifndef NO_OPENCL
+#ifdef USE_OPENCL
   if(!oclGaussBlur)
     oclGaussBlur.reset(new GaussBlurAccelerator());
 
   if(!oclGaussBlur->isFailed())
-    oclGaussBlur->doBlur(scl, tcl, w, h, r);
+    oclGaussBlur->doBlur(scl, w, h, r);
   else
 #endif
     gaussBlur_4_cpu(scl, tcl, w, h, r);
@@ -356,23 +354,23 @@ void GaussBlurEngine::doBlur(float* scl, float* tcl, size_t w, size_t h, size_t 
 
 std::string GaussBlurEngine::getErrorString()
 {
-#ifndef NO_OPENCL
+#ifdef USE_OPENCL
   if(oclGaussBlur && oclGaussBlur->isFailed())
     return oclGaussBlur->getErrorString();
   return "OpenCL capability not found using CPU for blur";
 #else
-  return "BUILT WITH NO_OPENCL FLAG";
+  return "BUILT WITH USE_OPENCL FLAG";
 #endif
 }
 
 std::string GaussBlurEngine::getInfoString()
 {
-#ifndef NO_OPENCL
+#ifdef USE_OPENCL
   if(oclGaussBlur)
     return oclGaussBlur->getInfoString();
   return "OpenCL capability not found using CPU for blur";
 #else
-  return "BUILT WITH NO_OPENCL FLAG";
+  return "BUILT WITH USE_OPENCL FLAG";
 #endif
 }
 
