@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.24)
 
 cmake_policy(SET CMP0074 NEW)
 
@@ -46,10 +46,18 @@ find_package(Boost REQUIRED)
 find_package(OpenGL REQUIRED)
 
 ################### OpenGL ######################
+# example to specify version to locate: CUDAToolkit_ROOT = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1"
 
-# example to specify version: CUDAToolkit_ROOT = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1"
-find_package(CUDAToolkit 12.1 REQUIRED)
-#find_package(OpenCL REQUIRED)
+find_package(CUDAToolkit 12.0 )
+if(CUDAToolkit_FOUND)
+add_compile_options(-DOpenCL_FOUND -DCUDA_FOUND -DCL_TARGET_OPENCL_VERSION=300)
+else()
+  find_package(OpenCL 3.0 REQUIRED)
+  if(OpenCL_FOUND)
+    add_compile_options("-DOpenCL_FOUND")
+  endif()
+endif()
+
 
 ##################### CGAL ######################
 

@@ -8,7 +8,7 @@
 #include <atomic>
 #include <sstream>
 
-#ifdef USE_OPENCL
+#ifdef OpenCL_FOUND
 #include <CL/cl.hpp>
 
 #define CaseReturnString(x) case x: return #x;
@@ -201,7 +201,7 @@ void kernel boxBlurT_4(global float* scl_, global float* tcl_, int w, int h, int
 
 namespace BlurTests{
 
-#ifdef USE_OPENCL
+#ifdef OpenCL_FOUND
 
 class GaussBlurEngine::GaussBlurAccelerator{
 
@@ -340,7 +340,7 @@ GaussBlurEngine::~GaussBlurEngine(){}
 
 void GaussBlurEngine::doBlur(float* scl, size_t w, size_t h, size_t r)
 {
-#ifdef USE_OPENCL
+#ifdef OpenCL_FOUND
   if(!oclGaussBlur)
     oclGaussBlur.reset(new GaussBlurAccelerator());
 
@@ -356,23 +356,23 @@ void GaussBlurEngine::doBlur(float* scl, size_t w, size_t h, size_t r)
 
 std::string GaussBlurEngine::getErrorString()
 {
-#ifdef USE_OPENCL
+#ifdef OpenCL_FOUND
   if(oclGaussBlur && oclGaussBlur->isFailed())
     return oclGaussBlur->getErrorString();
   return "OpenCL capability not found using CPU for blur";
 #else
-  return "BUILT WITH USE_OPENCL FLAG";
+  return "BUILT WITH OpenCL_FOUND FLAG";
 #endif
 }
 
 std::string GaussBlurEngine::getInfoString()
 {
-#ifdef USE_OPENCL
+#ifdef OpenCL_FOUND
   if(oclGaussBlur)
     return oclGaussBlur->getInfoString();
   return "OpenCL capability not found using CPU for blur";
 #else
-  return "BUILT WITH USE_OPENCL FLAG";
+  return "BUILT WITH OpenCL_FOUND FLAG";
 #endif
 }
 

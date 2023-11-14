@@ -3,8 +3,6 @@
 #include <string>
 #include <memory>
 
-#define USE_OPENCL
-
 namespace BlurTests
 {
 
