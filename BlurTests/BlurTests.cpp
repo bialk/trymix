@@ -25,29 +25,27 @@ void fillChessBoard(float *img, int w, int h, int stride, int boxSize){
 
 int blurTest(int width, int height, int radius, int chessBoxSize, QImage& qimg, bool opencl_bool)
 {
-  std::unique_ptr<float[]> testImageIn(new float[width*height*3]);
-  std::unique_ptr<float[]> testImageOut(new float[width*height*3]);
+  std::unique_ptr<float[]> testImageIn(new float[width*height*3]);  
   fillChessBoard(testImageIn.get(), width, height, width, chessBoxSize);
 
   static BlurTests::GaussBlurEngine gb;
   auto startTime = QDateTime::currentDateTime();
   if(opencl_bool){
-    gb.doBlur(testImageIn.get(),testImageOut.get(), width, height, radius);
+    gb.doBlur(testImageIn.get(), width, height, radius);
     qInfo() << gb.getInfoString();
   }  
   else{
-    gaussBlur_4_cpu(testImageIn.get(),testImageOut.get(), width, height, radius);
+    std::unique_ptr<float[]> aux(new float[width*height*3]);
+    gaussBlur_4_cpu(testImageIn.get(), aux.get(), width, height, radius);
     qInfo() << "Using CPU Blur";
   }
   auto msec_spent = startTime.msecsTo(QDateTime::currentDateTime());
 
-
-  std::swap(testImageIn,testImageOut);
   qimg = QImage(width,height,QImage::Format_RGBA32FPx4);
   float* qimgPtr = reinterpret_cast<float*>(qimg.bits());
   std::atomic<size_t> row{0};
   auto w4 =width*4;
-  auto testImagePtr = testImageOut.get();
+  auto testImagePtr = testImageIn.get();
   parallel([&](auto /*threadNum*/){
     for( auto r = row++; r<height; r = row++){
       auto rdestp = qimgPtr + r*width*4;
