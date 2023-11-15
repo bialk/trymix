@@ -361,7 +361,7 @@ std::string GaussBlurEngine::getErrorString()
     return oclGaussBlur->getErrorString();
   return "OpenCL capability not found using CPU for blur";
 #else
-  return "BUILT WITH OpenCL_FOUND FLAG";
+  return "BUILT WITH NO OpenCL_FOUND FLAG";
 #endif
 }
 
@@ -372,7 +372,7 @@ std::string GaussBlurEngine::getInfoString()
     return oclGaussBlur->getInfoString();
   return "OpenCL capability not found using CPU for blur";
 #else
-  return "BUILT WITH OpenCL_FOUND FLAG";
+  return "BUILT WITH NO OpenCL_FOUND FLAG";
 #endif
 }
 

@@ -1,3 +1,11 @@
+###################################################################################
+# consider to specify cmake parameters in cmake commandline configuration
+
+# -DCUDAToolkit_ROOT:PATH=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1/bin
+# -DWINDOWS_EXTERNAL_LIBS_PATH:PATH=D:/trymix/test_omi;D:/zero-devel
+
+###################################################################################
+
 cmake_minimum_required(VERSION 3.24)
 
 cmake_policy(SET CMP0074 NEW)
@@ -16,15 +24,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(this_project_utils)
 
-# temporarily variables need to be set as external parameters
-# path to thirdparty dirs
-set(WINDOWS_EXTERNAL_LIBS_PATH  "D:/trymix/test_omi" "D:/zero-devel")
+# path to thirdparty dirs (specify at at command line see top of the file)
+if(DEFINED WINDOWS_EXTERNAL_LIBS_PATH)
+  message(STATUS "WINDOWS_EXTERNAL_LIBS_PATH = ${WINDOWS_EXTERNAL_LIBS_PATH}" )
+else()
+  message(FATAL_ERROR "Please, define WINDOWS_EXTERNAL_LIBS_PATH varable")
+endif()
 
 if(MSVC)
-    #add_compile_options("/JMC" "/Zi" "/Od" "/MD")
-    add_compile_options("/Zi" "/Od" "/MD")
-    add_link_options("/DEBUG:FULL" "/OPT:REF" "/OPT:ICF" "/INCREMENTAL:NO" "/IGNORE:4099")
+    # options for debugging in RelWithDebInfo (it seems same as RelWithDebInfo)
+    #set(RELEASE_FOR_DEBUG_CXX_OPTIONS /JMC /Zi /Od /MD)
+    set(RELEASE_FOR_DEBUG_CXX_OPTIONS /Zi /Od /MD)
+    set(RELEASE_FOR_DEBUG_LINKER_OPTIONS /DEBUG:FULL /OPT:REF /OPT:ICF /INCREMENTAL:NO /IGNORE:4099)
 endif()
+
+
 
 #set(glm_DIR <installation prefix>/lib/cmake/glm) # if necessary
 find_path_by_regex(glm_DIR "glm/install/lib/cmake/glm" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
@@ -49,12 +63,13 @@ find_package(OpenGL REQUIRED)
 # example to specify version to locate: CUDAToolkit_ROOT = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1"
 
 find_package(CUDAToolkit 12.0 )
-if(CUDAToolkit_FOUND)
-add_compile_options(-DOpenCL_FOUND -DCUDA_FOUND -DCL_TARGET_OPENCL_VERSION=300)
+if(${CUDAToolkit_FOUND})
+  message(STATUS CUDAToolkit_FOUND=${CUDAToolkit_FOUND})
+  add_compile_definitions(OpenCL_FOUND CUDA_FOUND CL_TARGET_OPENCL_VERSION=300)
 else()
   find_package(OpenCL 3.0 REQUIRED)
   if(OpenCL_FOUND)
-    add_compile_options("-DOpenCL_FOUND")
+    add_compile_definitions(OpenCL_FOUND CL_TARGET_OPENCL_VERSION=300)
   endif()
 endif()
 
@@ -243,8 +258,14 @@ target_include_directories(omi_triang PRIVATE
     ${EIGEN_INCLUDE_DIRS}
 )
 
-#target_compile_options(omi_triang PRIVATE "-D_TIMESPEC_DEFINED -DCL_TARGET_OPENCL_VERSION=3.0")
-target_compile_options(omi_triang PRIVATE "-D_TIMESPEC_DEFINED ")
+target_compile_definitions(omi_triang PRIVATE "-D_TIMESPEC_DEFINED ")
+target_compile_options(omi_triang PRIVATE
+  $<$<CONFIG:RelWithDebInfo>:${RELEASE_FOR_DEBUG_CXX_OPTIONS}>
+)
+
+target_link_options(omi_triang PRIVATE
+  $<$<CONFIG:RelWithDebInfo>:${RELEASE_FOR_DEBUG_LINKER_OPTIONS}>
+)
 
 #left example for debugging checking properties on target
 #print_target_properties(CGAL::CGAL)
