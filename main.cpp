@@ -10,10 +10,12 @@
 int main(int argc, char *argv[])
 {
 
-#if serializerTest
+  const bool serializerTest{true};
+
+if(serializerTest){
   sV2::TestAll testall;
   return 0;
-#endif
+}
 
   //QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 //  QGuiApplication::setAttribute(Qt::AA_Use96Dpi);

@@ -155,7 +155,7 @@ public:
 };
 
 
-// build-in serializable "atomic" types types
+// build-in serializable "atomic" types
 template<typename T> struct atomic_type { static const bool value = false; };
 template<> struct atomic_type<char>     { static const bool value = true;  };
 template<> struct atomic_type<unsigned char>     { static const bool value = true;  };
@@ -188,7 +188,7 @@ template<> struct is_compatible_type<double> { typedef double type;};
 template<typename T> class CSyncObj<T, typename std::enable_if<atomic_type<T>::value>::type>: public SyncDataInterface{
 public:
   using R = typename is_compatible_type<T>::type;
-  T *obj;
+  T * const obj;
   CSyncObj(T *t):obj(t){}
   void Load(Serializer *s) override{
     while(1){
@@ -220,7 +220,7 @@ public:
 template<>
 class CSyncObj<char*>: public SyncDataInterface{
 public:
-  char *obj;
+  char * const obj;
   int sz;
   CSyncObj(char *t,int n):obj(t),sz(n){}
   void Load(Serializer *s) override{
@@ -245,13 +245,14 @@ public:
   }
 };
 
+// deduce constructor CSyncObj(T*, int) to CSyncObj<T*,void>(T*, void)
 template<typename T> CSyncObj(T*, int) -> CSyncObj<T*>;
 
 // syncronizers for std::string type
 template<>
 class CSyncObj<std::string>: public SyncDataInterface{
 public:
-  std::string *obj;
+  std::string * const obj;
   CSyncObj(std::string *t):obj(t){}
   void Load(Serializer *s) override{
     while(1){
@@ -306,7 +307,7 @@ void LoadListOfItems(Serializer *s, T* obj, size_t sz)
 template<typename T>
 class CSyncObj<T*, void>:public SyncDataInterface{
 public:
-  T *obj;
+  T * const obj;
   int sz;
 
   CSyncObj(T *t, int n): obj(t), sz(n){}
@@ -356,7 +357,7 @@ public:
 // syncronizers for std::map containers for all types (atomic and non atomic)
 template<typename T, typename R> class CSyncObj<std::map<T,R>>: public SyncDataInterface{
 public:
-  std::map<T,R> *obj;
+  std::map<T,R> * const obj;
   CSyncObj(std::map<T,R> *t):obj(t){}
   void Load(Serializer *s) override{
     obj->clear();
@@ -429,12 +430,13 @@ public:
   }
 };
 
+// deduce constructor CSyncObj(std::map<T,R>*) to CSyncObj<T*,void>(std::map<T,R>, void)
 template<typename T, typename R> CSyncObj(std::map<T,R>* ) -> CSyncObj<std::map<T,R>>;
 
 
 // there is two variants of vector syncronizations. First variant uses two specializations
 // one of each stored atomic data as binary data (efficient way).
-// second variant stored data "usual" way as structurazed nodes
+// second variant stored data "usual" way as structured nodes
 #ifdef off
 // syncronizes a std::vector of "atomic" types (char, int, float, ...)
 // in storage efficient manner (binary way)
@@ -542,7 +544,7 @@ public:
 //std::vector for any type (including atomic types)
 template<typename T> class CSyncObj<std::vector<T>>: public SyncDataInterface{
 public:
-  std::vector<T> *obj;
+  std::vector<T> * const obj;
   CSyncObj(std::vector<T> *t):obj(t){}
 
   void Load(Serializer *s) override{
@@ -611,7 +613,7 @@ public:
 
 template<typename T> class CSyncObj<std::list<T>>: public SyncDataInterface{
 public:
-  std::list<T> *obj;
+  std::list<T> * const obj;
   CSyncObj(std::list<T> *t):obj(t){}
   
   void Load(Serializer *s) override{
@@ -650,7 +652,7 @@ public:
 
 template<typename T, typename K> class CSyncObj<std::set<T,K>>: public SyncDataInterface{
 public:
-  std::set<T,K> *obj;
+  std::set<T,K> * const obj;
   CSyncObj(std::set<T,K> *t):obj(t){}
   
   void Load(Serializer *s) override{
@@ -769,7 +771,7 @@ public:
 // dynamical object pointers created during loading and populated
 template<typename T> class CSyncObj<std::unique_ptr<T>>: public SyncDataInterface{
 public:
-  std::unique_ptr<T> *ptr{nullptr};
+  std::unique_ptr<T> * const ptr{nullptr};
   CSyncObj(std::unique_ptr<T> *p):ptr(p){}
   void Load(Serializer *s) override{
     while(1){
