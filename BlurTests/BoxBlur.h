@@ -1,9 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <cmath>
 #include <thread>
-#include <atomic>
 
 #include <glm/glm.hpp>
 

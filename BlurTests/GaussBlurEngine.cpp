@@ -3,9 +3,6 @@
 
 
 #include <vector>
-#include <cmath>
-#include <thread>
-#include <atomic>
 #include <sstream>
 
 #ifdef OpenCL_FOUND
@@ -246,8 +243,8 @@ public:
     cl::Program::Sources sources;
 
     //Next we need our kernel sources to build. We also check for the errors at building:
-    sources.push_back({kernel_boxBlurH_4, sizeof(kernel_boxBlurH_4)-1});
-    sources.push_back({kernel_boxBlurT_4, sizeof(kernel_boxBlurT_4)-1});
+    sources.push_back({kernel_boxBlurH_4, 0}); //zero size means: expected pointer is zero terminated string
+    sources.push_back({kernel_boxBlurT_4, 0});
 
     program = cl::Program(context, sources);
     if(program.build({default_device})!=CL_SUCCESS){

@@ -49,7 +49,7 @@ set(QT_VERSION_MAJOR 6)
 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets  LinguistTools)
 
-find_path_by_regex(BOOST_ROOT "boost_*[0-9]_*[0-9]_*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
+find_path_by_regex(Boost_ROOT "boost_*[0-9]_*[0-9]_*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
 
 ################### Boost #######################
 
