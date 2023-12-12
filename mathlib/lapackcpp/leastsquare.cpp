@@ -144,8 +144,6 @@ void dgels_(char &trans, int &m, int &n, int &nrhs,
 
 int Lapackcpp::LeastSquare(int m, int n, double *a, double *b, int nrhs){
 
-
-
   int lwork= std::max(1, std::min(n,m)+std::max(std::min(m,n),nrhs));
   double *work=(double*)alloca(lwork*sizeof(double));
   int info = 0;

@@ -228,12 +228,12 @@ public:
 
 inline int SurfTxtrStore(SurfTxtr *stxt, const char * filename){
 
-  FILE *f=fopen(filename,"w");
-  if(!f){
+  FILE *f{nullptr};
+  if(fopen_s(&f, filename,"w")){
     err_printf(("Can't open texture file '%s' \n",filename));
     return 1;
   }
-  fprintf(f,"%lu %lu\n",stxt->trg.size(),stxt->tx.size());
+  fprintf(f,"%zu %zu\n",stxt->trg.size(),stxt->tx.size());
 
   std::vector<Surf::TTrg>::iterator it;
   for(it=stxt->trg.begin();it!=stxt->trg.end();it++)
@@ -247,15 +247,15 @@ inline int SurfTxtrStore(SurfTxtr *stxt, const char * filename){
 }
 
 inline int SurfTxtrLoad(SurfTxtr *stxt, const char *filename){
-  FILE *f=fopen(filename,"r");
-  if(!f){
+  FILE *f{nullptr};
+  if(fopen_s(&f, filename,"r")){
     err_printf(("Can't open texture file '%s' \n",filename));
     return 1;
   }
 
   stxt->clear();
   char line[1024],test[1024], *s;
-  fgets(line,1024,f); strcpy(test,line);
+  fgets(line,1024,f); strcpy_s(test,line);
   s=strtok(line," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
   stxt->trg.resize(atoi(s));
   s=strtok(0," \n"); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
@@ -301,9 +301,8 @@ inline char *mystrtok_r(char* s, char const *brk, char** r){
 
 
 inline int SurfLoad_WaveFrontObj(Surf *surf, SurfTxtr *stxr, const char *filename){
-
-  FILE *f=fopen(filename,"r");
-  if(!f){
+  FILE *f{nullptr};
+  if(fopen_s(&f, filename,"r")){
     printf("Can't open file '%s' \n",filename);
     return 1;
   }
