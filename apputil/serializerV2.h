@@ -6,7 +6,7 @@
 #include <vector>
 #include <map>
 #include <set>
-#include <iostream>
+#include <memory>
 #include <assert.h>
 
 namespace sV2{
@@ -74,7 +74,7 @@ public:
   // general data sychronization
   template<typename T>
   void SyncAs(const char* name, T& data){
-    datalist.push_back(*dataset.emplace(name, new CSyncObj((T*)&data)).first);
+    datalist.push_back(*dataset.emplace(name, new CSyncObj(data)).first);
   }
 
   //fixed plain arrays syncronization
@@ -86,14 +86,14 @@ public:
   template<typename T>
   void StoreAs(const char* name, T& data){
     ss->PutStartNode(name);
-    CSyncObj(&data).Store(this);
+    CSyncObj(data).Store(this);
     ss->PutEndNode(name);
   }
 
   template<typename T>
   void LoadAs(const char* name, T& data){
     if(ss->NextItem()==0 && strcmp(name, ss->GetNodeName()) == 0)
-        CSyncObj(&data).Load(this);
+        CSyncObj(data).Load(this);
   }
 
 
@@ -115,12 +115,12 @@ public:
 // synchronisation any custom object with AskForData functions
 template<typename T, typename = void> class CSyncObj: public SyncDataInterface{
 public:
-  T *obj;
-  CSyncObj(T *t):obj(t){}
+  T& obj;
+  CSyncObj(T& t):obj(t){}
 
   void Load(Serializer *s) override{
     Serializer srlz(s);
-    obj->AskForData(&srlz);
+    obj.AskForData(&srlz);
 
     while(1){
       int type = srlz.ss->NextItem();
@@ -134,7 +134,7 @@ public:
         }
         else{
           MissingObject eo;
-          CSyncObj<MissingObject>(&eo).Load(&srlz);
+          CSyncObj<MissingObject>(eo).Load(&srlz);
         }
       }
       else if(type==2){ //data node
@@ -145,7 +145,7 @@ public:
 
   void Store(Serializer *s) override{
     Serializer srlz(s);
-    obj->AskForData(&srlz);
+    obj.AskForData(&srlz);
     for(auto& it: srlz.datalist){
       srlz.ss->PutStartNode(it.first.c_str());
       it.second->Store(&srlz);
@@ -188,8 +188,8 @@ template<> struct is_compatible_type<double> { typedef double type;};
 template<typename T> class CSyncObj<T, typename std::enable_if<atomic_type<T>::value>::type>: public SyncDataInterface{
 public:
   using R = typename is_compatible_type<T>::type;
-  T * const obj;
-  CSyncObj(T *t):obj(t){}
+  T& obj;
+  CSyncObj(T& t):obj(t){}
   void Load(Serializer *s) override{
     while(1){
       int type=s->ss->NextItem();
@@ -198,17 +198,17 @@ public:
       }
       else if(type==0){
         MissingObject eo;
-        CSyncObj<MissingObject>(&eo).Load(s);
+        CSyncObj<MissingObject>(eo).Load(s);
       }
       else if(type==2){
         R i;
         s->ss->GetItem(&i);
-        *obj=T(i);
+        obj=T(i);
       }
     }
   }
   void Store(Serializer *s) override{
-    R i=R(*obj);
+    R i=R(obj);
     s->ss->PutItem(&i);
   }
 };
@@ -235,7 +235,7 @@ public:
         strncpy_s(obj,sz,str,sz-1);
       } else if(type==0) {
         MissingObject eo;
-        CSyncObj<MissingObject>(&eo).Load(s);
+        CSyncObj<MissingObject>(eo).Load(s);
       }
     }
   }
@@ -252,8 +252,8 @@ template<typename T> CSyncObj(T*, int) -> CSyncObj<T*>;
 template<>
 class CSyncObj<std::string>: public SyncDataInterface{
 public:
-  std::string * const obj;
-  CSyncObj(std::string *t):obj(t){}
+  std::string& obj;
+  CSyncObj(std::string& t):obj(t){}
   void Load(Serializer *s) override{
     while(1){
       int type=s->ss->NextItem();
@@ -263,16 +263,16 @@ public:
       else if(type==2){
         char const* str;
         s->ss->GetItem(&str);
-        *obj = str;
+        obj = str;
       }
       else if(type==0){
         MissingObject eo;
-        CSyncObj<MissingObject>(&eo).Load(s);
+        CSyncObj<MissingObject>(eo).Load(s);
       }
     }
   }
   void Store(Serializer *s) override{
-    s->ss->PutItem(obj->c_str());
+    s->ss->PutItem(obj.c_str());
   }
 };
 
@@ -288,12 +288,12 @@ void LoadListOfItems(Serializer *s, T* obj, size_t sz)
     }
     else if(type == 0){
       if(strcmp("item",s->ss->GetNodeName())==0 && i < sz){        
-        CSyncObj(obj+i).Load(s);
+        CSyncObj(*(obj+i)).Load(s);
         i++;
       }
       else{
         MissingObject eo;
-        CSyncObj<MissingObject>(&eo).Load(s);
+        CSyncObj<MissingObject>(eo).Load(s);
       }
     }
     else if(type == 2){
@@ -305,7 +305,7 @@ void LoadListOfItems(Serializer *s, T* obj, size_t sz)
 
 // syncronizers for plain array container for all types
 template<typename T>
-class CSyncObj<T*, void>:public SyncDataInterface{
+class CSyncObj<T*>:public SyncDataInterface{
 public:
   T * const obj;
   int sz;
@@ -321,14 +321,14 @@ public:
       }
       else if(type==0){
         if(strcmp("size",s->ss->GetNodeName())==0){
-          CSyncObj<int>(&size).Load(s);
+          CSyncObj<int>(size).Load(s);
         }
         else if(strcmp("data",s->ss->GetNodeName())==0){
           LoadListOfItems(s, obj, sz);
         }
         else{
           MissingObject eo;
-          CSyncObj<MissingObject>(&eo).Load(s);
+          CSyncObj<MissingObject>(eo).Load(s);
         }
       }
       else if(type==2){
@@ -345,7 +345,7 @@ public:
     s->ss->PutStartNode("vector");
     for(int i=0;i<sz;i++){
       s->ss->PutStartNode("item");
-      CSyncObj<T>(obj+i).Store(s);
+      CSyncObj<T>(*(obj+i)).Store(s);
       s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
@@ -354,13 +354,49 @@ public:
 };
 
 
+template<>
+class CSyncObj<void*>:public SyncDataInterface{
+public:
+  void *obj;
+  size_t sz;
+
+  CSyncObj(void *t, int n): obj(t), sz(n){}
+
+  void Load(Serializer *s) override{
+    int size=0;
+    while(1){
+      int type=s->ss->NextItem();
+      if(type==1){
+        return;
+      }
+      else if(type==2){
+        void const *v = nullptr;
+        size_t szNew;
+        s->ss->GetItem(&v, &szNew);
+        if(v && szNew)
+          memcpy(obj,v,std::min(sz,szNew));
+      }
+      else if(type==0) {
+        MissingObject eo;
+        CSyncObj<MissingObject>(eo).Load(s);
+      }
+    }
+  }
+
+  void Store(Serializer *s) override{
+    s->ss->PutItem(obj, sz);
+  }
+};
+
+
+
 // syncronizers for std::map containers for all types (atomic and non atomic)
 template<typename T, typename R> class CSyncObj<std::map<T,R>>: public SyncDataInterface{
 public:
-  std::map<T,R> * const obj;
-  CSyncObj(std::map<T,R> *t):obj(t){}
+  std::map<T,R>& obj;
+  CSyncObj(std::map<T,R>& t):obj(t){}
   void Load(Serializer *s) override{
-    obj->clear();
+    obj.clear();
     while(1){
       int type=s->ss->NextItem();
       if(type==1){
@@ -376,11 +412,11 @@ public:
             }
             else if(type == 0){
               if(strcmp("item",s->ss->GetNodeName())==0){
-                CSyncObj<T>(&key).Load(s);
+                CSyncObj<T>(key).Load(s);
               }
               else{
                 MissingObject eo;
-                CSyncObj<MissingObject>(&eo).Load(s);
+                CSyncObj<MissingObject>(eo).Load(s);
               }
             }
 
@@ -391,19 +427,19 @@ public:
             else if(type == 0){
               if( strcmp("item",s->ss->GetNodeName())==0){
                 R value;
-                CSyncObj<R>(&value).Load(s);
-                obj->insert(std::pair(key,value));
+                CSyncObj<R>(value).Load(s);
+                obj.insert(std::pair(key,value));
               }
               else{
                 MissingObject eo;
-                CSyncObj<MissingObject>(&eo).Load(s);
+                CSyncObj<MissingObject>(eo).Load(s);
               }
             }
           }
         }
         else{
           MissingObject eo;
-          CSyncObj<MissingObject>(&eo).Load(s);
+          CSyncObj<MissingObject>(eo).Load(s);
         }
       }
       else if(type==2){
@@ -413,15 +449,15 @@ public:
   }
   void Store(Serializer *s) override{
     s->ss->PutStartNode("vector");
-    for(auto it = obj->begin(); it != obj->end(); it++){
+    for(auto it = obj.begin(); it != obj.end(); it++){
       s->ss->PutStartNode("item");
         s->ss->PutStartNode("vector");
           std::pair<T,R> pair;
           s->ss->PutStartNode("item");
-          CSyncObj<T>((T*)&it->first).Store(s);
+          CSyncObj<T>(const_cast<T&>(it->first)).Store(s);
           s->ss->PutEndNode("item");
           s->ss->PutStartNode("item");
-          CSyncObj<R>(&it->second).Store(s);
+          CSyncObj<R>(it->second).Store(s);
           s->ss->PutEndNode("item");
         s->ss->PutEndNode("vector");
       s->ss->PutEndNode("item");
@@ -430,20 +466,23 @@ public:
   }
 };
 
-// deduce constructor CSyncObj(std::map<T,R>*) to CSyncObj<T*,void>(std::map<T,R>, void)
-template<typename T, typename R> CSyncObj(std::map<T,R>* ) -> CSyncObj<std::map<T,R>>;
 
-
-// there is two variants of vector syncronizations. First variant uses two specializations
-// one of each stored atomic data as binary data (efficient way).
-// second variant stored data "usual" way as structured nodes
+// EXPERIMENTAL CODE: to store linear container such as vector in binary blob for
+// atomic types. In fact this is not very great idea as more often we want every element
+// stored separately and only sometimes treat data as binary. Instead of such approach better
+// to sync data as binary set explicitly, i.e:
+//
+//       s->SyncAs("SomeData",(void*)name,200);
+//
+// Below two variants of vector syncronizations. First variant uses specializations
+// to store atomic data as binary blob data, second variant stored data is "usual" way as structured nodes
 #ifdef off
 // syncronizes a std::vector of "atomic" types (char, int, float, ...)
 // in storage efficient manner (binary way)
 template<typename T> class CSyncObj<std::vector<T>, typename std::enable_if<atomic_type<T>::value>::type>: public SyncDataInterface{
 public:
-  std::vector<T>* vec;
-  CSyncObj(std::vector<T>* v): vec(v){}
+  std::vector<T>& vec;
+  CSyncObj(std::vector<T>& v): vec(v){}
   void Load(Serializer *s) override{
     while(1){
       int type=s->ss->NextItem();
@@ -456,16 +495,16 @@ public:
         s->ss->GetItem(&v, &n);
         T const* begin = static_cast<T const*>(v);
         n /= sizeof(T);
-        *vec=std::vector<T>(begin, begin + n);
+        vec=std::vector<T>(begin, begin + n);
       } else {
         MissingObject eo;
-        CSyncObj<MissingObject>(&eo).Load(s);
+        CSyncObj<MissingObject>(eo).Load(s);
       }
     }
   }
   void Store(Serializer *s) override{
-    void const* begin = vec->empty() ? 0 : vec->data();
-    s->ss->PutItem(begin, vec->size() * sizeof(T));
+    void const* begin = vec.empty() ? 0 : vec.data();
+    s->ss->PutItem(begin, vec.size() * sizeof(T));
   }
 };
 
@@ -474,8 +513,8 @@ public:
 //std::vector for non atomic types
 template<typename T> class CSyncObj<std::vector<T>, typename std::enable_if<!atomic_type<T>::value>::type>: public SyncDataInterface{
 public:
-  std::vector<T> *obj;
-  CSyncObj(std::vector<T> *t):obj(t){}
+  std::vector<T>& obj;
+  CSyncObj(std::vector<T>& t):obj(t){}
 
   void Load(Serializer *s) override{
     int size=0;
@@ -486,24 +525,24 @@ public:
       }
       else if(type==0){
         if(strcmp("size",s->ss->GetNodeName())==0){
-          CSyncObj<int>(&size).Load(s);
-          obj->resize(size);
+          CSyncObj<int>(size).Load(s);
+          obj.resize(size);
         }
         else if(strcmp("data",s->ss->GetNodeName())==0){
-          auto it = obj->begin();
+          auto it = obj.begin();
           for(;;){
             auto type = s->ss->NextItem();
             if(type == 1){
               break;
             }
             else if(type == 0){
-              if(strcmp("item",s->ss->GetNodeName())==0 && it != obj->end()){
-                CSyncObj<T>(&*it).Load(s);
+              if(strcmp("item",s->ss->GetNodeName())==0 && it != obj.end()){
+                CSyncObj<T>(*it).Load(s);
                 it++;
               }
               else{
                 MissingObject eo;
-                CSyncObj<MissingObject>(&eo).Load(s);
+                CSyncObj<MissingObject>(eo).Load(s);
               }
             }
             else if(type == 2){
@@ -513,7 +552,7 @@ public:
         }
         else{
           MissingObject eo;
-          CSyncObj<MissingObject>(&eo).Load(s);
+          CSyncObj<MissingObject>(eo).Load(s);
         }
       }
       else if(type==2){
@@ -522,16 +561,16 @@ public:
     }
   }
   void Store(Serializer *s) override{
-    int sz = (int)obj->size();
+    int sz = (int)obj.size();
     s->ss->PutStartNode("size");
     s->ss->PutItem(&sz);
     s->ss->PutEndNode("size");
 
     s->ss->PutStartNode("data");
     s->ss->PutStartNode("vector");
-    for(auto it = obj->begin(); it != obj->end(); it++){
+    for(auto& it: obj){
       s->ss->PutStartNode("item");
-      CSyncObj<T>(&*it).Store(s);
+      CSyncObj<T>(it).Store(s);
       s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
@@ -544,8 +583,8 @@ public:
 //std::vector for any type (including atomic types)
 template<typename T> class CSyncObj<std::vector<T>>: public SyncDataInterface{
 public:
-  std::vector<T> * const obj;
-  CSyncObj(std::vector<T> *t):obj(t){}
+  std::vector<T>& obj;
+  CSyncObj(std::vector<T>& t):obj(t){}
 
   void Load(Serializer *s) override{
     int size=0;
@@ -556,24 +595,24 @@ public:
       }
       else if(type==0){
         if(strcmp("size",s->ss->GetNodeName())==0){
-          CSyncObj<int>(&size).Load(s);
-          obj->resize(size);
+          CSyncObj<int>(size).Load(s);
+          obj.resize(size);
         }
         else if(strcmp("data",s->ss->GetNodeName())==0){
-          auto it = obj->begin();
+          auto it = obj.begin();
           for(;;){
             auto type = s->ss->NextItem();
             if(type == 1){
               break;
             }
             else if(type == 0){
-              if(strcmp("item",s->ss->GetNodeName())==0 && it != obj->end()){
-                CSyncObj<T>(&*it).Load(s);
+              if(strcmp("item",s->ss->GetNodeName())==0 && it != obj.end()){
+                CSyncObj<T>(*it).Load(s);
                 it++;
               }
               else{
                 MissingObject eo;
-                CSyncObj<MissingObject>(&eo).Load(s);
+                CSyncObj<MissingObject>(eo).Load(s);
               }
             }
             else if(type == 2){
@@ -583,7 +622,7 @@ public:
         }
         else{
           MissingObject eo;
-          CSyncObj<MissingObject>(&eo).Load(s);
+          CSyncObj<MissingObject>(eo).Load(s);
         }
       }
       else if(type==2){
@@ -592,16 +631,16 @@ public:
     }
   }
   void Store(Serializer *s) override{
-    int sz = (int)obj->size();
+    int sz = (int)obj.size();
     s->ss->PutStartNode("size");
     s->ss->PutItem(&sz);
     s->ss->PutEndNode("size");
 
     s->ss->PutStartNode("data");
-    s->ss->PutStartNode("vector");
-    for(auto it = obj->begin(); it != obj->end(); it++){
+    s->ss->PutStartNode("vector");    
+    for(auto& it: obj){
       s->ss->PutStartNode("item");
-      CSyncObj<T>(&*it).Store(s);
+      CSyncObj<T>(it).Store(s);
       s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
@@ -613,11 +652,11 @@ public:
 
 template<typename T> class CSyncObj<std::list<T>>: public SyncDataInterface{
 public:
-  std::list<T> * const obj;
-  CSyncObj(std::list<T> *t):obj(t){}
+  std::list<T>& obj;
+  CSyncObj(std::list<T>& t):obj(t){}
   
   void Load(Serializer *s) override{
-    obj->clear();
+    obj.clear();
     while(1){
       int type=s->ss->NextItem();
       if(type==1){
@@ -625,12 +664,12 @@ public:
       }
       else if(type==0){
         if(strcmp("item",s->ss->GetNodeName())==0){
-          T& item = obj->emplace_back();
-          CSyncObj<T>(&item).Load(s);
+          T& item = obj.emplace_back();
+          CSyncObj<T>(item).Load(s);
         }
         else{
           MissingObject eo;
-          CSyncObj<MissingObject>(&eo).Load(s);
+          CSyncObj<MissingObject>(eo).Load(s);
         }
       }
       else if(type==2){
@@ -641,9 +680,9 @@ public:
   void Store(Serializer *s) override{
     typename std::list<T>::iterator it;
     s->ss->PutStartNode("vector");
-    for(it = obj->begin(); it != obj->end(); it++){
+    for(auto& it: obj){
       s->ss->PutStartNode("item");
-      CSyncObj<T>(&*it).Store(s);
+      CSyncObj<T>(it).Store(s);
       s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
@@ -652,11 +691,11 @@ public:
 
 template<typename T, typename K> class CSyncObj<std::set<T,K>>: public SyncDataInterface{
 public:
-  std::set<T,K> * const obj;
-  CSyncObj(std::set<T,K> *t):obj(t){}
+  std::set<T,K>& obj;
+  CSyncObj(std::set<T,K>& t):obj(t){}
   
   void Load(Serializer *s) override{
-    obj->clear();
+    obj.clear();
     while(1){
       int type=s->ss->NextItem();
       if(type==1){
@@ -665,12 +704,12 @@ public:
       else if(type==0){
         if(strcmp("item",s->ss->GetNodeName())==0){
           T item;
-          CSyncObj<T>(&item).Load(s);
-          obj->emplace(item);
+          CSyncObj<T>(item).Load(s);
+          obj.emplace(item);
         }
         else{
           MissingObject eo;
-          CSyncObj<MissingObject>(&eo).Load(s);
+          CSyncObj<MissingObject>(eo).Load(s);
         }
       }
       else if(type==2){
@@ -681,9 +720,9 @@ public:
   void Store(Serializer *s) override{
     typename std::set<T,K>::iterator it;
     s->ss->PutStartNode("vector");
-    for(it = obj->begin(); it != obj->end(); it++){
+    for(auto& it: obj){
       s->ss->PutStartNode("item");
-      CSyncObj<T>((T*)&*it).Store(s);
+      CSyncObj<T>(const_cast<T&>(it)).Store(s);
       s->ss->PutEndNode("item");
     }
     s->ss->PutEndNode("vector");
@@ -724,11 +763,11 @@ public:
 // dynamical object pointers created during loading and populated
 template<typename T> class CSyncObj<CSrlzPtr<T>>: public SyncDataInterface{
 public:
-  CSrlzPtr<T> *crlzptr{nullptr};
-  CSyncObj(CSrlzPtr<T> *p):crlzptr(p){}
+  CSrlzPtr<T>& crlzptr;
+  CSyncObj(CSrlzPtr<T>& p):crlzptr(p){}
   void Load(Serializer *s) override{
-    if(crlzptr->ptr) delete crlzptr->ptr;
-    crlzptr->ptr=0;
+    if(crlzptr.ptr) delete crlzptr.ptr;
+    crlzptr.ptr=0;
     while(1){
       int type=s->ss->NextItem();
       if(type==1){
@@ -738,14 +777,14 @@ public:
         if(strcmp("ClassName",s->ss->GetNodeName())==0){
           char cname[200];
           CSyncObj<char*>(cname,200).Load(s);
-          crlzptr->ptr = T::AskForObject(cname); // create object of class cname
+          crlzptr.ptr = T::AskForObject(cname); // create object of class cname
         }
-        else if(crlzptr && strcmp("ClassData",s->ss->GetNodeName())==0){
-          CSyncObj<T>(crlzptr->ptr).Load(s);
+        else if(strcmp("ClassData",s->ss->GetNodeName())==0){
+          CSyncObj<T>(*crlzptr.ptr).Load(s);
         }
         else{
           MissingObject eo;
-          CSyncObj<MissingObject>(&eo).Load(s);
+          CSyncObj<MissingObject>(eo).Load(s);
         }
       }
       else if(type==2){
@@ -755,13 +794,13 @@ public:
   }
 
   void Store(Serializer *s) override{
-    if(crlzptr){
+    {
       s->ss->PutStartNode("ClassName");
-      s->ss->PutItem(crlzptr->ptr->AskForClassName());
+      s->ss->PutItem(crlzptr.ptr->AskForClassName());
       s->ss->PutEndNode("ClassName");
 
       s->ss->PutStartNode("ClassData");
-      CSyncObj<T>(crlzptr->ptr).Store(s);
+      CSyncObj<T>(*crlzptr.ptr).Store(s);
       s->ss->PutEndNode("ClassData");
     }
   }
@@ -771,8 +810,8 @@ public:
 // dynamical object pointers created during loading and populated
 template<typename T> class CSyncObj<std::unique_ptr<T>>: public SyncDataInterface{
 public:
-  std::unique_ptr<T> * const ptr{nullptr};
-  CSyncObj(std::unique_ptr<T> *p):ptr(p){}
+  std::unique_ptr<T>& ptr;
+  CSyncObj(std::unique_ptr<T>& p):ptr(p){}
   void Load(Serializer *s) override{
     while(1){
       int type=s->ss->NextItem();
@@ -783,14 +822,14 @@ public:
         if(strcmp("ClassName",s->ss->GetNodeName())==0){
           char cname[200];
           CSyncObj<char*>(cname,200).Load(s);
-          ptr->reset(T::AskForObject(cname)); // create object of class cname
+          ptr.reset(T::AskForObject(cname)); // create object of class cname
         }
         else if(ptr && strcmp("ClassData",s->ss->GetNodeName())==0){
-          CSyncObj<T>(ptr->get()).Load(s);
+          CSyncObj<T>(*ptr.get()).Load(s);
         }
         else{
           MissingObject eo;
-          CSyncObj<MissingObject>(&eo).Load(s);
+          CSyncObj<MissingObject>(eo).Load(s);
         }
       }
       else if(type==2){
@@ -801,11 +840,11 @@ public:
 
   void Store(Serializer *s) override{
     s->ss->PutStartNode("ClassName");
-    s->ss->PutItem((*ptr)->AskForClassName());
+    s->ss->PutItem(ptr->AskForClassName());
     s->ss->PutEndNode("ClassName");
 
     s->ss->PutStartNode("ClassData");
-    CSyncObj<T>(ptr->get()).Store(s);
+    CSyncObj<T>(*ptr.get()).Store(s);
     s->ss->PutEndNode("ClassData");
   }
 };

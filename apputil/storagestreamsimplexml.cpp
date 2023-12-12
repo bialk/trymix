@@ -156,11 +156,11 @@ void StorageStreamSimpleXML::GetItem(int* v){
 }
 
 void StorageStreamSimpleXML::GetItem(float* v){
-   *v = (float)atof(strbegin);
+   *v = std::stof(strbegin);
 }
 
 void StorageStreamSimpleXML::GetItem(double* v){
-   *v = atof(strbegin);
+   *v = std::stod(strbegin);
 }
 
 void StorageStreamSimpleXML::GetItem(char const** v){
@@ -187,7 +187,7 @@ void StorageStreamSimpleXML::PutItem(float* v){
 
 void StorageStreamSimpleXML::PutItem(double* v){
    char buf [256];
-   auto bytes = sprintf_s(buf, "%s%e\n", indent.c_str(), *v);
+   auto bytes = sprintf_s(buf, "%s%.15e\n", indent.c_str(), *v);
    m_streamMedia->write(buf,bytes);
 }
 

@@ -175,6 +175,7 @@ void StorageStreamSimpleBinary::GetItem(void const** v, size_t* n){
       case 6: //from binary
          *v = &strdata[0];
          *n = biglen;
+         break;
       default:
          *v = &zero_ch;
          *n = 0;
@@ -204,243 +205,23 @@ void StorageStreamSimpleBinary::PutItem(const char* v){
 
    auto len_temp = strlen(v);
    assert(len_temp < std::numeric_limits<std::uint16_t>::max());
-   std::uint16_t len = std::uint16_t(len_temp);
+   auto len = std::uint16_t(len_temp);
 
    m_streamMedia->write(&t, 1);
    m_streamMedia->write(&len, sizeof(len));
    m_streamMedia->write((void *)v, len);
 }
 
-void StorageStreamSimpleBinary::PutItem(void const* v, size_t n)
-{
+void StorageStreamSimpleBinary::PutItem(void const* v, size_t n){
    char t = 6;
 
    assert(n < std::numeric_limits<std::uint16_t>::max());
-   std::uint16_t len = std::uint16_t(n);
+   auto len = std::uint32_t(n);
 
    m_streamMedia->write(&t, 1);
    m_streamMedia->write(&len, sizeof(len));
    if (len != 0) { // This check is mandatory.
       m_streamMedia->write((void *)v, len);
-   }
-}
-
-
-
-// StorageStreamSimpleIostream
-///////////////////////////////////
-
-//StorageStreamSimpleIostream::StorageStreamSimpleIostream(std::iostream* st)
-StorageStreamSimpleIostream::StorageStreamSimpleIostream(StreamMedia* sm)
-:  //strm(st),
-   strm(sm),
-   type(),
-   ddata(),
-   fdata(),
-   idata(),
-   shortlen(),
-   biglen()
-{
-}
-
-StorageStreamSimpleIostream::~StorageStreamSimpleIostream(){
-}
-
-//atomic storage operations
-const char* StorageStreamSimpleIostream::GetNodeName(){
-   return &strdata[0];
-}
-
-int StorageStreamSimpleIostream::NextItem(){
-   //data set parsing
-   strm->read(&type, 1);
-   if(strm->eos()) return 1;
-   switch(type){
-      case 0: // start node
-      case 2: // string
-      case 6: // blob
-         if (type == 6) {
-            strm->read(&biglen, sizeof(biglen));
-            shortlen = biglen;
-         } else {
-            strm->read((char*)&shortlen, sizeof(shortlen));
-            biglen = shortlen;
-         }
-         strdata.resize(biglen + 1);
-         strm->read(&strdata[0], biglen);
-         strdata[biglen] = '\0';
-         return type == 0 ? 0 : 2;
-      case 1: // end node
-         return 1;
-      case 3: // data node string start node
-         strm->read((char*)&idata,sizeof(idata));
-         return 2;
-      case 4: // data node string start node
-         strm->read((char*)&fdata,sizeof(fdata));
-         return 2;
-      case 5: // data node string start node
-         strm->read((char*)&ddata,sizeof(ddata));
-         return 2;
-   }
-   return 2;
-}
-
-void StorageStreamSimpleIostream::PutStartNode(const char *s){
-  bool isVector = !strcmp(s,"vector");
-  if(!isVector) {
-    char t = 0;
-
-    auto len_temp = strlen(s);
-    assert(len_temp < std::numeric_limits<std::uint16_t>::max());
-    std::uint16_t len = std::uint16_t(len_temp);
-    strm->write(&t, 1);
-    strm->write(&len, sizeof(len));
-    strm->write((void*)s, len);
-  }
-}
-
-void StorageStreamSimpleIostream::PutEndNode(const char *s){
-  bool isVector = !strcmp(s,"vector");
-  if(!isVector) {
-   char t = 1;
-   strm->write(&t, 1);
-  }
-}
-
-void StorageStreamSimpleIostream::GetItem(int* v){
-   switch(type){
-      case 2: //from string
-         *v = atoi(&strdata[0]);
-         break;
-      case 3: //from int
-         *v = idata;
-         break;
-      case 4: //from float
-         *v = (int)fdata;
-         break;
-      case 5: //from double
-         *v = (int)ddata;
-         break;
-      default:
-         *v = 0;
-         break;
-   }
-}
-
-void StorageStreamSimpleIostream::GetItem(float* v){
-   switch(type){
-      case 2: //from string
-         *v = (float)atof(&strdata[0]);
-         break;
-      case 3: //from int
-         *v = (float)idata;
-         break;
-      case 4: //from float
-         *v = fdata;
-         break;
-      case 5: //from double
-         *v = (float)ddata;
-         break;
-      default:
-         *v = 0.0f;
-         break;
-   }
-}
-
-void StorageStreamSimpleIostream::GetItem(double* v){
-   switch(type){
-      case 2: //from string
-         *v = atof(&strdata[0]);
-         break;
-      case 3: //from int
-         *v = (double)idata;
-         break;
-      case 4: //from float
-         *v = fdata;
-         break;
-      case 5: //from double
-         *v = ddata;
-         break;
-      default:
-         *v = 0.0;
-         break;
-   }
-}
-
-void StorageStreamSimpleIostream::GetItem(char const** v){
-   switch(type){
-      case 2: //from string
-      case 6: //from binary
-         *v = &strdata[0];
-         break;
-      case 3: //from int
-         strdata.resize(32);
-         sprintf_s(strdata.data(),strdata.size(), "%d", idata);
-         *v = &strdata[0];
-         break;
-      case 4: // from float
-         strdata.resize(32);
-         sprintf_s(strdata.data(),strdata.size(), "%e", fdata);
-         *v = &strdata[0];
-         break;
-      case 5: // from double
-         strdata.resize(32);
-         sprintf_s(strdata.data(),strdata.size(), "%e", ddata);
-         *v = &strdata[0];
-         break;
-   }
-}
-
-void StorageStreamSimpleIostream::GetItem(void const** v, size_t* n){
-   switch(type){
-      case 2: //from string
-      case 6: //from binary
-         *v = &strdata[0];
-         *n = biglen;
-         break;
-   }
-}
-
-void StorageStreamSimpleIostream::PutItem(int* v){
-   char t = 3;
-   strm->write(&t, 1);
-   strm->write(v, sizeof(*v));
-}
-
-void StorageStreamSimpleIostream::PutItem(float* v){
-   char t = 4;
-   strm->write(&t, 1);
-   strm->write(v, sizeof(*v));
-}
-
-void StorageStreamSimpleIostream::PutItem(double* v){
-   char t = 5;
-   strm->write(&t, 1);
-   strm->write(v, sizeof(*v));
-}
-
-void StorageStreamSimpleIostream::PutItem(const char* v){
-   char t = 2;
-
-   auto len_temp = strlen(v);
-   assert(len_temp < std::numeric_limits<std::uint16_t>::max());
-   std::uint16_t len = std::uint16_t(len_temp);
-
-   strm->write(&t, 1);
-   strm->write(&len, sizeof(len));
-   strm->write((void *)v, len);
-}
-
-void StorageStreamSimpleIostream::PutItem(const void* v, size_t n){
-   char t = 6;
-
-   assert(n < std::numeric_limits<std::uint16_t>::max());
-   std::uint16_t len = std::uint16_t(n);
-
-   strm->write(&t, 1);
-   strm->write(&len, sizeof(len));
-   if (len != 0) { // This check is mandatory.
-      strm->write((void*)v, len);
    }
 }
 

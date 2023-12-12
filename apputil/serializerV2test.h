@@ -6,6 +6,7 @@
 #include "storagestreamindexedbinary.h"
 #include <memory>
 #include <sstream>
+#include <iostream>
 
 namespace sV2 {
 
@@ -125,7 +126,8 @@ public:
 
    std::vector<std::unique_ptr<DynClassBase>> dynobjvector;
 
-   unsigned short int x_float[100];
+   unsigned short int x_unsigned_short_int[100];
+   float x_float[100];
 
    int testint = DynClassBase::count++;
    float testfloat = DynClassBase::count++;
@@ -136,18 +138,27 @@ public:
    std::list<int> intlist;
    std::set<int> intset;
    std::set<double> doubleset;
+   char charString[200] = {"some test string"};
 
    std::map<int,std::string> map_int_float;
    EmbedObject eobj;
 
-   MainObject(){
+   MainObject(bool init = true){
+     if(init == false)
+       return;
+
       stdvect.resize(1000);
 
       sprintf_s(name, 200, "this is a test string name %i", DynClassBase::count++);
 
       int counter = 0;
-      for(auto&i: x_float)
+      for(auto&i: x_unsigned_short_int)
         i = counter += 2;
+
+      counter = 0;
+      for(auto&i: x_float)
+        i = counter += 2.34456;
+
 
       for(int i=0;i<33; i+=3)
         intvector.push_back(i);
@@ -164,9 +175,9 @@ public:
       intset.insert(4);
       intset.insert(3);
 
-      doubleset.insert(10e20);
-      doubleset.insert(7e-20);
-      doubleset.insert(2e2);
+      doubleset.insert(10e20/3.f);
+      doubleset.insert(7e-20/3.f);
+      doubleset.insert(2e2/3.f);
       doubleset.insert(8e0);
       doubleset.insert(4);
       doubleset.insert(3);
@@ -203,7 +214,9 @@ public:
       s->SyncAs("stdvector",stdvect);
       s->SyncAs("TestChar",chr);
       s->SyncAs("TestName",name,200);
-      s->SyncAs("x_float",x_float,100);
+      s->SyncAs("x_unsigned_short_int",x_unsigned_short_int,100);
+      s->SyncAs("x_float",(void*)x_float,100*sizeof(float));
+      s->SyncAs("charString",charString,199);
    }
 
 };
@@ -293,15 +306,14 @@ public:
       auto makeStorageStream = [](int st, sV2::StreamMediaFile& ssmedia,sV2::StreamMediaFile& ssmediaIndex) -> std::unique_ptr<StorageStream> {
         switch(st){
         case 0: return std::unique_ptr<StorageStream>(new StorageStreamSimpleXML(&ssmedia));
-        case 1: return std::unique_ptr<StorageStream>(new StorageStreamSimpleIostream(&ssmedia));
-        case 2: return std::unique_ptr<StorageStream>(new StorageStreamSimpleBinary(&ssmedia));
-        case 3: return std::unique_ptr<StorageStream>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
-        case 4: return std::unique_ptr<StorageStream>(new StorageStreamSimpleJson(&ssmedia));
+        case 1: return std::unique_ptr<StorageStream>(new StorageStreamSimpleBinary(&ssmedia));
+        case 2: return std::unique_ptr<StorageStream>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
+        case 3: return std::unique_ptr<StorageStream>(new StorageStreamSimpleJson(&ssmedia));
         }
         return nullptr;
       };
 
-      for(int i = 0; i<5; ++i){
+      for(int i = 0; i<4; ++i){
         std::stringstream test_data_a; test_data_a << "test_data_a" << std::to_string(i) << ".txt";
         std::stringstream test_data_a_idx; test_data_a_idx << "test_data_a" << std::to_string(i) << ".txt.idx";
         std::stringstream test_data_b; test_data_b << "test_data_b" << std::to_string(i) << ".txt";
@@ -318,7 +330,7 @@ public:
             iss->WriteIndex();
         }
 
-        MainObject mobj2;
+        MainObject mobj2(false);
         if(1){
           sV2::StreamMediaFile ssmedia(test_data_a.str().c_str(),true);
           sV2::StreamMediaFile ssmediaIndex(test_data_a_idx.str().c_str(),true);
@@ -342,8 +354,8 @@ public:
 
         printf("test finished\n");
       }
-      std::cout << "for i in 0 1 2 3 4; do diff test_data_a${i}.txt test_data_b${i}.txt; done" << std::endl;
-      std::system("bash -c \"for i in 0 1 2 3 4; do diff test_data_a${i}.txt test_data_b${i}.txt; done; echo done; read\"");
+      std::cout << "for i in 0 1 2 3; do diff test_data_a${i}.txt test_data_b${i}.txt; done" << std::endl;
+      std::system("bash -c \"for i in 0 1 2 3; do diff test_data_a${i}.txt test_data_b${i}.txt; done; echo done; read\"");
    }
 };
 
