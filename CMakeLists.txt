@@ -173,11 +173,12 @@ set(PROJECT_SOURCES
 
     CommonComponents/viewctrl.h CommonComponents/viewctrl.cpp
 
-    apputil/serializer.cpp apputil/serializer.h
+    #2023-12-12:16:45:26 (obsolete left for reference) apputil/serializer.cpp apputil/serializer.h
     apputil/serializerV2.cpp apputil/serializerV2.h
     apputil/storagestreamjson.h apputil/storagestreamjson.cpp
     apputil/storagestreamsimplexml.h apputil/storagestreamsimplexml.cpp
     apputil/storagestreamindexedbinary.h apputil/storagestreamindexedbinary.cpp
+    apputil/base64encoder.cpp apputil/base64encoder.h
 
     mathlib/lapackcpp/lapackcpp.h
     mathlib/lapackcpp/invert.cpp

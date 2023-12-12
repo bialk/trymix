@@ -30,14 +30,10 @@ protected:
   void PutItem(const char* v) override;
   void PutItem(void const* v, size_t n) override;
 private:
-  static char* decodeBase64InPlace(char* begin, char* end);
-
-  static std::string toBase64(char const* begin, char const* end);
 
   bool nextLine(char** begin, char** end);
 
   bool readMore();
-
 
   StreamMedia* m_streamMedia{nullptr};
 
@@ -45,9 +41,6 @@ private:
   std::string indent;
   char* strbegin;
   char* strend;
-
-  static char const m_base64EncodeChars[];
-  static signed char const m_base64DecodeChars[];
 
   std::vector<char> buf;
   size_t bufBeginOff;

@@ -20,7 +20,7 @@ class ViewCtrl: public EditViewObj{
 
   ViewCtrl();
   ~ViewCtrl();
-  void AskForData(Serializer *s) override;
+  void AskForData(sV2::Serializer *s) override;
   void TreeScan(TSOCntx *cntx) override;
   void Draw(DrawCntx *cntx) override;
 

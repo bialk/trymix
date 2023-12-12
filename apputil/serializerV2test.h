@@ -354,8 +354,8 @@ public:
 
         printf("test finished\n");
       }
-      std::cout << "for i in 0 1 2 3; do diff test_data_a${i}.txt test_data_b${i}.txt; done" << std::endl;
-      std::system("bash -c \"for i in 0 1 2 3; do diff test_data_a${i}.txt test_data_b${i}.txt; done; echo done; read\"");
+      std::cout << "for i in 0 1 2 3; do diff --binary test_data_a${i}.txt test_data_b${i}.txt; done" << std::endl;
+      std::system("bash -c \"for i in 0 1 2 3; do diff --binary test_data_a${i}.txt test_data_b${i}.txt; done; echo done; read\"");
    }
 };
 

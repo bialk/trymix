@@ -44,7 +44,7 @@ void ToolPanel::Draw(DrawCntx *cntx){
   }
 }
 
-void ToolPanel::AskForData(Serializer *s){}
+void ToolPanel::AskForData(sV2::Serializer *s){}
 
 void ToolPanel::TreeScan(TSOCntx *cntx){
   if(cntx==&TSOCntx::TSO_Init){

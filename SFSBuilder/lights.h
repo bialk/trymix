@@ -33,7 +33,7 @@ class Lights: public EditViewObj{
  public:
   Lights();
 
-  virtual void AskForData(Serializer* s);
+  virtual void AskForData(sV2::Serializer* s);
   virtual void TreeScan(TSOCntx* cntx);
   virtual void Draw(DrawCntx* cntx);
  

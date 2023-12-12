@@ -1,6 +1,7 @@
 #include "lights.h"
+#include "apputil/serializerV2.h"
 #include "mathstruct.h"
-#include "apputil/serializer.h"
+//#include "apputil/serializer.h"
 
 #include <QApplication>
 #include <QOpenGLFunctions>
@@ -138,13 +139,11 @@ void Lights::Draw(DrawCntx *cntx){
 }
 
 
-void Lights::AskForData(Serializer* s){
-  if(s->ss->storageid==SRLZ_LAYOUT){
-    s->Item("show1",Sync(&show1));
-    s->Item("show2",Sync(&show2));
-    s->Item("rot1",Sync(rot1,16));
-    s->Item("rot2",Sync(rot2,16));
-  }
+void Lights::AskForData(sV2::Serializer *s){
+    s->SyncAs("show1",show1);
+    s->SyncAs("show2",show2);
+    s->SyncAs("rot1",rot1,16);
+    s->SyncAs("rot2",rot2,16);
 }
 
 void Lights::TreeScan(TSOCntx *cntx){

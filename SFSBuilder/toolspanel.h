@@ -15,7 +15,7 @@ class ToolPanel: public EditViewObj{
   int show;
   void Draw(DrawCntx *cntx);
   void TreeScan(TSOCntx *cntx);
-  void AskForData(Serializer *s);
+  void AskForData(sV2::Serializer *s);
 
   void Add(EditViewObj* ic);
 };

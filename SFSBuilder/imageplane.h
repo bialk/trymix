@@ -6,6 +6,8 @@
 #include "glhelper.h"
 #include <vector>
 
+namespace sV2 { class Serializer; }
+
 class ImagePlane: public EditViewObj{
  public:
 
@@ -26,7 +28,7 @@ class ImagePlane: public EditViewObj{
   ImagePlane();
   ~ImagePlane();
 
-  virtual void AskForData(Serializer *s);
+  virtual void AskForData(sV2::Serializer *s);
   virtual void TreeScan(TSOCntx *cntx);
   virtual void Draw(DrawCntx *cntx);
 

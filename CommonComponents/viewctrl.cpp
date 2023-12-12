@@ -1,5 +1,5 @@
 #include "viewctrl.h"
-#include "apputil/serializer.h"
+#include "apputil/serializerV2.h"
 
 #include "EventHandling.h"
 
@@ -92,11 +92,11 @@ ViewCtrl::ViewCtrl()
 
 // STATE AND SERIALIZATION
 
-void ViewCtrl::AskForData(Serializer *s){
-  if(s->ss->storageid==SRLZ_LAYOUT){
-    //s->Item("InitialModelMatrix",Sync(InitialModelMatrix,16));
-    s->Item("prjtype",Sync(&m_prjtype));
-    //s->Item("show",Sync(&dv->toolpanel->show));
+void ViewCtrl::AskForData(sV2::Serializer *s){
+  {
+    //s->SyncAs("InitialModelMatrix",InitialModelMatrix,16);
+    s->SyncAs("prjtype",m_prjtype);
+    //s->SyncAs("show",dv->toolpanel->show);
   }
 }
 

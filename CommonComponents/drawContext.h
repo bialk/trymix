@@ -1,7 +1,7 @@
 #ifndef editviewobj_h
 #define editviewobj_h
 
-class Serializer;
+namespace sV2 { class Serializer; }
 class QOpenGLWidget;
 class CentralWidget;
 class EventContext3D;
@@ -58,7 +58,7 @@ class EditViewObj{
 
   virtual void Draw(DrawCntx *cntx) = 0;
   virtual void TreeScan(TSOCntx *){};
-  virtual void AskForData(Serializer *s){};
+  virtual void AskForData(sV2::Serializer *s){};
 
 };
 

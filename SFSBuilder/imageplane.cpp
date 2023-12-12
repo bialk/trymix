@@ -1,7 +1,7 @@
 #include "imageplane.h"
 #include <FreeImage.h>
 #include <QOpenGLFunctions>
-#include "apputil/serializer.h"
+#include "apputil/serializerV2.h"
 #include "glhelper.h"
 #include "shapefromshade.h"
 #include "mathlib/mathutl/mymath.h"
@@ -44,16 +44,13 @@ ImagePlane::ImagePlane():
 ImagePlane::~ImagePlane(){}
 
 
-void ImagePlane::AskForData(Serializer *s){
-  if(s->ss->storageid==SRLZ_LAYOUT){
-  }
-  if(s->ss->storageid==SRLZ_PROJECT){
-    s->Item("imagefname",Sync(imagefname,4));
-    s->Item("lights0",Sync(lights[0],3));
-    s->Item("lights1",Sync(lights[1],3));
-    s->Item("lights2",Sync(lights[2],3));
-    s->Item("lights3",Sync(lights[3],3));
-  } 
+void ImagePlane::AskForData(sV2::Serializer *s){
+
+  s->SyncAs("imagefname",imagefname,4);
+  s->SyncAs("lights0",lights[0],3);
+  s->SyncAs("lights1",lights[1],3);
+  s->SyncAs("lights2",lights[2],3);
+  s->SyncAs("lights3",lights[3],3);
 }
 
 void ImagePlane::TreeScan(TSOCntx *cntx){ 
