@@ -55,7 +55,7 @@ void Icon3DLight::Draw(DrawCntx *cntx) {
     glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION,  mat_zero);
     glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_zero);
 
-    if(lights->selectid==glsel_name) {
+    if(lights->g == this) {
       glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_one); 
     }else{
       glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_half);
@@ -79,7 +79,6 @@ Lights::Lights(){
 
   glic1.lights = this;
   glic2.lights = this;
-  selectid=0;
 
   // parameter initialization
   show1 = 1;
@@ -148,41 +147,23 @@ void Lights::AskForData(sV2::Serializer *s){
 
 void Lights::TreeScan(TSOCntx *cntx){
   if(cntx==&TSOCntx::TSO_Init){
-    //dv->reselect.connect(sigc::mem_fun(this,&Lights::reselect) );
-    //dv->reselect = [=](){reselect();};
     glic1.rot=rot1;
     glic2.rot=rot2;
-    //dv->toolpanel->Add(&glic1);
-    //dv->toolpanel->Add(&glic2);
   }
-//  glic1.TreeScan(cntx);
-//  glic2.TreeScan(cntx);
 }
 
 
-void Lights::reselect(){
-  selectid=0;
-  g=0;
-}
-
-int Lights::isfocus(){
-  return g!=nullptr;
-}
-
-void Lights::select(int id){
-  //unsigned int stack[]={0};
-  //int id = dv->viewctrl->ProcessHits2(0, stack);
-  
-  selectid=id;
+int Lights::isfocus(int id){
   if(id==glic1.glsel_name ){
     g=&glic1;
   }
-  else if(id==glic2.glsel_name ){ 
+  else if(id==glic2.glsel_name ){
     g=&glic2;
   }
   else {
     g=nullptr;
   }
+  return g!=nullptr;
 }
 
 void Lights::lightrstart(int x, int y){
@@ -197,58 +178,3 @@ void Lights::lightrcont(int x, int y){
     mrot.drag(x,y,g->rot);
   }
 }
-
-#ifdef off
-// class LightsEH
-//=====================================================================
-
-LightsEH::LightsEH(Lights *v):gl(v),state_drag(-1){}
-
-
-int LightsEH::glName(int id){
-  return (id==gl->glic1.glsel_name || id==gl->glic2.glsel_name);
-}
-
-
-void LightsEH::Handle(EventBall *eventball){
-#ifdef off
-  if(eventball->event(M_DRAG) &&
-     eventball->state(state_drag)){
-    gl->lightrcont(eventball->x,eventball->y);
-    gl->dv->redraw();
-    eventball->stop();
-  }
-  else if(eventball->event(M_UP) &&
-	  eventball->state(state_drag)){
-    gl->lightrstop();
-    gl->dv->redraw();
-    eventball->setstate(0);
-    eventball->stop();
-    gl->dv->reselect();
-  }
-  else if(!eventball->state(0)){
-    // move event futher down
-    return;
-  }
-  else if(eventball->event(M_DOWN) &&
-	  eventball->keys("") &&
-	  eventball->mbtn(1)){
-
-
-    int id = gl->dv->SelectObj(eventball->x,eventball->y);
-    if( glName(id) ) {
-    
-      gl->dv->reselect();
-      gl->select();
-      gl->lightrstart(eventball->x,eventball->y);
-      eventball->genstate(state_drag);
-
-      eventball->stop();
-      gl->dv->redraw();
-
-    }
-  }
-#endif
-}
-
-#endif

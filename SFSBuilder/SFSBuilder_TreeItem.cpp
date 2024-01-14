@@ -14,117 +14,76 @@
 
 
 namespace {
-  class EventHandler_PositionController2: public EventHandler3D{
 
-  public:
-    ViewCtrl* m_vp = nullptr;
-    Lights* m_lights = nullptr;
-    EventHandler_PositionController2(ViewCtrl* vc, Lights* lights)
-      :m_vp(vc)
-      ,m_lights(lights)
+class EventHandler_PositionController2: public EventHandler3D{
+
+public:
+  ViewCtrl* m_vp = nullptr;
+  Lights* m_lights = nullptr;
+
+  ViewCtrl::Opercode Op{ViewCtrl::Opercode::origRotate};
+
+  EventHandler_PositionController2(ViewCtrl* vc, Lights* lights)
+    :m_vp(vc)
+    ,m_lights(lights)
+  {
+    addReact("M:L:DOWN") = [=](EventContext3D& cx)
     {
-      addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
-      {
-        auto dragProcessor = m_vp->startOperation(ViewCtrl::Scale,cx.glx(),cx.gly());
-        m_dragHandler = std::make_unique<EventHandler3D>();
-        m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
-          dragProcessor(cx.glx(),cx.gly());
-          cx.update();
-        };
-        m_dragHandler->addReact("M:L:UP") =  [](EventContext3D& cx){
-          cx.popHandler();
-          cx.update();
-        };
-
-        cx.pushHandler(m_dragHandler.get());
-        cx.update();
-      };
-
-      addReact("K:X:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
-      {
-        auto dragProcessor = m_vp->startOperation(ViewCtrl::origRotate,cx.glx(),cx.gly());
-        m_dragHandler = std::make_unique<EventHandler3D>();
-        m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
-          dragProcessor(cx.glx(),cx.gly());
-          cx.update();
-        };
-        m_dragHandler->addReact("M:L:UP") =  [](EventContext3D& cx){
-          cx.popHandler();
-          cx.update();
-        };
-
-        cx.pushHandler(m_dragHandler.get());
-        cx.update();
-      };
-
-      addReact("K:C:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
-      {
-        auto dragProcessor = m_vp->startOperation(ViewCtrl::CamRotate,cx.glx(),cx.gly());
-        m_dragHandler = std::make_unique<EventHandler3D>();
-        m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
-          dragProcessor(cx.glx(),cx.gly());
-          cx.update();
-        };
-        m_dragHandler->addReact("M:L:UP") =  [](EventContext3D& cx){
-          cx.popHandler();
-          cx.update();
-        };
-
-        cx.pushHandler(m_dragHandler.get());
-        cx.update();
-      };
-
-      addReact("K:V:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
-      {
-        auto dragProcessor = m_vp->startOperation(ViewCtrl::FoV,cx.glx(),cx.gly());
-        m_dragHandler = std::make_unique<EventHandler3D>();
-        m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
-          dragProcessor(cx.glx(),cx.gly());
-          cx.update();
-        };
-        m_dragHandler->addReact("M:L:UP") =  [](EventContext3D& cx){
-          cx.popHandler();
-          cx.update();
-        };
-
-        cx.pushHandler(m_dragHandler.get());
-        cx.update();
-      };
-
-      addReact("S:RESIZE") = [=](EventContext3D& cx)
-      {
-        m_vp->updateProjectionMtrx(cx.w(),cx.h());
-        cx.update();
-      };
-
-      addReact("M:L:DOWN") = [=](EventContext3D& cx){
-      //addReact("M:MOVE") = [=](EventContext3D& cx){        
-        auto id = cx.select();        
-        m_lights->select(id);
-        if(m_lights->isfocus()){
-          m_lights->lightrstart(cx.x(),cx.y());
-          cx.pushHandler(&m_mouseDragLight);
-        }
+      //try to see if anything selected on screen
+      auto id = cx.select();
+      if(m_lights->isfocus(id)){
+        m_lights->lightrstart(cx.x(),cx.y());
+        cx.pushHandler(&m_mouseDragLight);
         qDebug() << "Selected name: " << id << Qt::endl;
-        cx.update();
-      };
+      }
+      else{
+        auto dragProcessor = m_vp->startOperation(Op,cx.glx(),cx.gly());
+        m_dragHandler = std::make_unique<EventHandler3D>();
+        m_dragHandler->addReact("M:MOVE") = [dragProcessor](EventContext3D& cx){
+          dragProcessor(cx.glx(),cx.gly());
+          cx.update();
+        };
+        m_dragHandler->addReact("M:L:UP") =  [](EventContext3D& cx){
+          cx.popHandler();
+          cx.update();
+        };
 
-      m_mouseDragLight.addReact("M:MOVE") = [=](EventContext3D& cx){
-        m_lights->lightrcont(cx.x(),cx.y());
-        cx.update();
-      };
+        addReact("S:RESIZE") = [=](EventContext3D& cx)
+        {
+          m_vp->updateProjectionMtrx(cx.w(),cx.h());
+          cx.update();
+        };
 
-      m_mouseDragLight.addReact("M:L:UP") =  [](EventContext3D& cx){
-        cx.update();
-        cx.popHandler();
-      };
+        cx.pushHandler(m_dragHandler.get());
+      }
+      cx.update();
+    };
 
-    }
-    std::unique_ptr<EventHandler3D> m_dragHandler;
-    EventHandler3D m_mouseDragLight;
-  };
+    m_mouseDragLight.addReact("M:MOVE") = [=](EventContext3D& cx){
+      m_lights->lightrcont(cx.x(),cx.y());
+      cx.update();
+    };
+
+    m_mouseDragLight.addReact("M:L:UP") =  [](EventContext3D& cx){
+      cx.update();
+      cx.popHandler();
+    };
+
+    addReact("K:Z:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::Scale; };
+    addReact("K:X:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::origRotate; };
+    addReact("K:C:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::CamRotate; };
+    addReact("K:V:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::FoV; };
+
+    addReact("S:RESIZE") = [=](EventContext3D& cx)
+    {
+      m_vp->updateProjectionMtrx(cx.w(),cx.h());
+      cx.update();
+    };
+  }
+  std::unique_ptr<EventHandler3D> m_dragHandler;
+  EventHandler3D m_mouseDragLight;
+};
 }
-
 
 
 
@@ -194,12 +153,12 @@ SFSBuilder_TreeItem::showModel(DrawCntx* cx)
   m_lights->Draw(cx);
 
 
-#if off
+#ifdef off // sfs image builder
   m_sfs->image_mode = ImagePlane::image_mode_image;
   m_sfs->shape_mode = ImagePlane::shape_mode_image;
   m_sfs->edit_mode = ImagePlane::edit_mode_off;
   m_sfs->Draw(cx);
-#else
+#else // draw scene test
   drawTestScene();
 #endif
 

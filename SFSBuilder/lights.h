@@ -37,12 +37,8 @@ class Lights: public EditViewObj{
   virtual void TreeScan(TSOCntx* cntx);
   virtual void Draw(DrawCntx* cntx);
  
-  void    reselect();
-  void    select(int id);
-
   float rot1[16],rot2[16];
   int show1,show2;
-  int selectid;
 
   Icon3DLight *g;
   Icon3DLight glic1, glic2;
@@ -50,7 +46,7 @@ class Lights: public EditViewObj{
 
   Ctrl3DRotate mrot;
 
-  int  isfocus();
+  int  isfocus(int id);
   void focusctrl(int x, int y);
   void lightrstart(int x, int y);
   void lightrcont(int x, int y);

@@ -1,5 +1,6 @@
 #include "CommonComponents/mainwindow.h"
 #include "apputil/serializerV2test.h"
+#include "qevent.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -26,6 +27,21 @@ int main(int argc, char *argv[])
 //  QApplication::setFont(font);
 
   QApplication a(argc, argv);
+
+  class EventFilter: public QObject{
+  public: EventFilter():QObject(){}
+    bool eventFilter(QObject *, QEvent* e){
+      if((e->type() == QEvent::KeyPress || e->type() == QEvent::KeyRelease)){
+        auto keyEvent = dynamic_cast<QKeyEvent*>(e);
+        if(keyEvent->key() == Qt::Key_Z){
+          qWarning() << e->type() << keyEvent->key();
+        }
+      }
+      return false;
+    }
+  };
+
+  a.installEventFilter(new EventFilter);
 
   // workaround: on Qt 6.4.1, windows, HDPI display with scaling discovered
   // that default font 9pt "Segoe UI" is not scaled properly (it is too large)
