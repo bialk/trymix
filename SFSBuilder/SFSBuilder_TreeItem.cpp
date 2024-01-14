@@ -15,7 +15,7 @@
 
 namespace {
 
-class EventHandler_PositionController2: public EventHandler3D{
+class EventHandler_PositionController: public EventHandler3D{
 
 public:
   ViewCtrl* m_vp = nullptr;
@@ -23,7 +23,7 @@ public:
 
   ViewCtrl::Opercode Op{ViewCtrl::Opercode::origRotate};
 
-  EventHandler_PositionController2(ViewCtrl* vc, Lights* lights)
+  EventHandler_PositionController(ViewCtrl* vc, Lights* lights)
     :m_vp(vc)
     ,m_lights(lights)
   {
@@ -103,7 +103,7 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_toolsPanel->m_viewctrl = m_viewCtrl.get();
 
   m_viewCtrl->TreeScan(&TSOCntx::TSO_LayoutLoad);
-  m_viewCtrlEH.reset(new EventHandler_PositionController2(m_viewCtrl.get(),m_lights.get()));
+  m_viewCtrlEH.reset(new EventHandler_PositionController(m_viewCtrl.get(),m_lights.get()));
 
 
   setData(0,Qt::DisplayRole,"SFS Builder");
