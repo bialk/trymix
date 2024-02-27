@@ -7,15 +7,10 @@
 #include <QTranslator>
 #include <QStyle>
 #include <QScreen>
+#include <QCommandLineParser>
 
 int main(int argc, char *argv[])
 {
-
-  // serialzer test
-  if(false){
-    sV2::TestAll testall;
-    return 0;
-  }
 
   //QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 //  QGuiApplication::setAttribute(Qt::AA_Use96Dpi);
@@ -27,6 +22,34 @@ int main(int argc, char *argv[])
 //  QApplication::setFont(font);
 
   QApplication a(argc, argv);
+  a.setApplicationName("Try Mix!");
+  a.setApplicationVersion("1.0");
+
+  { // dealing with command line options
+    QCommandLineParser parser;
+    parser.setApplicationDescription("Test helper");
+    const QCommandLineOption helpOption = parser.addHelpOption();
+    parser.addVersionOption();
+    // An option with a value
+    QCommandLineOption testOption({{ "t", "test"},
+                                   "run test, where <testname> in {(s)erializer}",
+                                   "testname", "serializer"});
+    parser.addOption(testOption);
+    parser.process(a);
+
+    if (!parser.positionalArguments().isEmpty() || !parser.optionNames().isEmpty()){
+      QString testOptionName = parser.value(testOption);
+      //running test for serializer
+      if(testOptionName == "s" || testOptionName == "serializer"){
+        // serialzer test
+        sV2::TestAll testall;
+        return 0;
+      }
+      qWarning() << parser.helpText();
+      return 0;
+    }
+  }
+
 
   class EventFilter: public QObject{
   public: EventFilter():QObject(){}
