@@ -367,7 +367,7 @@ public:
 
     double bd[12];
     mc.start(); (mc(b,3,4).tran()*mc(c+6,3,1)).finish(bd); 
-    float r[4] = {bd[0] ,bd[1], bd[2], bd[4]};
+    float r[4] = {static_cast<float>(bd[0]) ,static_cast<float>(bd[1]), static_cast<float>(bd[2]), static_cast<float>(bd[4])};
 
     /*
     //  example of using LeastSquare method call

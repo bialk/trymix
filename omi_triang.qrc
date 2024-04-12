@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/system/images">
-        <file>omi_triang.png</file>
-        <file>omi_triang.ico</file>
-    </qresource>
-</RCC>

@@ -21,7 +21,7 @@ public:
     list = glGenLists(1);
     glNewList(list,GL_COMPILE);
 
-    D3DG1obj().open((qApp->applicationDirPath() + "/torch.ico").toStdString().c_str());
+    D3DG1obj().open((qApp->applicationDirPath() + "/torch.3dIco").toStdString().c_str());
 
     glEndList();
     return;

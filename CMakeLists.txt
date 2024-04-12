@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.24)
 
 cmake_policy(SET CMP0074 NEW)
 
-project(omi_triang VERSION 0.1 LANGUAGES CXX)
+project(trymix VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -34,6 +34,10 @@ endif()
 if(MSVC)
     # options for debugging in RelWithDebInfo (it seems same as RelWithDebInfo)
     #set(RELEASE_FOR_DEBUG_CXX_OPTIONS /JMC /Zi /Od /MD)
+
+    # removing O2 option it will be replaced with /Od
+    string(REPLACE "/O2" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
+    # message(FATAL_ERROR ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
     set(RELEASE_FOR_DEBUG_CXX_OPTIONS /Zi /Od /MD)
     set(RELEASE_FOR_DEBUG_LINKER_OPTIONS /DEBUG:FULL /OPT:REF /OPT:ICF /INCREMENTAL:NO /IGNORE:4099)
 endif()
@@ -146,11 +150,11 @@ elseif(WIN32)
   find_path_by_regex(LAPACK_DLLS "lapack/*.dll" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH})
   list(APPEND FOR_COPY_TO_BINARY_DIR ${LAPACK_DLLS})
 endif()
-  list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/torch.ico)
-  list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/omi_triang.ico)
+  list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/torch.3dIco)
+  list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/trymix.ico)
 
 
-set(TS_FILES omi_triang_en_GB.ts)
+set(TS_FILES trymix_en_GB.ts)
 
 set(PROJECT_SOURCES
     main.cpp
@@ -212,38 +216,38 @@ set(PROJECT_SOURCES
     BlurTests/BoxBlur.cpp BlurTests/BoxBlur.h
     BlurTests/GaussBlurEngine.cpp BlurTests/GaussBlurEngine.h
 
-    omi_triang.qrc
+    trymix.qrc
 
     ${TS_FILES}
 )
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     enable_language("RC")
-    set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/omi_triang.rc")
+    set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/trymix.rc")
 endif()
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(omi_triang
+    qt_add_executable(trymix
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         ${APP_ICON_RESOURCE_WINDOWS}
     )
 
 # Define target properties for Android with Qt 6 as:
-#    set_property(TARGET omi_triang APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
+#    set_property(TARGET trymix APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()
     if(ANDROID)
-        add_library(omi_triang SHARED
+        add_library(trymix SHARED
             ${PROJECT_SOURCES}
         )
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
-        add_executable(omi_triang
+        add_executable(trymix
             ${PROJECT_SOURCES}
             ${APP_ICON_RESOURCE_WINDOWS}
         )
@@ -252,19 +256,19 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-target_include_directories(omi_triang PRIVATE
+target_include_directories(trymix PRIVATE
     ${SPOOLES_INCLUDE_DIR}
     ${FREEIMAGE_INCLUDE_DIR}
     ${pthread_INCLUDE_DIR}
     ${EIGEN_INCLUDE_DIRS}
 )
 
-target_compile_definitions(omi_triang PRIVATE "-D_TIMESPEC_DEFINED ")
-target_compile_options(omi_triang PRIVATE
+target_compile_definitions(trymix PRIVATE "-D_TIMESPEC_DEFINED ")
+target_compile_options(trymix PRIVATE
   $<$<CONFIG:RelWithDebInfo>:${RELEASE_FOR_DEBUG_CXX_OPTIONS}>
 )
 
-target_link_options(omi_triang PRIVATE
+target_link_options(trymix PRIVATE
   $<$<CONFIG:RelWithDebInfo>:${RELEASE_FOR_DEBUG_LINKER_OPTIONS}>
 )
 
@@ -282,8 +286,8 @@ if(CMAKE_HOST_WIN32)
     string(REPLACE qmake.exe "windeployqt" windeployqt ${QT_QMAKE_EXECUTABLE} )
     if(windeployqt)
         message(STATUS "Found: ${windeployqt} distributing qt dlls")
-        add_custom_command(TARGET omi_triang POST_BUILD
-            COMMAND ${windeployqt} --list mapping  $<TARGET_FILE:omi_triang>
+        add_custom_command(TARGET trymix POST_BUILD
+            COMMAND ${windeployqt} --list mapping  $<TARGET_FILE:trymix>
         )
     endif()
 
@@ -293,7 +297,7 @@ if(CMAKE_HOST_WIN32)
     endforeach()
 endif()
 
-target_link_libraries(omi_triang PRIVATE
+target_link_libraries(trymix PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::OpenGL
     Qt${QT_VERSION_MAJOR}::OpenGLWidgets
@@ -309,7 +313,7 @@ target_link_libraries(omi_triang PRIVATE
     CUDA::OpenCL
 )
 
-set_target_properties(omi_triang PROPERTIES
+set_target_properties(trymix PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -318,5 +322,5 @@ set_target_properties(omi_triang PROPERTIES
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(omi_triang)
+    qt_finalize_executable(trymix)
 endif()

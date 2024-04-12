@@ -29,17 +29,17 @@ function(add_target_dll tgt)
     get_target_property(extra_dll_path_in ${tgt} LOCATION_${CMAKE_BUILD_TYPE})
 
     add_custom_command(
-      TARGET omi_triang
+      TARGET trymix
       POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different  "${extra_dll_path_in}" "$<TARGET_FILE_DIR:omi_triang>"
+      COMMAND "${CMAKE_COMMAND}" -E copy_if_different  "${extra_dll_path_in}" "$<TARGET_FILE_DIR:trymix>"
       )
 endfunction()
 
 function(add_dll_by_path path)
     add_custom_command(
-      TARGET omi_triang
+      TARGET trymix
       POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different  "${path}" "$<TARGET_FILE_DIR:omi_triang>"
+      COMMAND "${CMAKE_COMMAND}" -E copy_if_different  "${path}" "$<TARGET_FILE_DIR:trymix>"
       )
 endfunction()
 

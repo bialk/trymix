@@ -11,16 +11,6 @@
 
 int main(int argc, char *argv[])
 {
-
-  //QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-//  QGuiApplication::setAttribute(Qt::AA_Use96Dpi);
-//  QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
-//        Qt::HighDpiScaleFactorRoundingPolicy::Round);
-
-//  QFont font("Courier New");
-//  font.setStyleHint(QFont::Monospace);
-//  QApplication::setFont(font);
-
   QApplication a(argc, argv);
   a.setApplicationName("Try Mix!");
   a.setApplicationVersion("1.0");

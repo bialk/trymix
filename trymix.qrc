@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/system/images">
+        <file>trymix.png</file>
+        <file>trymix.ico</file>
+    </qresource>
+</RCC>
