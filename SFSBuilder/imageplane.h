@@ -2,8 +2,8 @@
 #define imageplane_h
 
 #include "CommonComponents/drawContext.h"
-#include "ImageTile.h"
-#include "glhelper.h"
+#include "CommonComponents/ImageTile.h"
+#include "CommonComponents/glhelper.h"
 #include <vector>
 
 namespace sV2 { class Serializer; }

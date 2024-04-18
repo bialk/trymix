@@ -1,6 +1,4 @@
-#include "SFSBuilder_TreeItem.h"
-#include "QMainWindow"
-#include "imageplane.h"
+#include "CameraControl_TreeItem.h"
 #include "CommonComponents/lights.h"
 #include "CommonComponents/toolspanel.h"
 #include "CommonComponents/viewctrl.h"
@@ -8,6 +6,7 @@
 #include "CommonComponents/CentralWidget.h"
 #include "CommonComponents/testScene.h"
 
+#include "QMainWindow"
 #include <QOpenGLWidget>
 #include <QPainter>
 #include <QDebug>
@@ -87,14 +86,12 @@ public:
 
 
 
-SFSBuilder_TreeItem::SFSBuilder_TreeItem()
-  :m_sfs(new ImagePlane)
-  ,m_viewCtrl(new ViewCtrl)
+CameraControl_TreeItem::CameraControl_TreeItem()
+  :m_viewCtrl(new ViewCtrl)
   ,m_lights(new Lights)
   ,m_toolsPanel(new ToolPanel)
 {
   m_viewCtrl->TreeScan(&TSOCntx::TSO_Init);
-  m_sfs->TreeScan(&TSOCntx::TSO_Init);
   m_toolsPanel->Add(&m_lights->glic1);
   m_toolsPanel->Add(&m_lights->glic2);
   m_lights->TreeScan(&TSOCntx::TSO_Init);
@@ -106,7 +103,7 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_viewCtrlEH.reset(new EventHandler_PositionController(m_viewCtrl.get(),m_lights.get()));
 
 
-  setData(0,Qt::DisplayRole,"SFS Builder");
+  setData(0,Qt::DisplayRole,"Camera Control");
   setData(1,Qt::DisplayRole, "On");
   setData(2,Qt::DisplayRole, "On");
 
@@ -114,15 +111,12 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_panel.setupUi(m_dockWidget.data());
 
   drawTestScene();
-
-  m_sfs->TreeScan(&TSOCntx::TSO_ProjectLoad);
-  m_sfs->Build();
 }
 
-SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}
+CameraControl_TreeItem::~CameraControl_TreeItem(){}
 
 void
-SFSBuilder_TreeItem::showModel(DrawCntx* cx)
+CameraControl_TreeItem::showModel(DrawCntx* cx)
 {
   glClearDepth(1.0);
   if(m_viewCtrl->m_background==0)
@@ -153,16 +147,14 @@ SFSBuilder_TreeItem::showModel(DrawCntx* cx)
   m_lights->Draw(cx);
 
 
-  m_sfs->image_mode = ImagePlane::image_mode_image;
-  m_sfs->shape_mode = ImagePlane::shape_mode_image;
-  m_sfs->edit_mode = ImagePlane::edit_mode_off;
-  m_sfs->Draw(cx);
+  // draw scene test
+  drawTestScene();
 
   m_toolsPanel->Draw(cx);
 }
 
 void
-SFSBuilder_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
+CameraControl_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
   auto mainwin = findParentOfType<QMainWindow>(dock);
   CentralWidget* cw= mainwin->findChild<CentralWidget*>();
   if(activate){

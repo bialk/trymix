@@ -2,7 +2,7 @@
 #include <FreeImage.h>
 #include <QOpenGLFunctions>
 #include "apputil/serializerV2.h"
-#include "glhelper.h"
+#include "CommonComponents/glhelper.h"
 #include "shapefromshade.h"
 #include "mathlib/mathutl/mymath.h"
 //#include "mathlib/mathutl/imageandfft.h"

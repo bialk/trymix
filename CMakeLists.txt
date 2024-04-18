@@ -202,13 +202,17 @@ set(PROJECT_SOURCES
     SFSBuilder/lineqsol2.h SFSBuilder/lineqsol2.cpp
 
     SFSBuilder/imageplane.h SFSBuilder/imageplane.cpp
-    SFSBuilder/ImageTile.h SFSBuilder/ImageTile.cpp
-    SFSBuilder/glhelper.h SFSBuilder/glhelper.cpp
+    CommonComponents/ImageTile.h CommonComponents/ImageTile.cpp
+    CommonComponents/glhelper.h CommonComponents/glhelper.cpp
 
-    SFSBuilder/lights.h SFSBuilder/lights.cpp
-    SFSBuilder/toolspanel.h SFSBuilder/toolspanel.cpp
-    SFSBuilder/mousectrl.h SFSBuilder/mousectrl.cpp
-    SFSBuilder/mathstruct.h SFSBuilder/mathstruct.cpp
+    CommonComponents/lights.h CommonComponents/lights.cpp
+    CommonComponents/toolspanel.h CommonComponents/toolspanel.cpp
+    CommonComponents/mousectrl.h CommonComponents/mousectrl.cpp
+    CommonComponents/mathstruct.h CommonComponents/mathstruct.cpp
+
+
+    CameraControl/CameraControl_TreeItem.h CameraControl/CameraControl_TreeItem.cpp
+    CameraControl/CameraControl_panel.ui
 
     BlurTests/BlurTests_TreeItem.cpp BlurTests/BlurTests_TreeItem.h
     BlurTests/BlurTests_Panel.ui
