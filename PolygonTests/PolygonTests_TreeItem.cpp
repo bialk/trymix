@@ -154,8 +154,7 @@ PolygonTests_TreeItem::PolygonTests_TreeItem()
   ,m_vpceh(new EventHandler_PositionController)
 {  
   setData(0,Qt::DisplayRole, name());
-  setData(1,Qt::DisplayRole, "On");
-  setData(2,Qt::DisplayRole, "On");
+  setData(1,Qt::DisplayRole, "");
 
   buildContextMenuStandardItems();
 
@@ -163,19 +162,19 @@ PolygonTests_TreeItem::PolygonTests_TreeItem()
   m_panel.setupUi(m_dockWidget.data());
 
   QObject::connect(m_panel.pushButton_tryConvexPartitioning, &QPushButton::clicked,
-    [=]{
+    m_panel.pushButton_tryConvexPartitioning, [=]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        tryConvexPartitioning(m_panel.spinBox->value());
        QApplication::restoreOverrideCursor();
     });
   QObject::connect(m_panel.pushButton_tryMonotonePartitioning, &QPushButton::clicked,
-    [=]{
+    m_panel.pushButton_tryMonotonePartitioning, [=]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        tryMonotonePartitioning(m_panel.spinBox->value());
        QApplication::restoreOverrideCursor();
     });
   QObject::connect(m_panel.pushButton_tryConformingDelanay, &QPushButton::clicked,
-    [=]{
+    m_panel.pushButton_tryConformingDelanay, [=]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        tryConformingDelanay(m_panel.spinBox->value(), m_panel.doubleSpinBox_MeshSellSize->value());
        QApplication::restoreOverrideCursor();
@@ -204,11 +203,13 @@ PolygonTests_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate)
     m_dockWidget->raise();
     //cw->eventHandler().addChild(m_vpceh.get());
     cw->eventContext().pushHandler(m_vpceh.get());
+    setData(1,Qt::DisplayRole, "*");
   }
   else{
     m_dockWidget->hide();
     //cw->eventHandler().removeChild(m_vpceh.get());
     cw->eventContext().popHandler();
+    setData(1,Qt::DisplayRole, "");
   }
 }
 

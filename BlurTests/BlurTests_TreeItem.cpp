@@ -162,8 +162,7 @@ BlurTests_TreeItem::BlurTests_TreeItem()
 {  
   m_img.fill(Qt::magenta);
   setData(0,Qt::DisplayRole, name());
-  setData(1,Qt::DisplayRole, "On");
-  setData(2,Qt::DisplayRole, "On");
+  setData(1,Qt::DisplayRole, "");
 
   buildContextMenuStandardItems();
 
@@ -175,7 +174,7 @@ BlurTests_TreeItem::BlurTests_TreeItem()
 
 
   QObject::connect(m_panel.pushButton_runBlurCPU, &QPushButton::clicked,
-    [&]{
+    m_panel.pushButton_runBlurCPU, [&]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        auto msec = blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
                 m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, false);
@@ -185,7 +184,7 @@ BlurTests_TreeItem::BlurTests_TreeItem()
        m_img.convertTo(QImage::Format_RGB888);
     });
   QObject::connect(m_panel.pushButton_runBlurOpenCL, &QPushButton::clicked,
-    [&]{
+     m_panel.pushButton_runBlurOpenCL, [&]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        auto msec = blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
                 m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, true);
@@ -218,11 +217,13 @@ BlurTests_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
     m_dockWidget->raise();
     //cw->eventHandler().addChild(m_vpceh.get());
     cw->eventContext().pushHandler(m_vpceh.get());
+    setData(1,Qt::DisplayRole, "*");
   }
   else{
     m_dockWidget->hide();
     //cw->eventHandler().removeChild(m_vpceh.get());
     cw->eventContext().popHandler();
+    setData(1,Qt::DisplayRole, "");
   }
 }
 

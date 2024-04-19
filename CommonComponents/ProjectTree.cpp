@@ -42,7 +42,7 @@ ProjectTree::ProjectTree(QWidget *parent)
         auto newItem = i->create();
         newItem->setIcon(0,QIcon(i->iconPath()));
         auto pt  = dynamic_cast<ProjectTree*>(this);
-        invisibleRootItem()->insertChild(0, newItem);
+        invisibleRootItem()->addChild(newItem);
         //setExpanded(true);
       }
     );

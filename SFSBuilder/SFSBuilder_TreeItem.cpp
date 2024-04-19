@@ -107,8 +107,7 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
 
 
   setData(0,Qt::DisplayRole, name());
-  setData(1,Qt::DisplayRole, "On");
-  setData(2,Qt::DisplayRole, "On");
+  setData(1,Qt::DisplayRole, "");
 
   buildContextMenuStandardItems();
 
@@ -179,10 +178,12 @@ SFSBuilder_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
 
     // update viewport size if it was changed before
     m_viewCtrl->updateProjectionMtrx(cw->width(),cw->height());
+    setData(1,Qt::DisplayRole, "*");
   }
   else{
     m_dockWidget->hide();
     //cw->eventHandler().removeChild(m_viewCtrlEH.get());
     cw->eventContext().popHandler();
+    setData(1,Qt::DisplayRole, "");
   }
 }
