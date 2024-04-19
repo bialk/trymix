@@ -13,6 +13,8 @@ class PolygonTests_TreeItem : public ProjectTreeItem
 public:
   PolygonTests_TreeItem();
   ~PolygonTests_TreeItem();
+  static QString name(){ return "Polygon Test"; }
+  static QString iconPath() { return ":/system/images/trymix.png"; }
   void showModel(DrawCntx* cx) override;
   void activateProjectTreeItem(QDockWidget* dock, bool activate = true) override;
 

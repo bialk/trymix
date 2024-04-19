@@ -122,7 +122,7 @@ public:
       cx.popHandler();
     };
 
-    addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
+    addReact("K:C:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
     {
       vpc.beginScale(cx.x(), cx.y()); // inverted y axis
       m_startXY[0] = cx.x();
@@ -131,7 +131,7 @@ public:
       cx.pushHandler(&m_mouseDragScale);
     };
 
-    addReact("K:X:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
+    addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
     {
       vpc.beginTranslateXY();
       m_startXY[0] = cx.x();
@@ -153,9 +153,11 @@ PolygonTests_TreeItem::PolygonTests_TreeItem()
   :polygentest(new PolygonTestConvexPartitioning(50))
   ,m_vpceh(new EventHandler_PositionController)
 {  
-  setData(0,Qt::DisplayRole,"Polygon Test");
+  setData(0,Qt::DisplayRole, name());
   setData(1,Qt::DisplayRole, "On");
   setData(2,Qt::DisplayRole, "On");
+
+  buildContextMenuStandardItems();
 
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());

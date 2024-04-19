@@ -24,20 +24,12 @@ T* findParentOfType(QObject* p){
 
 class ProjectTreeItem : public QTreeWidgetItem{
 public:
-  virtual QList<QAction*> contextMenuActions() {return m_actions; };
   virtual void showModel(DrawCntx* gl) {};
   virtual void activateProjectTreeItem(QDockWidget* dock, bool activate = true) {}
-  QList<QAction*>& actions(){return m_actions;}
+  QList<QAction*>& contextMenuActions(){return m_actions;}
+  void buildContextMenuStandardItems();
 protected:
   QList<QAction*> m_actions;
-};
-
-class Projects_TreeItem : public ProjectTreeItem
-{  
-public:
-  Projects_TreeItem();
-  void activateProjectTreeItem(QDockWidget* mwin, bool activate = true) override;
-private:
 };
 
 #endif // PROJECTS_TREEITEM_H

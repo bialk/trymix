@@ -69,9 +69,9 @@ public:
       cx.popHandler();
     };
 
-    addReact("K:Z:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::Scale; };
+    addReact("K:C:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::Scale; };
     addReact("K:X:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::origRotate; };
-    addReact("K:C:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::CamRotate; };
+    addReact("K:Z:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::CamRotate; };
     addReact("K:V:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::FoV; };
 
     addReact("S:RESIZE") = [=](EventContext3D& cx)
@@ -106,9 +106,11 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_viewCtrlEH.reset(new EventHandler_PositionController(m_viewCtrl.get(),m_lights.get()));
 
 
-  setData(0,Qt::DisplayRole,"SFS Builder");
+  setData(0,Qt::DisplayRole, name());
   setData(1,Qt::DisplayRole, "On");
   setData(2,Qt::DisplayRole, "On");
+
+  buildContextMenuStandardItems();
 
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());

@@ -17,6 +17,8 @@ class SFSBuilder_TreeItem : public ProjectTreeItem
 public:
   SFSBuilder_TreeItem();
   ~SFSBuilder_TreeItem();
+  static QString name(){ return "SFS Builder Test"; }
+  static QString iconPath() { return ":/system/images/trymix.png"; }
   void showModel(DrawCntx* gl) override;
   void activateProjectTreeItem(QDockWidget* dock, bool activate)  override;
 private:

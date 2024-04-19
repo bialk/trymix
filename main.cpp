@@ -11,7 +11,7 @@
 
 int main(int argc, char *argv[])
 {
-  QApplication a(argc, argv);
+  QApplication a(argc, argv);  
   a.setApplicationName("Try Mix!");
   a.setApplicationVersion("1.0");
 
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
       if((e->type() == QEvent::KeyPress || e->type() == QEvent::KeyRelease)){
         auto keyEvent = dynamic_cast<QKeyEvent*>(e);
         if(keyEvent->key() == Qt::Key_Z){
-          qWarning() << e->type() << keyEvent->key();
+          //qWarning() << "eventFilter Test" << e->type() << keyEvent->key();
         }
       }
       return false;
@@ -75,15 +75,15 @@ int main(int argc, char *argv[])
     }
 
     MainWindow w;
-    QRect desktopGeometry = a.screenAt({0,0})->geometry();
-    w.setGeometry(
-        QStyle::alignedRect(
-            Qt::LeftToRight,
-            Qt::AlignCenter,
-            {int(desktopGeometry.width()*0.8),int(desktopGeometry.height()*0.8)},
-            desktopGeometry
-        )
-    );
+    //QRect desktopGeometry = a.screenAt({0,0})->geometry();
+    // w.setGeometry(
+    //     QStyle::alignedRect(
+    //         Qt::LeftToRight,
+    //         Qt::AlignCenter,
+    //         {int(desktopGeometry.width()*0.8),int(desktopGeometry.height()*0.8)},
+    //         desktopGeometry
+    //     )
+    // );
 
     w.show();
     return a.exec();

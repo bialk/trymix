@@ -17,6 +17,8 @@ class CameraControl_TreeItem : public ProjectTreeItem
 public:
   CameraControl_TreeItem();
   ~CameraControl_TreeItem();
+  static QString name(){ return "Camera Control"; }
+  static QString iconPath() { return ":/system/images/trymix.png"; }
   void showModel(DrawCntx* gl) override;
   void activateProjectTreeItem(QDockWidget* dock, bool activate)  override;
 private:

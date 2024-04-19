@@ -121,7 +121,7 @@ public:
       cx.popHandler();
     };
 
-    addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
+    addReact("K:C:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
     {
       // Setting center of rotation shifted to the half of the viewport area. This is due
       // to additional transformation we apply before (see paint method). We set coordinate
@@ -133,7 +133,7 @@ public:
       cx.pushHandler(&m_mouseDragScale);
     };
 
-    addReact("K:X:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
+    addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
     {
       vpc.beginTranslateXY();
       m_startXY[0] = cx.x();
@@ -161,9 +161,11 @@ BlurTests_TreeItem::BlurTests_TreeItem()
   ,m_vpceh(new EventHandler_PositionController)
 {  
   m_img.fill(Qt::magenta);
-  setData(0,Qt::DisplayRole,"Blur Test");
+  setData(0,Qt::DisplayRole, name());
   setData(1,Qt::DisplayRole, "On");
   setData(2,Qt::DisplayRole, "On");
+
+  buildContextMenuStandardItems();
 
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());
