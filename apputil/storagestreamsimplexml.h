@@ -43,8 +43,8 @@ private:
   char* strend;
 
   std::vector<char> buf;
-  size_t bufBeginOff;
-  size_t bufEndOff;
+  size_t bufBeginOffset;
+  size_t bufEndOffset;
 };
 
 } // end of namespase sV2

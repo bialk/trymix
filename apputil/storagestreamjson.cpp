@@ -6,8 +6,7 @@
 
 namespace sV2{
 
-//Json storage
-//
+//JSON storage
 
 StorageStreamSimpleJson::StorageStreamSimpleJson(StreamMedia* sm)
   :m_streamMedia(sm)
@@ -233,7 +232,7 @@ void StorageStreamSimpleJson::PutStartNode(const char *s){
 }
 
 void StorageStreamSimpleJson::PutEndNode(const char *s){
-  // context.top().itemCount == 0 only for leave node - nodes, which does not
+  // context.top().itemCount == 0 only for leaf node - nodes, which does not
   // have children - only have atomic values. Such items no need to be closed
   // also special node with name "vector" also does not have children
   // thus there is no close braket for it.

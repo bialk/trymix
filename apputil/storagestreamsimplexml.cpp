@@ -10,9 +10,9 @@ StorageStreamSimpleXML::StorageStreamSimpleXML(StreamMedia* sm)
   ,tabsz(1)
 {
    buf.resize(4096, '\0');
-   strbegin = strend = &buf[0];
-   bufBeginOff = 0;
-   bufEndOff = 0;
+   strbegin = strend = buf.data();
+   bufBeginOffset = 0;
+   bufEndOffset = 0;
 }
 
 StorageStreamSimpleXML::~StorageStreamSimpleXML(){
@@ -26,18 +26,18 @@ const char* StorageStreamSimpleXML::GetNodeName(){
 bool StorageStreamSimpleXML::nextLine(char** begin, char** end)
 {
    do {
-      char* nl = (char*)memchr(&buf[0] + bufBeginOff, '\n', bufEndOff - bufBeginOff);
+      char* nl = (char*)memchr(buf.data() + bufBeginOffset, '\n', bufEndOffset - bufBeginOffset);
       if (nl) {
-         *begin = &buf[0] + bufBeginOff;
+         *begin = buf.data() + bufBeginOffset;
          *end = nl;
-     if (nl != &buf[0] && nl[-1] == '\r') {
+     if (nl != buf.data() && nl[-1] == '\r') {
       --*end;
      }
          **end = '\0';
 
-         bufBeginOff = (nl - &buf[0]) + 1;
-         if (bufBeginOff == bufEndOff) {
-            bufBeginOff = bufEndOff = 0;
+         bufBeginOffset = (nl - buf.data()) + 1;
+         if (bufBeginOffset == bufEndOffset) {
+            bufBeginOffset = bufEndOffset = 0;
          }
 
          return true;
@@ -47,18 +47,18 @@ bool StorageStreamSimpleXML::nextLine(char** begin, char** end)
    // So, we haven't found a newline symbol.
    // We are still going to set *begin and *end, putting
    // a null character to **end.
-   if (bufEndOff != buf.size()) {
-      buf[bufEndOff] = '\0';
+   if (bufEndOffset != buf.size()) {
+      buf[bufEndOffset] = '\0';
    } else {
       buf.push_back('\0');
    }
-   *begin = &buf[0] + bufBeginOff;
-   *end = &buf[0] + bufEndOff;
+   *begin = buf.data() + bufBeginOffset;
+   *end = buf.data() + bufEndOffset;
 
-   if (bufBeginOff != bufEndOff) {
+   if (bufBeginOffset != bufEndOffset) {
       // We have something in the buffer, but it's not a newline.
       // Let's pretend it does end with a newline.
-      bufBeginOff = bufEndOff = 0;
+      bufBeginOffset = bufEndOffset = 0;
       return true;
    }
 
@@ -67,30 +67,23 @@ bool StorageStreamSimpleXML::nextLine(char** begin, char** end)
 
 bool StorageStreamSimpleXML::readMore()
 {
-   if (buf.size() == bufEndOff) {
-      if (bufEndOff - bufBeginOff < buf.size() / 2) {
+  if(m_streamMedia->eos())
+    return false;
+
+   if (buf.size() == bufEndOffset) {
+      if (bufEndOffset - bufBeginOffset < buf.size() / 2) {
          // Move the data to the beginning of the buffer.
-         memmove(&buf[0], &buf[0] + bufBeginOff, bufEndOff - bufBeginOff);
-         bufEndOff -= bufBeginOff;
-         bufBeginOff = 0;
+         memmove(buf.data(), buf.data() + bufBeginOffset, bufEndOffset - bufBeginOffset);
+         bufEndOffset -= bufBeginOffset;
+         bufBeginOffset = 0;
       } else {
          buf.resize(buf.size() * 2);
       }
    }
 
-   // FIX IT!
-   //int r = fread(&buf[0] + bufEndOff, 1, buf.size() - bufEndOff, f);
-//   if (r <= 0) {
-//      return false;
-//   }
-//   bufEndOff += r;
-
-   auto r = m_streamMedia->read(buf.data()+bufEndOff, buf.size()-bufEndOff);
-   bufEndOff += r;
-   if(m_streamMedia->eos() && r == 0)
-     return false;
-   else
-     return true;
+   auto r = m_streamMedia->read(buf.data()+bufEndOffset, buf.size()-bufEndOffset);
+   bufEndOffset += r;
+   return  r != 0;
 }
 
 int StorageStreamSimpleXML::NextItem(){

@@ -113,8 +113,6 @@ glm::mat4 const& ViewCtrl::getModelViewMtrx(){
 }
 
 glm::mat4 const& ViewCtrl::updateModelViewMtrx(){
-//  m_MV = glm::translate(glm::scale(glm::mat4(1.0),glm::vec3(zoom,zoom,zoom))*
-//         glm::toMat4(m_rot),m_trans);
   m_MV = glm::toMat4(m_rot)*glm::translate(glm::mat4{1.0},m_trans);
   return m_MV;
 }
@@ -210,7 +208,7 @@ void ViewCtrl::Draw(DrawCntx *cntx){
 
 
 
-// ZOOMING, ROTATION AND SHIFT PROCESSING
+// ZOOMING, ROTATION AND SHIFT (Rotation around camera) PROCESSING
 std::function<void(float x, float y)>
 ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
   switch(opercode){
@@ -228,7 +226,7 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
       };
       break;
 
-    case CamRotate:
+    case CamRotate: // essentially rotation around camera is shift operation
       return [this, oldX=x, oldY=y, rotDistanceOld = m_rotDistance, rotOld=m_rot](float x, float y)
       {
         auto mi = glm::inverse(m_P);
@@ -293,7 +291,7 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
           // get new camera direction
           auto d = glm::rotate(glm::inverse(m_rot), glm::vec3{0.,0.,1.});
 
-          // correct translation to make rotatin around center (oldD*m_rotDistance)
+          // correct translation to make rotation around center (oldD*m_rotDistance)
           m_trans = oldTrans + m_rotDistance*(d-oldD);
 
           updateModelViewMtrx();
@@ -301,7 +299,7 @@ ViewCtrl::startOperation(ViewCtrl::Opercode opercode, float x, float y){
       }
       break;
 
-    case Scale:
+    case Scale: // moving in depth
       {
         auto dir = glm::rotate(glm::inverse(m_rot),{0.,0.,1.});
         return [this, transOld=m_trans, dir, rotDistanceOld = m_rotDistance, oldY=y](float x, float y)

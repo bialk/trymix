@@ -29,7 +29,7 @@ ProjectTree::ProjectTree(QWidget *parent)
   ,m_gl(new CentralWidget)
 {
 
-  m_gl->setProjectTree(this);
+   m_gl->setProjectTree(this);
 
   // constructing actions for context menu for the whole tree (pops it when mouse off any item)
   for(auto& i: ProjectTree::TreeItemFactoryList()){
