@@ -214,6 +214,9 @@ set(PROJECT_SOURCES
     CameraControl/CameraControl_TreeItem.h CameraControl/CameraControl_TreeItem.cpp
     CameraControl/CameraControl_panel.ui
 
+    ShaderMix/ShaderMix_TreeItem.h ShaderMix/ShaderMix_TreeItem.cpp
+    ShaderMix/ShaderMix_panel.ui
+
     BlurTests/BlurTests_TreeItem.cpp BlurTests/BlurTests_TreeItem.h
     BlurTests/BlurTests_Panel.ui
     BlurTests/BlurTests.cpp BlurTests/BlurTests.cpp
@@ -235,6 +238,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         ${APP_ICON_RESOURCE_WINDOWS}
+        history.md
     )
 
 # Define target properties for Android with Qt 6 as:

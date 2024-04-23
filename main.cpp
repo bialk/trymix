@@ -8,12 +8,51 @@
 #include <QStyle>
 #include <QScreen>
 #include <QCommandLineParser>
+#include <QStyleFactory>
 
 int main(int argc, char *argv[])
 {
   QApplication a(argc, argv);  
   a.setApplicationName("Try Mix!");
   a.setApplicationVersion("1.0");
+  a.setStyle(QStyleFactory::create("Fusion"));
+
+  // dark palette
+  QPalette newPalette;
+  newPalette.setColor(QPalette::PlaceholderText, QColor(127, 127, 127));
+
+  newPalette.setColor(QPalette::Light,           QColor( 60,  60,  60));
+  newPalette.setColor(QPalette::Midlight,        QColor( 52,  52,  52));
+  newPalette.setColor(QPalette::Mid,             QColor( 37,  37,  37));
+
+  newPalette.setColor(QPalette::Window, QColor(53, 53, 53));
+  newPalette.setColor(QPalette::WindowText, Qt::white);
+  newPalette.setColor(QPalette::Disabled, QPalette::WindowText,
+                  QColor(127, 127, 127));
+  newPalette.setColor(QPalette::Base, QColor(42, 42, 42));
+  newPalette.setColor(QPalette::AlternateBase, QColor(66, 66, 66));
+  newPalette.setColor(QPalette::ToolTipBase, Qt::white);
+  newPalette.setColor(QPalette::ToolTipText, QColor(53, 53, 53));
+  newPalette.setColor(QPalette::Text, Qt::white);
+  newPalette.setColor(QPalette::Disabled, QPalette::Text, QColor(127, 127, 127));
+  newPalette.setColor(QPalette::Dark, QColor(35, 35, 35));
+  newPalette.setColor(QPalette::Shadow, QColor(20, 20, 20));
+  newPalette.setColor(QPalette::Button, QColor(53, 53, 53));
+  newPalette.setColor(QPalette::ButtonText, Qt::white);
+  newPalette.setColor(QPalette::Disabled, QPalette::ButtonText,
+                  QColor(127, 127, 127));
+  newPalette.setColor(QPalette::BrightText, Qt::red);
+  newPalette.setColor(QPalette::Link, QColor(42, 130, 218));
+  newPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
+  newPalette.setColor(QPalette::Disabled, QPalette::Highlight, QColor(80, 80, 80));
+  newPalette.setColor(QPalette::HighlightedText, Qt::white);
+  newPalette.setColor(QPalette::Disabled, QPalette::HighlightedText,
+                   QColor(127, 127, 127));
+
+  a.setPalette(newPalette);
+
+
+  a.setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }");
 
   { // dealing with command line options
     QCommandLineParser parser;

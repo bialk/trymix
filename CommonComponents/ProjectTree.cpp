@@ -4,6 +4,7 @@
 #include "SFSBuilder/SFSBuilder_TreeItem.h"
 #include "CameraControl/CameraControl_TreeItem.h"
 #include "BlurTests/BlurTests_TreeItem.h"
+#include "ShaderMix/ShaderMix_TreeItem.h"
 #include "CentralWidget.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -13,14 +14,15 @@
 std::vector<ProjectTree::AbstractFactoryItem *> const& ProjectTree::TreeItemFactoryList()
 {
 
-    static std::vector<AbstractFactoryItem*> treeItems{
-        new FactoryItem<PolygonTests_TreeItem>,
+  static std::vector<AbstractFactoryItem*> treeItems{
+    new FactoryItem<PolygonTests_TreeItem>,
         new FactoryItem<SFSBuilder_TreeItem>,
         new FactoryItem<CameraControl_TreeItem>,
         new FactoryItem<BlurTests_TreeItem>,
-    };
+        new FactoryItem<ShaderMix_TreeItem>
+  };
 
-    return treeItems;
+  return treeItems;
 }
 
 

@@ -5,8 +5,12 @@
 
 
 void ProjectTreeItem::buildContextMenuStandardItems(){
-    for(auto& i: ProjectTree::TreeItemFactoryList()){
-      auto newAct = new QAction(QIcon(i->iconPath()),
+    for(auto& i: ProjectTree::TreeItemFactoryList()){      
+      auto newAct = i->iconPath().endsWith(".svg")?
+            new QAction(QIcon(QPixmap(i->iconPath())),
+                                QString(QObject::tr("Create \"%1\"")).arg(i->name()))
+          :
+            new QAction(QIcon(i->iconPath()),
                                 QString(QObject::tr("Create \"%1\"")).arg(i->name()));
       newAct->setStatusTip(QObject::tr("Create new project item"));
       newAct->connect(newAct, &QAction::triggered, newAct,
@@ -16,7 +20,10 @@ void ProjectTreeItem::buildContextMenuStandardItems(){
           if(!p)
             p = dynamic_cast<ProjectTree*>(treeWidget())->invisibleRootItem();
           auto newItem = i->create();
-          newItem->setIcon(0,QIcon(i->iconPath()));
+          if(i->iconPath().endsWith(".svg",Qt::CaseInsensitive))
+            newItem->setIcon(0,QIcon(QPixmap(i->iconPath())));
+          else
+            newItem->setIcon(0,QIcon(i->iconPath()));
           p->insertChild(p->indexOfChild(this)+1, newItem);
           newItem->buildContextMenuStandardItems();
         }
