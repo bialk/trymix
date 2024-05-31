@@ -49,9 +49,13 @@ find_path_by_regex(glm_DIR "glm/install/lib/cmake/glm" PATHS ${WINDOWS_EXTERNAL_
 
 find_package(glm REQUIRED)
 
-set(QT_VERSION_MAJOR 6)
+# set(QT_VERSION_MAJOR 6)
 
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets  LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+message(STATUS "found Qt${QT_VERSION_MAJOR}")
+set(QtVer Qt${QT_VERSION_MAJOR})
+
+find_package(${QtVer} REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets  LinguistTools)
 
 find_path_by_regex(Boost_ROOT "boost_*[0-9]_*[0-9]_*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
 
@@ -306,9 +310,9 @@ if(CMAKE_HOST_WIN32)
 endif()
 
 target_link_libraries(trymix PRIVATE
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::OpenGL
-    Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+    ${QtVer}::Widgets
+    ${QtVer}::OpenGL
+    ${QtVer}::OpenGLWidgets
 
     CGAL::CGAL CGAL::CGAL_Core
     ${SPOOLES_LIB}

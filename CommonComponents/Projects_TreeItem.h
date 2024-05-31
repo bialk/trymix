@@ -2,7 +2,7 @@
 #define PROJECTS_TREEITEM_H
 
 #include "drawContext.h"
-#include "qdockwidget.h"
+#include <QDockWidget>
 #include <QTreeWidgetItem>
 #include <QWidget>
 
