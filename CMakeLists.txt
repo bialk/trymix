@@ -1,7 +1,7 @@
 ###################################################################################
 # consider to specify cmake parameters in cmake commandline configuration
 
-# -DCUDAToolkit_ROOT:PATH=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1/bin
+# -DCUDAToolkit_ROOT:PATH=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin
 # -DWINDOWS_EXTERNAL_LIBS_PATH:PATH=D:/trymix/test_omi;D:/zero-devel
 
 ###################################################################################
@@ -70,7 +70,7 @@ find_package(OpenGL REQUIRED)
 ################### OpenGL ######################
 # example to specify version to locate: CUDAToolkit_ROOT = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1"
 
-find_package(CUDAToolkit 12.0 )
+find_package(CUDAToolkit 12)
 if(${CUDAToolkit_FOUND})
   message(STATUS CUDAToolkit_FOUND=${CUDAToolkit_FOUND})
   add_compile_definitions(OpenCL_FOUND CUDA_FOUND CL_TARGET_OPENCL_VERSION=300)

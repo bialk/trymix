@@ -3,9 +3,13 @@
 
 
 #include <vector>
+// building kernels
 #include <sstream>
 
 #ifdef OpenCL_FOUND
+#define CL_HPP_ENABLE_EXCEPTIONS
+#define CL_HPP_MINIMUM_OPENCL_VERSION 200
+// #define CL_HPP_TARGET_OPENCL_VERSION 200
 #include <CL/cl.hpp>
 
 #define CaseReturnString(x) case x: return #x;
@@ -204,8 +208,6 @@ class GaussBlurEngine::GaussBlurAccelerator{
 
 private:
   std::vector<cl::Platform> all_platforms;
-  std::vector<cl::Device> all_devices;
-  cl::Device default_device;
   cl::Context context;
   cl::Program program;
   cl::Kernel boxBlurH_4;
@@ -224,39 +226,64 @@ public:
       errors << "No platforms found. Check OpenCL installation!" << std::endl;
       return;
     }
-    cl::Platform default_platform=all_platforms[0];
-    info << "Using platform: "<< default_platform.getInfo<CL_PLATFORM_NAME>()<< std::endl;
 
-    //get default device of the default platform
-    default_platform.getDevices(CL_DEVICE_TYPE_ALL, &all_devices);
-    if(all_devices.size()==0){
-      errors << " No devices found. Check OpenCL installation!" << std::endl;
-      return;
+    // searching for platforms - selecting the best one
+    cl::Platform plat;
+    for (auto &p : all_platforms) {
+      std::string p_ver = p.getInfo<CL_PLATFORM_VERSION>();
+      std::string p_name = p.getInfo<CL_PLATFORM_NAME>();
+      if (p_ver.find("OpenCL 2.") != std::string::npos ||
+          p_ver.find("OpenCL 3.") != std::string::npos) {
+        // Note: an OpenCL 3.x platform may not support all required features!
+        plat = p;
+        // we prefer NVIDIA GPU over others
+        if(p_name.find("NVIDIA") != std::string::npos)
+          break;
+      }
     }
 
-    default_device=all_devices[0];
-    info << "Using device: "<< default_device.getInfo<CL_DEVICE_NAME>()<< std::endl;
+    if(plat() == 0) {
+        errors << "No OpenCL 2.0 or newer platform found.\n";
+        return;
+    }
 
-    context = cl::Context({default_device});
+    cl::Platform default_platform = cl::Platform::setDefault(plat);
+    if (default_platform != plat) {
+        errors << "Error setting default platform.\n";
+        return;
+    }
+
+    info << "Using platform: "<< default_platform.getInfo<CL_PLATFORM_NAME>()<< std::endl;
+
+    context = cl::Context::getDefault();
 
     //Next we need to create the program which we want to execute on our device:
     cl::Program::Sources sources;
 
     //Next we need our kernel sources to build. We also check for the errors at building:
-    sources.push_back({kernel_boxBlurH_4, 0}); //zero size means: expected pointer is zero terminated string
-    sources.push_back({kernel_boxBlurT_4, 0});
+    sources.push_back({kernel_boxBlurH_4});
+    sources.push_back({kernel_boxBlurT_4});
+    program = cl::Program(sources);
 
-    program = cl::Program(context, sources);
-    if(program.build({default_device})!=CL_SUCCESS){
-      errors << " Error building: "<<program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device)<< std::endl;
-      return;
+    // building kernels
+    try{
+      program.build("-cl-std=CL2.0");
+    }
+    catch (...) {
+        // Print build info for all devices
+        cl_int buildErr = CL_SUCCESS;
+        auto buildInfo = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(&buildErr);
+        for (auto &pair : buildInfo) {
+            errors << pair.second << std::endl << std::endl;
+        }
+        return;
     }
 
     boxBlurH_4 = cl::Kernel(program, "boxBlurH_4");
     boxBlurT_4 = cl::Kernel(program, "boxBlurT_4");
 
     //create queue to which we will push commands for the device.
-    queue = cl::CommandQueue(context,default_device);
+    queue = cl::CommandQueue(context, cl::Device::getDefault());
   }
 
   void doBlur(float* scl, size_t w, size_t h, size_t r)
