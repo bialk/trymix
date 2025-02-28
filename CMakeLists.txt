@@ -1,16 +1,19 @@
-###################################################################################
-# consider to specify cmake parameters in cmake commandline configuration
-
-# -DCUDAToolkit_ROOT:PATH=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin
-# -DWINDOWS_EXTERNAL_LIBS_PATH:PATH=D:/trymix/test_omi;D:/zero-devel
-
-###################################################################################
-
 cmake_minimum_required(VERSION 3.24)
-
+project(trymix VERSION 0.1 LANGUAGES CXX)
 cmake_policy(SET CMP0074 NEW)
 
-project(trymix VERSION 0.1 LANGUAGES CXX)
+###################################################################################
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/config.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/config.cmake")
+else()
+  message(FATAL_ERROR
+    "You have to prepare config.cmake file for your project. Exitting now...
+    ###################################################################################
+    # consider to specify cmake variable in cmake configuration file config.cmake
+    set(CUDAToolkit_ROOT C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin)
+    set(WINDOWS_EXTERNAL_LIBS_PATH D:/trymix/test_omi;D:/zero-devel)
+    ")
+endif()
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -57,11 +60,17 @@ set(QtVer Qt${QT_VERSION_MAJOR})
 
 find_package(${QtVer} REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets  LinguistTools)
 
-find_path_by_regex(Boost_ROOT "boost_*[0-9]_*[0-9]_*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
+#find_path_by_regex(Boost_DIR "boost_[0-9]*_[0-9]*_[0-9]*" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
+#find_path(Boost_DIR NAMES "BoostConfig.cmake" PATHS "${WINDOWS_EXTERNAL_LIBS_PATH}")
+#find_path(Boost_DIR NAMES "BoostConfig.cmake" PATHS d:/zero-devel/boost_1_80_0/lib64-msvc-14.3/)
 
 ################### Boost #######################
 
-find_package(Boost REQUIRED)
+#message(FATAL_ERROR Boost_DIR=${Boost_DIR})
+# set(Boost_DIR "${WINDOWS_EXTERNAL_LIBS_PATH}/boost_1_80_0/lib64-msvc-14.3/cmake/Boost-1.80.0/")
+set(Boost_ROOT d:/zero-devel/boost_1_80_0/lib64-msvc-14.3/cmake/Boost-1.80.0/)
+# set(Boost_ROOT d:/zero-devel/boost_1_80_0)
+find_package(Boost CONFIG REQUIRED)
 
 ################### OpenGL ######################
 
