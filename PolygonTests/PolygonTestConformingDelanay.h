@@ -3,6 +3,7 @@
 
 #include "PolygonTest.h"
 
+#include <CGAL/enum.h>
 #include <CGAL/Partition_2/partition_y_monotone_2.h>
 
 #include <CGAL/basic.h>

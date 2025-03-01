@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.24)
 project(trymix VERSION 0.1 LANGUAGES CXX)
-cmake_policy(SET CMP0074 NEW)
+
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
+
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 
 ###################################################################################
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/config.cmake")
@@ -12,7 +20,10 @@ else()
     # consider to specify cmake variable in cmake configuration file config.cmake
     set(CUDAToolkit_ROOT C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin)
     set(WINDOWS_EXTERNAL_LIBS_PATH D:/trymix/test_omi;D:/zero-devel)
-    ")
+    # this is file where BoostConfig.cmake placed
+    set(Boost_ROOT D:/zero-devel/boost_1_87_0/win11-cpp20/lib/cmake/Boost-1.87.0/)
+    set(CGAL_ROOT D:/zero-devel/CGAL-6.0.1)"
+  )
 endif()
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -21,7 +32,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -48,11 +59,9 @@ endif()
 
 
 #set(glm_DIR <installation prefix>/lib/cmake/glm) # if necessary
-find_path_by_regex(glm_DIR "glm/install/lib/cmake/glm" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
+#find_path_by_regex(glm_DIR "glm/install/lib/cmake/glm" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
 
 find_package(glm REQUIRED)
-
-# set(QT_VERSION_MAJOR 6)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 message(STATUS "found Qt${QT_VERSION_MAJOR}")
@@ -60,17 +69,9 @@ set(QtVer Qt${QT_VERSION_MAJOR})
 
 find_package(${QtVer} REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets  LinguistTools)
 
-#find_path_by_regex(Boost_DIR "boost_[0-9]*_[0-9]*_[0-9]*" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
-#find_path(Boost_DIR NAMES "BoostConfig.cmake" PATHS "${WINDOWS_EXTERNAL_LIBS_PATH}")
-#find_path(Boost_DIR NAMES "BoostConfig.cmake" PATHS d:/zero-devel/boost_1_80_0/lib64-msvc-14.3/)
-
 ################### Boost #######################
 
-#message(FATAL_ERROR Boost_DIR=${Boost_DIR})
-# set(Boost_DIR "${WINDOWS_EXTERNAL_LIBS_PATH}/boost_1_80_0/lib64-msvc-14.3/cmake/Boost-1.80.0/")
-set(Boost_ROOT d:/zero-devel/boost_1_80_0/lib64-msvc-14.3/cmake/Boost-1.80.0/)
-# set(Boost_ROOT d:/zero-devel/boost_1_80_0)
-find_package(Boost CONFIG REQUIRED)
+find_package(Boost 1.86 REQUIRED)
 
 ################### OpenGL ######################
 
@@ -93,10 +94,12 @@ endif()
 
 ##################### CGAL ######################
 
-set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
-find_package(CGAL REQUIRED PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES "CGAL-5.5.1" COMPONENTS Core)
-string(REPLACE ".lib" ".dll" GMP_DLL "${GMP_LIBRARIES}")
-list(APPEND FOR_COPY_TO_BINARY_DIR ${GMP_DLL})
+#set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
+find_package(CGAL REQUIRED COMPONENTS Core)
+
+# example to copy dlls if necessary
+# string(REPLACE ".lib" ".dll" GMP_DLL "${GMP_LIBRARIES}")
+# list(APPEND FOR_COPY_TO_BINARY_DIR ${GMP_DLL})
 
 ################# FREEIMAGE_LIB #################
 
@@ -123,11 +126,8 @@ else(UNIX)
 endif(WIN32)
 
 ####################### Eigen ##################
-find_path(EIGEN_INCLUDE_DIRS REQUIRED NAMES Eigen/CMakeLists.txt PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES ceres/eigen-eigen-5a0156e40feb)
-#find_package(Eigen REQUIRED)
-#if(EIGEN_FOUND)
-#   list(APPEND CERES_INCLUDE_DIRS "${EIGEN_INCLUDE_DIRS}")
-#endif()
+
+find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 
 ################# pthread #########################
 
@@ -281,7 +281,6 @@ target_include_directories(trymix PRIVATE
     ${SPOOLES_INCLUDE_DIR}
     ${FREEIMAGE_INCLUDE_DIR}
     ${pthread_INCLUDE_DIR}
-    ${EIGEN_INCLUDE_DIRS}
 )
 
 target_compile_definitions(trymix PRIVATE "-D_TIMESPEC_DEFINED ")
@@ -299,10 +298,6 @@ target_link_options(trymix PRIVATE
 
 # copy qt dlls in the buld binary directory (for windows only)
 if(CMAKE_HOST_WIN32)
-    #  add_target_dll("Qt5::Widgets")
-    #  add_target_dll("Qt5::Core")
-    #  add_target_dll("Qt5::Gui")
-
     # constructing path to windeployqt to copy dlls
     string(REPLACE qmake.exe "windeployqt" windeployqt ${QT_QMAKE_EXECUTABLE} )
     if(windeployqt)
@@ -332,6 +327,7 @@ target_link_libraries(trymix PRIVATE
     OpenGL::GL    
     glm::glm
     CUDA::OpenCL
+    Eigen3::Eigen
 )
 
 set_target_properties(trymix PROPERTIES
