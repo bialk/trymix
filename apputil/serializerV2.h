@@ -23,6 +23,7 @@ class Serializer;
 
 class StreamMedia{
 public:
+  virtual ~StreamMedia() = default;
   virtual size_t write(void const* buf, size_t size) = 0;
   virtual size_t read(void* buf, size_t size) = 0;
   virtual bool eos() = 0;
@@ -31,9 +32,9 @@ public:
 
 class SyncDataInterface{
 public:
-  virtual ~SyncDataInterface(){}
-  virtual void Load(Serializer *s){};
-  virtual void Store(Serializer *s){};
+  virtual ~SyncDataInterface() = default;
+  virtual void Load(Serializer *s) = 0;
+  virtual void Store(Serializer *s) = 0;
 };
 
 
