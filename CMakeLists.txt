@@ -17,12 +17,18 @@ else()
   message(FATAL_ERROR
     "You have to prepare config.cmake file for your project. Exitting now...
     ###################################################################################
-    # consider to specify cmake variable in cmake configuration file config.cmake
-    set(CUDAToolkit_ROOT C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin)
+    # consider to specify cmake variables in cmake configuration file
+    # config.cmake. I.e.:
     set(WINDOWS_EXTERNAL_LIBS_PATH D:/trymix/test_omi;D:/zero-devel)
-    # this is file where BoostConfig.cmake placed
-    set(Boost_ROOT D:/zero-devel/boost_1_87_0/win11-cpp20/lib/cmake/Boost-1.87.0/)
-    set(CGAL_ROOT D:/zero-devel/CGAL-6.0.1)"
+    # this is directories where <PackageName>Config.cmake file placed
+    # you may search it with command, i.e.
+    # find /d/zero-devel -name BoostConfig.cmake
+    set(CUDAToolkit_ROOT C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin)
+    set(Boost_ROOT D:/zero-devel/boost_1_87_0/lib64-msvc-14.3/lib/cmake/Boost-1.87.0)
+    set(CGAL_ROOT D:/zero-devel/CGAL-6.0.1/lib/cmake/CGAL)
+    set(glm_ROOT D:/zero-devel/glm/install/lib/cmake/glm)
+    set(Eigen3_ROOT D:/zero-devel/eigen3/eigen-3.4.0_build)
+    "
   )
 endif()
 
@@ -163,8 +169,9 @@ elseif(WIN32)
   find_path_by_regex(LAPACK_DLLS "lapack/*.dll" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH})
   list(APPEND FOR_COPY_TO_BINARY_DIR ${LAPACK_DLLS})
 endif()
-  list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/torch.3dIco)
-  list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/trymix.ico)
+
+list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/torch.3dIco)
+list(APPEND FOR_COPY_TO_BINARY_DIR ${CMAKE_SOURCE_DIR}/trymix.ico)
 
 
 set(TS_FILES trymix_en_GB.ts)
