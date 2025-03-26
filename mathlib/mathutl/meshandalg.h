@@ -2,13 +2,14 @@
 #define meshandalg_h
 
 #include <algorithm>
+#include <cassert>
 #include <vector>
 #include <set>
 #include <fstream>
 #include <math.h>
 
 #ifdef _WIN32
-//#include <io.h>
+  #include <io.h>
 //#include <stdlib.h>
 #include <malloc.h>
 #define bit_vector vector<char>
@@ -20,10 +21,12 @@
 #endif
 #include <string.h>
 
+#include "apputil/compatibility.h"
 
 #ifndef err_printf
 #define err_printf(n) printf n
 #endif
+
 
 //========================== POINT IN 3D SPACE ===============================
 
@@ -168,6 +171,8 @@ private:
   int t(int i1,int i2,int i3,int i4){
     if(i1==i3 || i1==i4) return i1;
     if(i2==i3 || i2==i4) return i2;
+    assert(!"should it ever happens?");
+    return i1;
   }
 
 public:
@@ -255,30 +260,30 @@ inline int SurfTxtrLoad(SurfTxtr *stxt, const char *filename){
 
   stxt->clear();
   char line[1024],test[1024], *s;
-  fgets(line,1024,f); strcpy_s(test,line);
-  s=strtok(line," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
+  fgets(line,1024,f); my_strcpy(test,line);
+  s=my_strtok(line," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
   stxt->trg.resize(atoi(s));
-  s=strtok(0," \n"); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
+  s=my_strtok(0," \n"); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
   stxt->tx.resize(atoi(s));
 
   unsigned int i;
   for(i=0;i<stxt->trg.size();i++){
     Surf::TTrg &trg = stxt->trg[i];
-    fgets(line,1024,f); strcpy(test,line);
-    s=strtok(line," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
+    fgets(line,1024,f); my_strcpy(test,line);
+    s=my_strtok(line," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
     trg.i1=atoi(s);
-    s=strtok(0," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
+    s=my_strtok(0," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
     trg.i2=atoi(s);
-    s=strtok(0," \n");  if(!s){ err_printf(("Format error in line\"%s\" \n",test)); return 1; }
+    s=my_strtok(0," \n");  if(!s){ err_printf(("Format error in line\"%s\" \n",test)); return 1; }
     trg.i3=atoi(s);
   }
 
   for(i=0;i<stxt->tx.size();i++){
     SurfTxtr::Ttx &tx = stxt->tx[i];
-    fgets(line,1024,f); strcpy(test,line);
-    s=strtok(line," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
+    fgets(line,1024,f); my_strcpy(test,line);
+    s=my_strtok(line," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
     tx.x=atof(s);
-    s=strtok(0," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
+    s=my_strtok(0," "); if(!s) { err_printf(("Format error in line\"%s\" \n",test)); return 1; }
     tx.y=atof(s);
   }
   fclose(f);
@@ -316,25 +321,25 @@ inline int SurfLoad_WaveFrontObj(Surf *surf, SurfTxtr *stxr, const char *filenam
   char line[1024], *s,*r;
   while(fgets(line,1024,f)){
     char test[1024];
-    strcpy(test,line);
+    my_strcpy(test,line);
 
-    s=strtok(line," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
+    s=my_strtok(line," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
 
     if(strcmp(s,"v")==0){
       Surf::TVtx vtx; vtx.d=1;
-      s=strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
+      s=my_strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
       vtx.p.x=atof(s);
-      s=strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
+      s=my_strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
       vtx.p.y=atof(s);
-      s=strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
+      s=my_strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
       vtx.p.z=atof(s);
       surf->vtx.push_back(vtx);
     }
     else if(strcmp(s,"vt")==0){
       SurfTxtr::Ttx tx;
-      s=strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
+      s=my_strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
       tx.x=atof(s);
-      s=strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
+      s=my_strtok(0," "); if(!s) { err_printf(("line format error: %s\n",test)); return 1; };
       tx.y=atof(s);
       if(stxr)
         stxr->tx.push_back(tx);
@@ -344,21 +349,21 @@ inline int SurfLoad_WaveFrontObj(Surf *surf, SurfTxtr *stxr, const char *filenam
       Surf::TTrg t;
       Surf::TTrg tt;
 
-      s=strtok(0," \n");  if(!s) { err_printf(("line format error: %s\n",test)); return 1; }
+      s=my_strtok(0," \n");  if(!s) { err_printf(("line format error: %s\n",test)); return 1; }
       s=mystrtok_r(s,"/",&r);
       t.i1=atoi(s)-1;
       s=mystrtok_r(0,"/",&r);
       tt.i1=atoi(s)-1;
       s=mystrtok_r(0,"/",&r);
 
-      s=strtok(0," \n");  if(!s) { err_printf(("line format error: %s\n",test)); return 1; }
+      s=my_strtok(0," \n");  if(!s) { err_printf(("line format error: %s\n",test)); return 1; }
       s=mystrtok_r(s,"/",&r);
       t.i2=atoi(s)-1;
       s=mystrtok_r(0,"/",&r);
       tt.i2=atoi(s)-1;
       s=mystrtok_r(0,"/",&r);
 
-      s=strtok(0," \n");  if(!s) { err_printf(("line format error: %s\n",test)); return 1; }
+      s=my_strtok(0," \n");  if(!s) { err_printf(("line format error: %s\n",test)); return 1; }
       s=mystrtok_r(s,"/",&r);
       t.i3=atoi(s)-1;
       s=mystrtok_r(0,"/",&r);
@@ -421,6 +426,8 @@ public:
     case 0:
       return intidx(i,j);
     }
+    assert(!"this should never happens");
+    return {};
   }
 
   void edgvtx(int a, int b){

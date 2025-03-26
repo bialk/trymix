@@ -122,7 +122,7 @@ public:
       cx.popHandler();
     };
 
-    addReact("K:C:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
+    addReact("K:C:DOWN+M:L:DOWN") = [this](EventContext3D& cx)
     {
       vpc.beginScale(cx.x(), cx.y()); // inverted y axis
       m_startXY[0] = cx.x();
@@ -131,7 +131,7 @@ public:
       cx.pushHandler(&m_mouseDragScale);
     };
 
-    addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
+    addReact("K:Z:DOWN+M:L:DOWN") = [this](EventContext3D& cx)
     {
       vpc.beginTranslateXY();
       m_startXY[0] = cx.x();
@@ -162,19 +162,19 @@ PolygonTests_TreeItem::PolygonTests_TreeItem()
   m_panel.setupUi(m_dockWidget.data());
 
   QObject::connect(m_panel.pushButton_tryConvexPartitioning, &QPushButton::clicked,
-    m_panel.pushButton_tryConvexPartitioning, [=]{
+    m_panel.pushButton_tryConvexPartitioning, [this]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        tryConvexPartitioning(m_panel.spinBox->value());
        QApplication::restoreOverrideCursor();
     });
   QObject::connect(m_panel.pushButton_tryMonotonePartitioning, &QPushButton::clicked,
-    m_panel.pushButton_tryMonotonePartitioning, [=]{
+    m_panel.pushButton_tryMonotonePartitioning, [this]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        tryMonotonePartitioning(m_panel.spinBox->value());
        QApplication::restoreOverrideCursor();
     });
   QObject::connect(m_panel.pushButton_tryConformingDelanay, &QPushButton::clicked,
-    m_panel.pushButton_tryConformingDelanay, [=]{
+    m_panel.pushButton_tryConformingDelanay, [this]{
        QApplication::setOverrideCursor(Qt::WaitCursor);
        tryConformingDelanay(m_panel.spinBox->value(), m_panel.doubleSpinBox_MeshSellSize->value());
        QApplication::restoreOverrideCursor();

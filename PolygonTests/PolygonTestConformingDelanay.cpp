@@ -14,7 +14,6 @@
 #include <CGAL/ch_graham_andrew.h>
 
 #include <cassert>
-#include <list>
 
 typedef CGAL::Creator_uniform_2<int, Point_2>               Creator;
 typedef CGAL::Random_points_in_square_2<Point_2, Creator>   Point_generator;
@@ -71,7 +70,7 @@ PolygonTestConformingDelanay::PolygonTestConformingDelanay(int polygonSize, floa
     //CGAL::make_conforming_Gabriel_2(cdt);
     //CGAL::step_by_step_conforming_Delaunay_2(cdt);
     //CGAL::refine_Delaunay_mesh_2(cdt, Criteria(0.125, 0.5));
-    CGAL::refine_Delaunay_mesh_2(cdt, Criteria(0.125, meshCellSize));
+    CGAL::refine_Delaunay_mesh_2(cdt, CGAL::parameters::criteria(CGAL::Delaunay_mesh_size_criteria_2<CDT>(0.125, meshCellSize)));
 
     std::cout << "total edges: " <<  cdt.finite_edges().size() << std::endl;
     for(auto &e: cdt.finite_edges()){

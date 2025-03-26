@@ -18,6 +18,7 @@ class DynClassBase{
 public:
    static int count;
    static  DynClassBase *AskForObject(const char *cname);
+   virtual ~DynClassBase() = default;
    virtual const char *AskForClassName()=0;
    virtual void AskForData(Serializer *s)=0;
 };

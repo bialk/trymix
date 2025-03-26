@@ -14,7 +14,7 @@ void ProjectTreeItem::buildContextMenuStandardItems(){
                                 QString(QObject::tr("Create \"%1\"")).arg(i->name()));
       newAct->setStatusTip(QObject::tr("Create new project item"));
       newAct->connect(newAct, &QAction::triggered, newAct,
-        [=]()
+        [this, i]()
         {
           auto p = parent();
           if(!p)
@@ -35,7 +35,7 @@ void ProjectTreeItem::buildContextMenuStandardItems(){
                               QString(QObject::tr("Remove \"%1\" item")).arg(text(0)));
     newAct->setStatusTip(QObject::tr("Remove \"%1\" item").arg(text(0)));
     newAct->connect(newAct, &QAction::triggered, newAct,
-      [=]()
+      [this]()
       {
         dynamic_cast<ProjectTree*>(treeWidget())->removeItem(this);
       }

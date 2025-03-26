@@ -82,31 +82,31 @@ public:
   }
 
   void Store(const char* name = "./surf.dat"){
-    int fd = open(name,
+    int fd = my_open(name,
                   O_RDWR | O_CREAT | O_TRUNC | O_NOCTTY,
                   S_IREAD | S_IWRITE);
-    write(fd, &d, sizeof(d));
-    write(fd, &cx, sizeof(cx));
-    write(fd, &cy, sizeof(cy));
-    write(fd, &cz, sizeof(cz));
+    my_write(fd, &d, sizeof(d));
+    my_write(fd, &cx, sizeof(cx));
+    my_write(fd, &cy, sizeof(cy));
+    my_write(fd, &cz, sizeof(cz));
     
-    write(fd, dist, sizeof(dist[0])*nalf[ngam]);
-    close(fd);
+    my_write(fd, dist, sizeof(dist[0])*nalf[ngam]);
+    my_close(fd);
 
   }
   void Load(const char* name = "./surf.dat"){
-    int fd = open(name,O_RDONLY | O_NOCTTY);
+    int fd = my_open(name,O_RDONLY | O_NOCTTY);
     if(fd == -1) {
       BuildBall();
       return;
     }
-    read(fd, &d, sizeof(d));
-    read(fd, &cx, sizeof(cx));
-    read(fd, &cy, sizeof(cy));
-    read(fd, &cz, sizeof(cz));
+    my_read(fd, &d, sizeof(d));
+    my_read(fd, &cx, sizeof(cx));
+    my_read(fd, &cy, sizeof(cy));
+    my_read(fd, &cz, sizeof(cz));
     Init(d);
-    read(fd, dist, sizeof(dist[0])*nalf[ngam]);    
-    close(fd);
+    my_read(fd, dist, sizeof(dist[0])*nalf[ngam]);
+    my_close(fd);
   }
 };
 

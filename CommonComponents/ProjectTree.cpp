@@ -39,7 +39,7 @@ ProjectTree::ProjectTree(QWidget *parent)
                               QString(QObject::tr("Create \"%1\"")).arg(i->name()));
     newAct->setStatusTip(QObject::tr("Create new project item"));
     newAct->connect(newAct, &QAction::triggered, newAct,
-      [=]()
+      [this, i]()
       {
         auto newItem = i->create();
         newItem->setIcon(0,QIcon(i->iconPath()));
@@ -54,7 +54,7 @@ ProjectTree::ProjectTree(QWidget *parent)
   auto newAct = new QAction(QIcon(":/Resource/warning32.ico"), QObject::tr("Clear Tree"));
   newAct->setStatusTip(QObject::tr("Clear project tree"));
   newAct->connect(newAct, &QAction::triggered, newAct,
-    [=]()
+    [this]()
     {
       while(invisibleRootItem()->childCount())
           delete invisibleRootItem()->takeChild(0);
@@ -67,7 +67,7 @@ ProjectTree::ProjectTree(QWidget *parent)
   // context menu handler
   setContextMenuPolicy(Qt::CustomContextMenu);
   connect(this, &QTreeWidget::customContextMenuRequested,
-          this, [=](const QPoint& pos)
+          this, [this](const QPoint& pos)
   {
     ProjectTreeItem *selectedItem = dynamic_cast<ProjectTreeItem*>(this->itemAt( pos ));
     if(selectedItem){
@@ -84,7 +84,7 @@ ProjectTree::ProjectTree(QWidget *parent)
 
   // item selector
   connect(this, &QTreeWidget::itemClicked,
-          this, [=](QTreeWidgetItem* item, int col){
+          this, [this](QTreeWidgetItem* item, int col){
 
     auto mainwnd = findParentOfType<MainWindow>(this->parent());
 

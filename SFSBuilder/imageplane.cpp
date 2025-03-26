@@ -188,7 +188,7 @@ void ImagePlane::Draw(DrawCntx *cntx){
   if(w==0 || h==0) return;
 
   // setup reflective surfaces
-  { 
+  {
     GLfloat no_mat[] = { 0.0, 0.0, 0.0, 0.0 };
     
     GLfloat mat_emission[] = {1., 1., 1., 1.0}; 
@@ -209,7 +209,6 @@ void ImagePlane::Draw(DrawCntx *cntx){
       //glColor3f(0.5,0.5,0.5);
     }
   }
-
 
   // draw image
   if(image_mode!=image_mode_off){
@@ -245,63 +244,63 @@ void ImagePlane::Draw(DrawCntx *cntx){
   glPushName(100);
   // draw shape
   if(shape_mode!=shape_mode_off){    
-    if(!shape.id){
-      glNewList(shape(),GL_COMPILE_AND_EXECUTE);
-      if(data_attd.size()==w*h){
-	int i,j;   
-	for(i=1;i<h;i++){
-	  glBegin(GL_QUAD_STRIP);
-	  for(j=0;j<w;j++){
-	    float x,y,z;
-	    int ih=i;
+      if(!shape.id){
+          glNewList(shape(),GL_COMPILE_AND_EXECUTE);
+          if(data_attd.size()==w*h){
+              int i,j;
+              for(i=1;i<h;i++){
+                  glBegin(GL_QUAD_STRIP);
+                  for(j=0;j<w;j++){
+                      float x,y,z;
+                      int ih=i;
 
-	    if(j>0){
-	      vnormal2(x,y,z,
-		       j-1,i-1, data_attd[w*(ih-1)+j-1],
-		       j,i-1, data_attd[w*(ih-1)+j],
-		       j,i, data_attd[w*ih+j]
-		       );
-	      glNormal3f(x,y,z);
+                      if(j>0){
+                          vnormal2(x,y,z,
+                                   j-1,i-1, data_attd[w*(ih-1)+j-1],
+                                   j,i-1, data_attd[w*(ih-1)+j],
+                                   j,i, data_attd[w*ih+j]
+                                   );
+                          glNormal3f(x,y,z);
 
 
-	      glColor3ubv(&img[0][(w*(ih-1)+j)*3]);
-	      glVertex3f(j,i-1, data_attd[w*(ih-1)+j]);
+                          glColor3ubv(&img[0][(w*(ih-1)+j)*3]);
+                          glVertex3f(j,i-1, data_attd[w*(ih-1)+j]);
 
-	      vnormal2(x,y,z,
-		       j,i-1, data_attd[w*(ih-1)+j],
-		       j,i, data_attd[w*ih+j],
-		       j-1,i, data_attd[w*ih+j-1]);	      
-	      glNormal3f(x,y,z);
-	      glColor3ubv(&img[0][(w*(ih)+j)*3]);
-	      glVertex3f(j,i, data_attd[w*ih+j]);
-	    }
+                          vnormal2(x,y,z,
+                                   j,i-1, data_attd[w*(ih-1)+j],
+                                   j,i, data_attd[w*ih+j],
+                                   j-1,i, data_attd[w*ih+j-1]);
+                          glNormal3f(x,y,z);
+                          glColor3ubv(&img[0][(w*(ih)+j)*3]);
+                          glVertex3f(j,i, data_attd[w*ih+j]);
+                      }
 
-	    if(j<w-1){
-	      vnormal2(x,y,z,
-		       j,i, data_attd[w*ih+j],
-		       j,i-1, data_attd[w*(ih-1)+j],
-		       j+1,i-1, data_attd[w*(ih-1)+j+1]);
-	      glNormal3f(x,y,z);
-	      glColor3ubv(&img[0][(w*(ih-1)+j)*3]);
-	      glVertex3f(j,i-1, data_attd[w*(ih-1)+j]);
+                      if(j<w-1){
+                          vnormal2(x,y,z,
+                                   j,i, data_attd[w*ih+j],
+                                   j,i-1, data_attd[w*(ih-1)+j],
+                                   j+1,i-1, data_attd[w*(ih-1)+j+1]);
+                          glNormal3f(x,y,z);
+                          glColor3ubv(&img[0][(w*(ih-1)+j)*3]);
+                          glVertex3f(j,i-1, data_attd[w*(ih-1)+j]);
 
-	      vnormal2(x,y,z,
-		       j+1,i, data_attd[w*ih+j+1],
-		       j,i, data_attd[w*ih+j],
-		       j,i-1, data_attd[w*(ih-1)+j]);	      
-	      glNormal3f(x,y,z);
-	      glColor3ubv(&img[0][(w*(ih)+j)*3]);
-	      glVertex3f(j,i, data_attd[w*ih+j]);
-	    }
+                          vnormal2(x,y,z,
+                                   j+1,i, data_attd[w*ih+j+1],
+                                   j,i, data_attd[w*ih+j],
+                                   j,i-1, data_attd[w*(ih-1)+j]);
+                          glNormal3f(x,y,z);
+                          glColor3ubv(&img[0][(w*(ih)+j)*3]);
+                          glVertex3f(j,i, data_attd[w*ih+j]);
+                      }
 
-	  }
-	  glEnd();
-	}
+                  }
+                  glEnd();
+              }
+          }
+          glEndList();
       }
-      glEndList();
-    }
-    else
-      glCallList(shape());
+      else
+          glCallList(shape());
   }
   glPopName();
 
@@ -309,65 +308,65 @@ void ImagePlane::Draw(DrawCntx *cntx){
   // drawing light control points
   if(image_mode!=image_mode_off && edit_mode == edit_mode_on){
 
-    glDisable(GL_LIGHTING);  
-    glEnable(GL_POINT_SMOOTH); 
-    glPointSize(6);
+      glDisable(GL_LIGHTING);
+      glEnable(GL_POINT_SMOOTH);
+      glPointSize(6);
 
-    glColor3f(1,0,0);
-    glLineWidth(3);
-    glBegin(GL_LINES);
-    glVertex3f(w*0.5f,h*0.5f-3.f,0.f);
-    glVertex3f(w*0.5f,h*0.5f+3.f,0.f);
-    glVertex3f(w*0.5f-3.f,h*0.5f,0.f);
-    glVertex3f(w*0.5f+3.f,h*0.5f,0.f);
-    glEnd();
-
-    int cursel=-1;
-    int i;
-    for(i=0;i<4;i++){
-      if(glsel_lightcur==glsel_light[i]){
-	glColor3f(1,1,0);
-	cursel=i;
-      }    
-      else
-	glColor3f(1,0,0);
-
-      glPushName(glsel_light[i]);
-      glBegin(GL_POINTS);
-      glVertex3f(
-		 (w+lights[i][0]*h)*0.5f,
-		 (h+lights[i][1]*h)*0.5f,
-		 0
-		 );
-      //glVertex3f(w,h,0);
+      glColor3f(1,0,0);
+      glLineWidth(3);
+      glBegin(GL_LINES);
+      glVertex3f(w*0.5f,h*0.5f-3.f,0.f);
+      glVertex3f(w*0.5f,h*0.5f+3.f,0.f);
+      glVertex3f(w*0.5f-3.f,h*0.5f,0.f);
+      glVertex3f(w*0.5f+3.f,h*0.5f,0.f);
       glEnd();
-      glPopName();
-    }
+
+      int cursel=-1;
+      int i;
+      for(i=0;i<4;i++){
+          if(glsel_lightcur==glsel_light[i]){
+              glColor3f(1,1,0);
+              cursel=i;
+          }
+          else
+              glColor3f(1,0,0);
+
+          glPushName(glsel_light[i]);
+          glBegin(GL_POINTS);
+          glVertex3f(
+              (w+lights[i][0]*h)*0.5f,
+              (h+lights[i][1]*h)*0.5f,
+              0
+              );
+          //glVertex3f(w,h,0);
+          glEnd();
+          glPopName();
+      }
 
     if(cursel>=0){
-      glColor3f(1,1,0);
-      float dist = h*0.5*sqrt(lights[cursel][0]*lights[cursel][0]+
-			      lights[cursel][1]*lights[cursel][1]);
+        glColor3f(1,1,0);
+        float dist = h*0.5*sqrt(lights[cursel][0]*lights[cursel][0]+
+                                    lights[cursel][1]*lights[cursel][1]);
 
-      glMatrixMode(GL_MODELVIEW);
-      glPushMatrix();
-      glTranslatef(w*0.5,h*0.5,0);
-      glScalef(dist,dist,1);
-      if(!circle.id) {
-	// drawing circle
-	glNewList(circle(),GL_COMPILE_AND_EXECUTE);
-	int i;
-	glBegin(GL_LINE_STRIP);
-	for(i=0;i<46;i++){
-	  glVertex3f(sin(i*2*M_PI/45.f),cos(i*2*M_PI/45.f),0.f);
-	}
-	glEnd();
-	glEndList();  
-      }
-      else{
-	glCallList(circle());      
-      }
-      glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glTranslatef(w*0.5,h*0.5,0);
+        glScalef(dist,dist,1);
+        if(!circle.id) {
+            // drawing circle
+            glNewList(circle(),GL_COMPILE_AND_EXECUTE);
+            int i;
+            glBegin(GL_LINE_STRIP);
+            for(i=0;i<46;i++){
+                glVertex3f(sin(i*2*M_PI/45.f),cos(i*2*M_PI/45.f),0.f);
+            }
+            glEnd();
+            glEndList();
+        }
+        else{
+            glCallList(circle());
+        }
+        glPopMatrix();
     }
 
     glColor3f(1,1,1);

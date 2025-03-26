@@ -51,7 +51,9 @@ else()
   message(FATAL_ERROR "Please, define WINDOWS_EXTERNAL_LIBS_PATH varable")
 endif()
 
-if(MSVC)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  add_compile_options(-Wno-overriding-option)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # options for debugging in RelWithDebInfo (it seems same as RelWithDebInfo)
     #set(RELEASE_FOR_DEBUG_CXX_OPTIONS /JMC /Zi /Od /MD)
 
@@ -62,10 +64,6 @@ if(MSVC)
     set(RELEASE_FOR_DEBUG_LINKER_OPTIONS /DEBUG:FULL /OPT:REF /OPT:ICF /INCREMENTAL:NO /IGNORE:4099)
 endif()
 
-
-
-#set(glm_DIR <installation prefix>/lib/cmake/glm) # if necessary
-#find_path_by_regex(glm_DIR "glm/install/lib/cmake/glm" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} )
 
 find_package(glm REQUIRED)
 
@@ -203,6 +201,7 @@ set(PROJECT_SOURCES
     apputil/storagestreamsimplexml.h apputil/storagestreamsimplexml.cpp
     apputil/storagestreamindexedbinary.h apputil/storagestreamindexedbinary.cpp
     apputil/base64encoder.cpp apputil/base64encoder.h
+    apputil/compatibility.cpp apputil/compatibility.h
 
     mathlib/lapackcpp/lapackcpp.h
     mathlib/lapackcpp/invert.cpp

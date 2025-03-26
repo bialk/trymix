@@ -136,9 +136,9 @@ public:
 
 class Surf2GL{
 public:
-  Surf *surf;
-  Texture *txtr;
-  MapTxtrCoord *maptxtr;
+  Surf *surf = nullptr;
+  Texture *txtr = nullptr;
+  MapTxtrCoord *maptxtr = nullptr;
   std::vector<Ptn> norms;
 
   int SetTxtr(Surf *surface,Texture *texture, MapTxtrCoord *maptexture);

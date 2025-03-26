@@ -12,32 +12,32 @@
 //==============================================================================
 
 void D3DG1obj::open(const char* filename){
-  FILE *f = fopen(filename, "r");
-  if (!f) { err_printf(("Can't open file \"%s\"\n",filename)); return; }
+    FILE *f = nullptr;
+  if (fopen_s(&f, filename, "r")) { err_printf(("Can't open file \"%s\"\n",filename)); return; }
   char fcode[10];
   int nv=0;
-  fscanf(f,"%10s", fcode);
+  fscanf_s(f,"%10s", fcode, (unsigned)_countof(fcode));
   if ( strncmp(fcode,"3DG1",4) ) { 
     err_printf(("Wrong file format \"%s\" \n",filename));
     fclose(f);
   }
-  fscanf(f,"%i",&nv);
+  fscanf_s(f,"%i",&nv);
   vtx.resize(nv);
   int i;
   for(i=0;i<nv;i++){
-    fscanf(f,"%f %f %f ", &vtx[i].x, &vtx[i].y, &vtx[i].z);
+    fscanf_s(f,"%f %f %f ", &vtx[i].x, &vtx[i].y, &vtx[i].z);
   }
     
   while(!feof(f)){
     int k,c,i1,i2,i3,i4;
-    fscanf(f,"%i",&k); 
+    fscanf_s(f,"%i",&k);
     switch(k){
     case 3:
-      fscanf(f,"%i %i %i %x", &i1, &i2, &i3, (unsigned int*)&c);
+      fscanf_s(f,"%i %i %i %x", &i1, &i2, &i3, (unsigned int*)&c);
       triangle(i1,i2,i3,c);
       break;
     case 4: 
-      fscanf(f,"%i %i %i %i %x",  &i1, &i2, &i3, &i4, (unsigned int*)&c);
+      fscanf_s(f,"%i %i %i %i %x",  &i1, &i2, &i3, &i4, (unsigned int*)&c);
       quadriple(i1,i2,i3,i4,c);
       break;
     }

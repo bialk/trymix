@@ -121,7 +121,7 @@ public:
       cx.popHandler();
     };
 
-    addReact("K:C:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
+    addReact("K:C:DOWN+M:L:DOWN") = [this](EventContext3D& cx)
     {
       // Setting center of rotation shifted to the half of the viewport area. This is due
       // to additional transformation we apply before (see paint method). We set coordinate
@@ -133,7 +133,7 @@ public:
       cx.pushHandler(&m_mouseDragScale);
     };
 
-    addReact("K:Z:DOWN+M:L:DOWN") = [=](EventContext3D& cx)
+    addReact("K:Z:DOWN+M:L:DOWN") = [this](EventContext3D& cx)
     {
       vpc.beginTranslateXY();
       m_startXY[0] = cx.x();

@@ -218,12 +218,12 @@ void CompoundTexture::Map(float x, float y){
       vtx3.p=vtx3.p*vtx3.d+surf->cnt;
 
       float x,y,z;
-      if(norms.size()==0){    
-	vnormal2(x,y,z,
+      if(norms.size()==0){
+        vnormal2(x,y,z,
 		 vtx2.p.x,vtx2.p.y,vtx2.p.z,
 		 vtx3.p.x,vtx3.p.y,vtx3.p.z,
 		 vtx1.p.x,vtx1.p.y,vtx1.p.z );
-	glNormal3f(x,y,z);
+        glNormal3f(x,y,z);
       }
       
       if(txtr){
@@ -283,7 +283,7 @@ int Surf2GL2::SetTxtr(Surf *surface,Texture *texture, SurfTxtr *surftx){
   return 1;
 }
 
-  void Surf2GL2::operator()(){
+void Surf2GL2::operator()(){
 
     if(txtr) txtr->Begin();
     int k, n=surf->trg.size();
@@ -292,58 +292,58 @@ int Surf2GL2::SetTxtr(Surf *surface,Texture *texture, SurfTxtr *surftx){
     SurfTxtr::Ttx tc[3];
     
     for(k=0;k<n;k++) {    
-      Surf::TTrg &trg = surf->trg[k];
-      Surf::TVtx vtx1 = surf->vtx[trg.i1];
-      Surf::TVtx vtx2 = surf->vtx[trg.i2];
-      Surf::TVtx vtx3 = surf->vtx[trg.i3];
-      vtx1.p=vtx1.p*vtx1.d+surf->cnt;
-      vtx2.p=vtx2.p*vtx2.d+surf->cnt;
-      vtx3.p=vtx3.p*vtx3.d+surf->cnt;
+        Surf::TTrg &trg = surf->trg[k];
+        Surf::TVtx vtx1 = surf->vtx[trg.i1];
+        Surf::TVtx vtx2 = surf->vtx[trg.i2];
+        Surf::TVtx vtx3 = surf->vtx[trg.i3];
+        vtx1.p=vtx1.p*vtx1.d+surf->cnt;
+        vtx2.p=vtx2.p*vtx2.d+surf->cnt;
+        vtx3.p=vtx3.p*vtx3.d+surf->cnt;
 
-      float x,y,z;
-      if(norms.size()==0){    
-	vnormal2(x,y,z,
-		 vtx2.p.x,vtx2.p.y,vtx2.p.z,
-		 vtx3.p.x,vtx3.p.y,vtx3.p.z,
-		 vtx1.p.x,vtx1.p.y,vtx1.p.z );
-	glNormal3f(x,y,z);
-      }   
+        float x,y,z;
+        if(norms.size()==0){
+            vnormal2(x,y,z,
+                     vtx2.p.x,vtx2.p.y,vtx2.p.z,
+                     vtx3.p.x,vtx3.p.y,vtx3.p.z,
+                     vtx1.p.x,vtx1.p.y,vtx1.p.z );
+            glNormal3f(x,y,z);
+        }
 
-      if(txtr){
+        if(txtr){
 
-	Surf::TTrg &ttrg = stxr->trg[k];
+            Surf::TTrg &ttrg = stxr->trg[k];
 
-	tc[0] = stxr->tx[ttrg.i1];
-	tc[1] = stxr->tx[ttrg.i2];
-	tc[2] = stxr->tx[ttrg.i3];
+            tc[0] = stxr->tx[ttrg.i1];
+            tc[1] = stxr->tx[ttrg.i2];
+            tc[2] = stxr->tx[ttrg.i3];
 
-	if(tc[0].x == -1 || tc[1].x == -1 || tc[2].x ==-1){
-	  txtr->MapTriangle2d(-1.0,-1.0);
-	  tc[0].x=tc[1].x=tc[2].x=tc[0].y=tc[1].y=tc[2].y=-1;
-	}
-	else
-	  tc[0].x*=txtr->cmpdtxtr.szx;  tc[0].y*=txtr->cmpdtxtr.szy;
-	  tc[1].x*=txtr->cmpdtxtr.szx;  tc[1].y*=txtr->cmpdtxtr.szy;
-	  tc[2].x*=txtr->cmpdtxtr.szx;  tc[2].y*=txtr->cmpdtxtr.szy;
-	  txtr->MapTriangle2d((tc[0].x+tc[1].x+tc[2].x)/3,(tc[0].y+tc[1].y+tc[2].y)/3);
-      }
+            if(tc[0].x == -1 || tc[1].x == -1 || tc[2].x ==-1){
+                txtr->MapTriangle2d(-1.0,-1.0);
+                tc[0].x=tc[1].x=tc[2].x=tc[0].y=tc[1].y=tc[2].y=-1;
+            }
+            else
+                tc[0].x*=txtr->cmpdtxtr.szx;  tc[0].y*=txtr->cmpdtxtr.szy;
+            tc[1].x*=txtr->cmpdtxtr.szx;  tc[1].y*=txtr->cmpdtxtr.szy;
+            tc[2].x*=txtr->cmpdtxtr.szx;  tc[2].y*=txtr->cmpdtxtr.szy;
+            txtr->MapTriangle2d((tc[0].x+tc[1].x+tc[2].x)/3,(tc[0].y+tc[1].y+tc[2].y)/3);
+        }
 
-      glBegin(GL_TRIANGLES);
-      if(norms.size()){ Ptn *p=&norms[trg.i1];	glNormal3f(p->x,p->y,p->z); }
-      if(txtr) txtr->Map2d(tc[0].x,tc[0].y); 
-      glVertex3f(vtx1.p.x,vtx1.p.y,vtx1.p.z);
+        glBegin(GL_TRIANGLES);
+        if(norms.size()){ Ptn *p=&norms[trg.i1];	glNormal3f(p->x,p->y,p->z); }
+        if(txtr) txtr->Map2d(tc[0].x,tc[0].y);
+        glVertex3f(vtx1.p.x,vtx1.p.y,vtx1.p.z);
 
-      if(norms.size()){ Ptn *p=&norms[trg.i2];	glNormal3f(p->x,p->y,p->z); }
-      if(txtr) txtr->Map2d(tc[1].x,tc[1].y); 
-      glVertex3f(vtx2.p.x,vtx2.p.y,vtx2.p.z);
+        if(norms.size()){ Ptn *p=&norms[trg.i2];	glNormal3f(p->x,p->y,p->z); }
+        if(txtr) txtr->Map2d(tc[1].x,tc[1].y);
+        glVertex3f(vtx2.p.x,vtx2.p.y,vtx2.p.z);
 
-      if(norms.size()){ Ptn *p=&norms[trg.i3];	glNormal3f(p->x,p->y,p->z); }
-      if(txtr) txtr->Map2d(tc[2].x,tc[2].y); 
-      glVertex3f(vtx3.p.x,vtx3.p.y,vtx3.p.z);
-      glEnd();
+        if(norms.size()){ Ptn *p=&norms[trg.i3];	glNormal3f(p->x,p->y,p->z); }
+        if(txtr) txtr->Map2d(tc[2].x,tc[2].y);
+        glVertex3f(vtx3.p.x,vtx3.p.y,vtx3.p.z);
+        glEnd();
     }
     if(txtr) txtr->End();
-  }
+}
 
 
 

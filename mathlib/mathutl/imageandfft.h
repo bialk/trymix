@@ -17,8 +17,11 @@ public:
 template<class T>
 int StorePPM(T *rgb, int szx, int szy, const char *name="test.ppm"){
   if(!rgb) {err_printf(("StorePPM: input array is zero\n")); return 1;}
-  FILE *h = fopen(name,"wb");    
-  if(!h) {err_printf(("StorePPM: can't open file (check the filename (\"%s\")\n",name)); return 1;}
+  FILE *h = nullptr;
+  if(fopen_s(&h, name,"wb")) {
+     err_printf(("StorePPM: can't open file (check the filename (\"%s\")\n",name));
+     return 1;
+  }
   fprintf(h,"P6\n%i %i\n255\n",szx,szy);        
   int i,j;
   for(j=0;j<szy;j++)
@@ -34,9 +37,9 @@ int StorePPM(T *rgb, int szx, int szy, const char *name="test.ppm"){
 
 template<class T>
 int LoadPPM(rgbimg<T> &rgb,const char *name="test.ppm"){
-  if(!&rgb) {err_printf(("LoadPPM: input array is zero\n")); return 1;}
-  FILE *h = fopen(name,"rb");    
-  if(!h) {err_printf(("LoadPPM: can't open file (check the filename (\"%s\")\n",name)); return 1;}
+  if(rgb.empty()) {err_printf(("LoadPPM: input array is zero\n")); return 1;}
+  FILE *h = nullptr;
+  if(fopen_s(&h,name,"rb")) {err_printf(("LoadPPM: can't open file (check the filename (\"%s\")\n",name)); return 1;}
   char s[255];
   //fscanf(h,"%s\n%i %i\n",s,&rgb.szx,&rgb.szy);
   
@@ -47,10 +50,10 @@ int LoadPPM(rgbimg<T> &rgb,const char *name="test.ppm"){
   }
   
   do fgets(s,255,h);  while(s[0]=='#');
-  sscanf(s,"%i %i",&rgb.szx,&rgb.szy);
+  sscanf_s(s,"%i %i",&rgb.szx,&rgb.szy);
 
   int maxval;
-  fscanf(h,"%i",&maxval);
+  fscanf_s(h,"%i",&maxval);
   
   // scan until the data begins
   while( 1==fread(&s,1,1,h) && s[0]!='\n' ){};

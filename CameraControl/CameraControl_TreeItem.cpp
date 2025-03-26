@@ -26,7 +26,7 @@ public:
     :m_vp(vc)
     ,m_lights(lights)
   {
-    addReact("M:L:DOWN") = [=](EventContext3D& cx)
+    addReact("M:L:DOWN") = [this](EventContext3D& cx)
     {
       //try to see if anything selected on screen
       auto id = cx.select();
@@ -47,7 +47,7 @@ public:
           cx.update();
         };
 
-        addReact("S:RESIZE") = [=](EventContext3D& cx)
+        addReact("S:RESIZE") = [this](EventContext3D& cx)
         {
           m_vp->updateProjectionMtrx(cx.w(),cx.h());
           cx.update();
@@ -58,7 +58,7 @@ public:
       cx.update();
     };
 
-    m_mouseDragLight.addReact("M:MOVE") = [=](EventContext3D& cx){
+    m_mouseDragLight.addReact("M:MOVE") = [this](EventContext3D& cx){
       m_lights->lightrcont(cx.x(),cx.y());
       cx.update();
     };
@@ -68,12 +68,12 @@ public:
       cx.popHandler();
     };
 
-    addReact("K:C:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::Scale; };
-    addReact("K:X:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::origRotate; };
-    addReact("K:Z:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::CamRotate; };
-    addReact("K:V:DOWN") = [=](EventContext3D& cx){  Op = ViewCtrl::Opercode::FoV; };
+    addReact("K:C:DOWN") = [this](EventContext3D& cx){  Op = ViewCtrl::Opercode::Scale; };
+    addReact("K:X:DOWN") = [this](EventContext3D& cx){  Op = ViewCtrl::Opercode::origRotate; };
+    addReact("K:Z:DOWN") = [this](EventContext3D& cx){  Op = ViewCtrl::Opercode::CamRotate; };
+    addReact("K:V:DOWN") = [this](EventContext3D& cx){  Op = ViewCtrl::Opercode::FoV; };
 
-    addReact("S:RESIZE") = [=](EventContext3D& cx)
+    addReact("S:RESIZE") = [this](EventContext3D& cx)
     {
       m_vp->updateProjectionMtrx(cx.w(),cx.h());
       cx.update();
