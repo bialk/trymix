@@ -100,10 +100,11 @@ endif()
 
 #set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
 find_package(CGAL REQUIRED COMPONENTS Core)
-
 # example to copy dlls if necessary
-# string(REPLACE ".lib" ".dll" GMP_DLL "${GMP_LIBRARIES}")
-# list(APPEND FOR_COPY_TO_BINARY_DIR ${GMP_DLL})
+if(WIN32)
+file(GLOB_RECURSE CGAL_DLLS "${CGAL_ROOT}/*.dll")
+list(APPEND FOR_COPY_TO_BINARY_DIR ${CGAL_DLLS})
+endif()
 
 ################# FREEIMAGE_LIB #################
 

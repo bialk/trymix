@@ -11,8 +11,8 @@ class DrawCntx;
 class ToolPanel: public EditViewObj{
   std::vector<EditViewObj*> iconvector;
  public:
-  ViewCtrl *m_viewctrl;
-  int show;
+  ViewCtrl *m_viewctrl = nullptr;
+  int show = 1;
   void Draw(DrawCntx *cntx);
   void TreeScan(TSOCntx *cntx);
   void AskForData(sV2::Serializer *s);

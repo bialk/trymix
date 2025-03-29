@@ -101,6 +101,7 @@ CameraControl_TreeItem::CameraControl_TreeItem()
 
   m_viewCtrl->TreeScan(&TSOCntx::TSO_LayoutLoad);
   m_viewCtrlEH.reset(new EventHandler_PositionController(m_viewCtrl.get(),m_lights.get()));
+  m_toolsPanel->TreeScan(&TSOCntx::TSO_Init);
 
 
   setData(0,Qt::DisplayRole, name());
