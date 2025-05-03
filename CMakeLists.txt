@@ -203,6 +203,7 @@ set(PROJECT_SOURCES
     apputil/storagestreamindexedbinary.h apputil/storagestreamindexedbinary.cpp
     apputil/base64encoder.cpp apputil/base64encoder.h
     apputil/compatibility.cpp apputil/compatibility.h
+    apputil/parallelWithBarrier.h
 
     mathlib/lapackcpp/lapackcpp.h
     mathlib/lapackcpp/invert.cpp

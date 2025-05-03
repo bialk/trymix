@@ -6,6 +6,7 @@
 #include <atomic>
 #include <sstream>
 #include <glm/glm.hpp>
+#include "apputil/parallelWithBarrier.h"
 
 //##################################################################################################
 /*!
@@ -63,7 +64,8 @@ void boxBlurH_4(float* scl_, float* tcl_, size_t w, size_t h, size_t r)
   const float iarr = 1.0f / float(r + r + 1);
 
   std::atomic<std::size_t> c{0};
-  parallel([&](auto /*threadNum*/)
+  parallelWithBarrier([&](auto /*threadNum*/, auto& /*bwc*/)
+  // parallel([&](auto /*threadNum*/)
   {
     for(size_t i = c++;i<h; i=c++)
     {
