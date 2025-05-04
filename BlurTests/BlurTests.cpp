@@ -2,6 +2,7 @@
 
 #include "GaussBlurEngine.h"
 #include "BoxBlur.h"
+#include "apputil/parallelWithBarrier.h"
 
 #include <QDebug>
 #include <QImage>
@@ -46,7 +47,7 @@ int blurTest(int width, int height, int radius, int chessBoxSize, QImage& qimg, 
   std::atomic<size_t> row{0};
   auto w4 =width*4;
   auto testImagePtr = testImageIn.get();
-  parallel([&](auto /*threadNum*/){
+  parallelWithBarrier([&](auto /*threadNum*/, auto& /*bwc*/){
     for( auto r = row++; r<height; r = row++){
       auto rdestp = qimgPtr + r*width*4;
       auto rsrcp  = testImagePtr + r*width*3;

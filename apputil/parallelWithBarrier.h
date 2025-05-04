@@ -68,9 +68,22 @@ void parallelWithBarrier(T worker)
   for(size_t i=0; i<threads; i++)
   {
     bwc.lock();
-    workers.emplace_back([&]{ worker(i, bwc); bwc.unlock(); });
+    workers.emplace_back([&, i]{ worker(i, bwc); bwc.unlock(); });
   }
   bwc.wait();
   for(auto& thread : workers)
     thread.join();
 };
+
+//##################################################################################################
+template<typename T>
+void parallel(T worker)
+{
+    size_t threads = std::thread::hardware_concurrency();
+    std::vector<std::thread> workers;
+    workers.reserve(threads);
+    for(size_t i=0; i<threads; i++)
+        workers.emplace_back([&]{worker(i);});
+    for(auto& thread : workers)
+        thread.join();
+}
