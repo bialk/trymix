@@ -6,10 +6,11 @@
 #include <functional>
 #include <queue>
 
-class BarrierWithCounter
+class BarrierWithRunLoop
 {
 public:
-  BarrierWithCounter() = default;
+  BarrierWithRunLoop() = default;
+  ~BarrierWithRunLoop() = default;
 
   void lock()
   {
@@ -58,9 +59,9 @@ private:
 };
 
 template<typename T>
-void parallelWithBarrier(T worker)
+void parallelWithRunLoop(T worker)
 {
-  BarrierWithCounter bwc;
+  BarrierWithRunLoop bwc;
 
   size_t threads = std::thread::hardware_concurrency();
   std::vector<std::thread> workers;
@@ -68,7 +69,7 @@ void parallelWithBarrier(T worker)
   for(size_t i=0; i<threads; i++)
   {
     bwc.lock();
-    workers.emplace_back([&, i]{ worker(i, bwc); bwc.unlock(); });
+    workers.emplace_back([&, i]{ worker(threads, i, bwc); bwc.unlock(); });
   }
   bwc.wait();
   for(auto& thread : workers)

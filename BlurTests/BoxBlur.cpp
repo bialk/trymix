@@ -64,7 +64,7 @@ void boxBlurH_4(float* scl_, float* tcl_, size_t w, size_t h, size_t r)
   const float iarr = 1.0f / float(r + r + 1);
 
   std::atomic<std::size_t> c{0};
-  parallelWithBarrier([&](auto /*threadNum*/, auto& /*bwc*/)
+  parallelWithRunLoop([&](auto /*threadTotal*/, auto /*threadNum*/, auto& /*bwc*/)
   // parallel([&](auto /*threadNum*/)
   {
     for(size_t i = c++;i<h; i=c++)
