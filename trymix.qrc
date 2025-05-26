@@ -3,4 +3,7 @@
         <file>trymix.png</file>
         <file>trymix.ico</file>
     </qresource>
+    <qresource prefix="/samples">
+        <file>apputil/ProcessAsServer_test_sample.py</file>
+    </qresource>
 </RCC>

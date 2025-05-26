@@ -75,11 +75,19 @@ find_package(${QtVer} REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets  Linguist
 
 ################### Boost #######################
 
-find_package(Boost 1.86 REQUIRED)
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+
+find_package(Boost 1.86 REQUIRED COMPONENTS process)
 
 ################### OpenGL ######################
 
 find_package(OpenGL REQUIRED)
+
+############### nlohmann_json ###################
+
+find_package(nlohmann_json 3.12.0 REQUIRED)
 
 ################### OpenGL ######################
 # example to specify version to locate: CUDAToolkit_ROOT = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1"
@@ -204,6 +212,10 @@ set(PROJECT_SOURCES
     apputil/base64encoder.cpp apputil/base64encoder.h
     apputil/compatibility.cpp apputil/compatibility.h
     apputil/parallelWithBarrier.h
+
+    apputil/processAsServer.h
+    apputil/processAsServer.cpp
+    apputil/processAsServer_test.cpp
 
     mathlib/lapackcpp/lapackcpp.h
     mathlib/lapackcpp/invert.cpp
@@ -336,6 +348,8 @@ target_link_libraries(trymix PRIVATE
     glm::glm
     CUDA::OpenCL
     Eigen3::Eigen
+    nlohmann_json::nlohmann_json
+    Boost::process
 )
 
 set_target_properties(trymix PROPERTIES

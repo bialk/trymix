@@ -10,6 +10,9 @@
 #include <QCommandLineParser>
 #include <QStyleFactory>
 
+// test definitions
+void test_ProcessAsServer();
+
 int main(int argc, char *argv[])
 {
   QApplication a(argc, argv);  
@@ -61,7 +64,7 @@ int main(int argc, char *argv[])
     parser.addVersionOption();
     // An option with a value
     QCommandLineOption testOption({{ "t", "test"},
-                                   "run test, where <testname> in {(s)erializer}",
+                                   "run test, where <testname> in {(s)erializer, (p)rocessAsServer}",
                                    "testname", "serializer"});
     parser.addOption(testOption);
     parser.process(a);
@@ -74,6 +77,10 @@ int main(int argc, char *argv[])
         sV2::TestAll testall;
         return 0;
       }
+      if(testOptionName == "p" || testOptionName == "processAsServer"){
+        test_ProcessAsServer();
+      }
+
       qWarning() << parser.helpText();
       return 0;
     }
