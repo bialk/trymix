@@ -7,6 +7,9 @@ def exec_command():
     time.sleep(1)
     return "command_a_completed"
 
+def send_reply(reply):
+    sys.stdout.write("eof-json"+json.dumps(reply)+"eof-json")
+
 if __name__ == "__main__":
 
     print("Initializing...")
@@ -19,17 +22,17 @@ if __name__ == "__main__":
             command = request["command"]
             if command == "command_a":
                 request["result"]=exec_command()
-                sys.stdout.write("eof-json"+json.dumps(request)+"eof-json")
+                send_reply(request)
             elif command == "exit":
                 request["result"]="output"
-                sys.stdout.write("eof-json"+json.dumps(request)+"eof-json")
+                send_reply(request)
                 quit(0)
             elif command == "crash":
                 5/0 # zero division for crash
-                sys.stdout.write("{}:{}:{}\n".format("command", line, time.time()))
+                print("{}:{}:{}\n".format("command", line, time.time()))
                 quit(0)
             else:
-                sys.stdout.write("{}:{}:{}\n".format("unknown command", line, time.time()))
+                print("{}:{}:{}\n".format("unknown command", line, time.time()))
 
     except Exception:
         error_msg = traceback.format_exc()

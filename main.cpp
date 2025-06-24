@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
       }
       if(testOptionName == "p" || testOptionName == "processAsServer"){
         test_ProcessAsServer();
+        return 0;
       }
 
       qWarning() << parser.helpText();

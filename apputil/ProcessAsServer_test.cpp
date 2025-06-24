@@ -15,7 +15,6 @@ test_ProcessAsServer();
 //#####################################################################################
 void test_ProcessAsServer()
 {
-
   QResource python_sample_data(":/samples/apputil/ProcessAsServer_test_sample.py");
   std::string python_sample = QByteArray((char*)python_sample_data.data(),python_sample_data.size()).toStdString();
 
@@ -70,6 +69,6 @@ void test_ProcessAsServer()
 
   test(normal);
   test(with_crash_before_exit);
-  test(with_crash_after_exit);
+  test(with_crash_after_exit);  
 }
 

@@ -10,6 +10,8 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
+set(CMAKE_CXX_STANDARD 23)
+
 ###################################################################################
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/config.cmake")
   include("${CMAKE_CURRENT_LIST_DIR}/config.cmake")
@@ -80,6 +82,13 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
 find_package(Boost 1.86 REQUIRED COMPONENTS process)
+if(WIN32)
+  get_target_property(boost_process_lib Boost::process IMPORTED_LOCATION_RELEASE)
+  list(APPEND FOR_COPY_TO_BINARY_DIR "${boost_process_lib}")
+  get_target_property(boost_filesystem_lib Boost::filesystem IMPORTED_LOCATION_RELEASE)
+  list(APPEND FOR_COPY_TO_BINARY_DIR "${boost_filesystem_lib}")
+endif()
+
 
 ################### OpenGL ######################
 
@@ -213,9 +222,13 @@ set(PROJECT_SOURCES
     apputil/compatibility.cpp apputil/compatibility.h
     apputil/parallelWithBarrier.h
 
-    apputil/processAsServer.h
-    apputil/processAsServer.cpp
-    apputil/processAsServer_test.cpp
+    apputil/ProcessWithBiPipes.h
+    apputil/ProcessWithBiPipes.cpp
+    # apputil/processAsServer_test.cpp
+
+    apputil/ProcessAsServer.h
+    apputil/ProcessAsServer.cpp
+    apputil/ProcessAsServer_test.cpp
 
     mathlib/lapackcpp/lapackcpp.h
     mathlib/lapackcpp/invert.cpp
@@ -350,6 +363,7 @@ target_link_libraries(trymix PRIVATE
     Eigen3::Eigen
     nlohmann_json::nlohmann_json
     Boost::process
+    Boost::filesystem
 )
 
 set_target_properties(trymix PROPERTIES
