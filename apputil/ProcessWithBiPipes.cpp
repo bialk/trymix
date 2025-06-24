@@ -62,14 +62,14 @@ ProcessWithBiPipes::ProcessWithBiPipes(std::string const& commandLine,
 //#####################################################################################
 ProcessWithBiPipes::~ProcessWithBiPipes()
 {
-  // std::cout() << "Exitting...";
+  // std::cout() << "Exitting..." << std::endl;
   std::error_code ec;
   child_process.wait(ec);
-  // std::cout() << "child process wait: " << ec.message();
+  // std::cout() << "child process wait: " << ec.message() << std::endl;
   read_thread->join();
   in_pipe.close();
   out_pipe.close();
-  // std::cout() << "Exit code from process:" << child_process.exit_code();
+  // std::cout() << "Exit code from process:" << child_process.exit_code() << std::endl;
 }
 
 //#####################################################################################

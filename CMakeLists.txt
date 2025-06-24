@@ -224,7 +224,6 @@ set(PROJECT_SOURCES
 
     apputil/ProcessWithBiPipes.h
     apputil/ProcessWithBiPipes.cpp
-    # apputil/processAsServer_test.cpp
 
     apputil/ProcessAsServer.h
     apputil/ProcessAsServer.cpp

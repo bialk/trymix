@@ -50,16 +50,16 @@ void ProcessAsServer::processChunk(std::string_view const& messageChunk)
   try
   {
     nlohmann::json j = nlohmann::json::parse(messageChunk);
-    // std::cout << "No exceptoin: Valid JSON!";
+    // std::cout << "No exceptoin: Valid JSON!" << std::endl;
     if(j.contains("correlationId"))
       fulfillPromise(j["correlationId"].get<std::string>(), std::string(messageChunk));
     else
-      std::cout << messageChunk;
+      std::cout << messageChunk << std::endl;
   }
   catch (nlohmann::json::parse_error& /*e*/)
   {
     // if not json - just outputting message from process to the log
-    std::cout << messageChunk;
+    std::cout << messageChunk << std::endl;
   }
 }
 
@@ -95,7 +95,7 @@ void ProcessAsServer::fulfillPromise(std::string const& correlationId, std::stri
   // we expect promise
   assert(promiseIt != promises.end());
   if(promiseIt == promises.end()){
-    std::cout << "no promise found: Invalid correlationId!";
+    std::cout << "no promise found: Invalid correlationId!" << std::endl;
     return;
   }
 
