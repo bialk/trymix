@@ -10,7 +10,12 @@
 #define CL_HPP_ENABLE_EXCEPTIONS
 #define CL_HPP_MINIMUM_OPENCL_VERSION 200
 #define CL_HPP_TARGET_OPENCL_VERSION 200
-#include <CL/cl.hpp>
+
+// I replaced cl.hpp provided by NVIDIA 12.9.1 with opencl from
+// khronos (https://github.com/KhronosGroup/OpenCL-CLHPP/tree/main/include/CL)
+// Original does not want to compile it has missing definition
+//#include <CL/cl.hpp>
+#include "khronos_cl.hpp"
 
 #define CaseReturnString(x) case x: return #x;
 

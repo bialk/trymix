@@ -1,5 +1,5 @@
 #include "ProcessWithBiPipes.h"
-#include <boost/process/windows.hpp>
+#include <boost/process/v1/windows.hpp>
 
 //#####################################################################################
 ProcessWithBiPipes::ProcessWithBiPipes(std::string const& commandLine,
