@@ -221,6 +221,8 @@ set(PROJECT_SOURCES
     apputil/base64encoder.cpp apputil/base64encoder.h
     apputil/compatibility.cpp apputil/compatibility.h
     apputil/parallelWithBarrier.h
+    apputil/fillChessBoard.h
+    apputil/fillChessBoard.cpp
 
     apputil/ProcessWithBiPipes.h
     apputil/ProcessWithBiPipes.cpp
@@ -267,6 +269,12 @@ set(PROJECT_SOURCES
     BlurTests/BlurTests.cpp BlurTests/BlurTests.cpp
     BlurTests/BoxBlur.cpp BlurTests/BoxBlur.h
     BlurTests/GaussBlurEngine.cpp BlurTests/GaussBlurEngine.h
+
+    MRFSegm/MRFSegm.cpp
+    MRFSegm/MRFSegm.h
+    MRFSegm/MRFSegm_TreeItem.cpp
+    MRFSegm/MRFSegm_TreeItem.h
+    MRFSegm/MRFSegm_panel.ui
 
     trymix.qrc
 

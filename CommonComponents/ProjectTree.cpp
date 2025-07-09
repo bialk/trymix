@@ -4,6 +4,7 @@
 #include "SFSBuilder/SFSBuilder_TreeItem.h"
 #include "CameraControl/CameraControl_TreeItem.h"
 #include "BlurTests/BlurTests_TreeItem.h"
+#include "MRFSegm/MRFSegm_TreeItem.h"
 #include "ShaderMix/ShaderMix_TreeItem.h"
 #include "CentralWidget.h"
 #include "mainwindow.h"
@@ -19,7 +20,8 @@ std::vector<ProjectTree::AbstractFactoryItem *> const& ProjectTree::TreeItemFact
         new FactoryItem<SFSBuilder_TreeItem>,
         new FactoryItem<CameraControl_TreeItem>,
         new FactoryItem<BlurTests_TreeItem>,
-        new FactoryItem<ShaderMix_TreeItem>
+        new FactoryItem<ShaderMix_TreeItem>,
+        new FactoryItem<MRFSegm_TreeItem>
   };
 
   return treeItems;

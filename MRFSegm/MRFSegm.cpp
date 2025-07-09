@@ -1,7 +1,7 @@
-#include "BlurTests.h"
+#include "MRFSegm.h"
 
-#include "GaussBlurEngine.h"
-#include "BoxBlur.h"
+// #include "GaussBlurEngine.h"
+// #include "BoxBlur.h"
 #include "apputil/parallelWithBarrier.h"
 #include "apputil/fillChessBoard.h"
 
@@ -9,24 +9,27 @@
 #include <QImage>
 #include <QDateTime>
 
-int blurTest(int width, int height, int radius, int chessBoxSize, QImage& qimg, bool opencl_bool)
+int MRFSegm_Test(int width, int height, int radius, int chessBoxSize, QImage& qimg, bool opencl_bool)
 {
-  std::unique_ptr<float[]> testImageIn(new float[width*height*3]);  
+  auto startTime = QDateTime::currentDateTime();
+  auto msec_spent = startTime.msecsTo(QDateTime::currentDateTime());
+
+  std::unique_ptr<float[]> testImageIn(new float[width*height*3]);
   fillChessBoard(testImageIn.get(), width, height, width, chessBoxSize);
 
-  static BlurTests::GaussBlurEngine gb;
-  auto startTime = QDateTime::currentDateTime();
+#ifdef off
+  static MRFSegm::GaussBlurEngine gb;
   if(opencl_bool){
     gb.doBlur(testImageIn.get(), width, height, radius);
     qInfo() << gb.getInfoString();
-  }  
+  }
   else{
     std::unique_ptr<float[]> aux(new float[width*height*3]);
     gaussBlur_4_cpu(testImageIn.get(), aux.get(), width, height, radius);
     qInfo() << "Using CPU Blur";
   }
-  auto msec_spent = startTime.msecsTo(QDateTime::currentDateTime());
 
+#endif
   qimg = QImage(width,height,QImage::Format_RGBA32FPx4);
   float* qimgPtr = reinterpret_cast<float*>(qimg.bits());
   std::atomic<size_t> row{0};
