@@ -270,10 +270,8 @@ set(PROJECT_SOURCES
     BlurTests/BoxBlur.cpp BlurTests/BoxBlur.h
     BlurTests/GaussBlurEngine.cpp BlurTests/GaussBlurEngine.h
 
-    MRFSegm/MRFSegm.cpp
-    MRFSegm/MRFSegm.h
-    MRFSegm/MRFSegm_TreeItem.cpp
-    MRFSegm/MRFSegm_TreeItem.h
+    MRFSegm/MRFSegm.cpp  MRFSegm/MRFSegm.h
+    MRFSegm/MRFSegm_TreeItem.cpp  MRFSegm/MRFSegm_TreeItem.h
     MRFSegm/MRFSegm_panel.ui
 
     trymix.qrc

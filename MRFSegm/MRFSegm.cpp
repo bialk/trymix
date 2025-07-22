@@ -1,13 +1,32 @@
 #include "MRFSegm.h"
 
-// #include "GaussBlurEngine.h"
-// #include "BoxBlur.h"
+#include "MRFSegm.h"
 #include "apputil/parallelWithBarrier.h"
 #include "apputil/fillChessBoard.h"
 
 #include <QDebug>
 #include <QImage>
 #include <QDateTime>
+
+class FilterGrid {
+public:
+  FilterGrid(int w, int h, int n);
+  ~FilterGrid()=default;
+
+  void estimate(int w, int h, std::vector<float> const& weightField, std::vector<float> rbgImage);
+
+private:
+  std::vector<float> w; // parameters
+  std::vector<int> indices; // mask indices
+};
+
+void FilterGrid::estimate(int w, int h,
+                          std::vector<float> const& weightField,
+                          std::vector<float> rbgImage)
+{
+  //collecting matrix
+}
+
 
 int MRFSegm_Test(int width, int height, int radius, int chessBoxSize, QImage& qimg, bool opencl_bool)
 {
@@ -28,8 +47,8 @@ int MRFSegm_Test(int width, int height, int radius, int chessBoxSize, QImage& qi
     gaussBlur_4_cpu(testImageIn.get(), aux.get(), width, height, radius);
     qInfo() << "Using CPU Blur";
   }
-
 #endif
+
   qimg = QImage(width,height,QImage::Format_RGBA32FPx4);
   float* qimgPtr = reinterpret_cast<float*>(qimg.bits());
   std::atomic<size_t> row{0};

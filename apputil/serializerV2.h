@@ -37,11 +37,21 @@ public:
   virtual void Store(Serializer *s) = 0;
 };
 
-
 class StorageStream{
 public:
+
+  enum StreamItemType {
+    StartNode = 0,
+    EndNode = 1,
+    StringType = 2, // string
+    IntType = 3,    // int
+    FloatType = 4,  // data node float
+    DoubleType= 5,  // double
+    BinaryType = 6  // binary (undefined type - set of bytes)
+  };
+
   virtual ~StorageStream(){};
-  virtual int NextItem()=0;
+  virtual StreamItemType NextItem() = 0; // returns type of the streem content
 
   virtual const char* GetNodeName()=0;
 
@@ -107,7 +117,7 @@ private:
   template<typename T> friend void LoadListOfItems(Serializer *s, T* obj, size_t sz);
 };
 
-// missing object to bypass not found data
+// missing object type to bypass data manipulation
 class MissingObject{
 public:
   void AskForData(Serializer *s){}
@@ -186,7 +196,9 @@ template<> struct is_compatible_type<double> { typedef double type;};
 
 
 // synchronisation of atomic types converted to some compatible subset of types
-template<typename T> class CSyncObj<T, typename std::enable_if<atomic_type<T>::value>::type>: public SyncDataInterface{
+template<typename T>
+class CSyncObj<T, typename std::enable_if<atomic_type<T>::value>::type>:
+public SyncDataInterface {
 public:
   using R = typename is_compatible_type<T>::type;
   T& obj;

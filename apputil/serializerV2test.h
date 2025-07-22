@@ -306,15 +306,29 @@ public:
 
       auto makeStorageStream = [](int st, sV2::StreamMediaFile& ssmedia,sV2::StreamMediaFile& ssmediaIndex) -> std::unique_ptr<StorageStream> {
         switch(st){
-        case 0: return std::unique_ptr<StorageStream>(new StorageStreamSimpleXML(&ssmedia));
-        case 1: return std::unique_ptr<StorageStream>(new StorageStreamSimpleBinary(&ssmedia));
-        case 2: return std::unique_ptr<StorageStream>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
-        case 3: return std::unique_ptr<StorageStream>(new StorageStreamSimpleJson(&ssmedia));
+        case 0:
+          return std::unique_ptr<StorageStream>(new StorageStreamSimpleXML(&ssmedia));
+        case 1:
+          return std::unique_ptr<StorageStream>(new StorageStreamSimpleBinary(&ssmedia));
+        case 2:
+          return std::unique_ptr<StorageStream>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
+        case 3:
+          return std::unique_ptr<StorageStream>(new StorageStreamSimpleJson(&ssmedia));
         }
         return nullptr;
       };
 
-      for(int i = 0; i<4; ++i){
+      auto writeIndexIfNecessary = [](std::unique_ptr<StorageStream> const & ss) {
+        if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
+          iss->WriteIndex();
+      };
+
+      auto readIndexIfNecessary = [](std::unique_ptr<StorageStream> const & ss) {
+        if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
+          iss->ReadIndex();
+      };
+
+      for(auto i: {0,1,2,3}){
         std::stringstream test_data_a; test_data_a << "test_data_a" << std::to_string(i) << ".txt";
         std::stringstream test_data_a_idx; test_data_a_idx << "test_data_a" << std::to_string(i) << ".txt.idx";
         std::stringstream test_data_b; test_data_b << "test_data_b" << std::to_string(i) << ".txt";
@@ -324,11 +338,8 @@ public:
           sV2::StreamMediaFile ssmedia(test_data_a.str().c_str(),false);
           sV2::StreamMediaFile ssmediaIndex(test_data_a_idx.str().c_str(),false);
           auto ss = makeStorageStream(i, ssmedia, ssmediaIndex);
-
-          Serializer(ss.get()).StoreAs("MainObject", mobj);
-
-          if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
-            iss->WriteIndex();
+          Serializer(ss.get()).StoreAs("MainObject", mobj);          
+          writeIndexIfNecessary(ss);
         }
 
         MainObject mobj2(false);
@@ -336,9 +347,7 @@ public:
           sV2::StreamMediaFile ssmedia(test_data_a.str().c_str(),true);
           sV2::StreamMediaFile ssmediaIndex(test_data_a_idx.str().c_str(),true);
           auto ss = makeStorageStream(i, ssmedia, ssmediaIndex);
-          if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
-            iss->ReadIndex();
-
+          readIndexIfNecessary(ss);
           Serializer(ss.get()).LoadAs("MainObject", mobj2);
         }
 
@@ -346,17 +355,17 @@ public:
           sV2::StreamMediaFile ssmedia(test_data_b.str().c_str(),false);
           sV2::StreamMediaFile ssmediaIndex(test_data_b_idx.str().c_str(),false);
           auto ss = makeStorageStream(i, ssmedia, ssmediaIndex);
-
           Serializer(ss.get()).StoreAs("MainObject", mobj2);
-
-          if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
-            iss->WriteIndex();
+          writeIndexIfNecessary(ss);
         }
-
         printf("test finished\n");
       }
       std::cout << "for i in 0 1 2 3; do diff --binary test_data_a${i}.txt test_data_b${i}.txt; done" << std::endl;
-      std::system("bash -c \"for i in 0 1 2 3; do diff --binary test_data_a${i}.txt test_data_b${i}.txt; done; echo done; read\"");
+      std::system("\"\"C:/Program Files/Git/git-bash.exe\" -c "
+                  "\"for i in 0 1 2 3; do "
+                  "echo compare test_data_a${i}.txt and test_data_b${i}.txt; "
+                  "diff --binary test_data_a${i}.txt test_data_b${i}.txt; "
+                  "done; echo done; read \"");
    }
 };
 

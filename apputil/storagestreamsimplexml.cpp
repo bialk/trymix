@@ -86,9 +86,9 @@ bool StorageStreamSimpleXML::readMore()
    return  r != 0;
 }
 
-int StorageStreamSimpleXML::NextItem(){
+StorageStream::StreamItemType StorageStreamSimpleXML::NextItem(){
    if (!nextLine(&strbegin, &strend)) {
-      return 1; // end node
+      return EndNode; // end node
    }
 
    for (; *strbegin == ' '; ++strbegin) {
@@ -96,7 +96,7 @@ int StorageStreamSimpleXML::NextItem(){
    }
 
    if (*strbegin != '<' || strend[-1] != '>') {
-      return 2; // data node
+      return StringType; // data node
    }
 
    ++strbegin; // skip the '<' character
@@ -105,21 +105,21 @@ int StorageStreamSimpleXML::NextItem(){
 
    if (*strbegin == '/') {
       ++strbegin;
-      return 1; // end node
+      return EndNode; // end node
    }
 
    if (strncmp(strbegin, "binary>", 7) != 0) {
-      return 0; // start node
+      return StartNode; // start node
    }
 
    if ((strend - strbegin) < 8 || strcmp(strend - 8, "</binary") != 0) {
-      return 0; // start node
+      return StartNode; // start node
    }
    strbegin += 7; // strlen("binary>");
    strend -= 8; // strlen("</binary");
 
    strend = decodeBase64InPlace(strbegin, strend);
-   return 2; // data node
+   return StringType; // data node
 }
 
 void StorageStreamSimpleXML::PutStartNode(const char *s){

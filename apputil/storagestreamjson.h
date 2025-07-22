@@ -16,7 +16,7 @@ namespace sV2{
 
   protected:
      const char* GetNodeName() override;
-     int NextItem() override;
+     StreamItemType NextItem() override;
      void GetItem(int* v) override;
      void GetItem(float* v) override;
      void GetItem(double* v) override;
@@ -62,7 +62,7 @@ namespace sV2{
      std::pair<char,char> symbols{' ',' '};
      char prevType=0;
      //std::stack<std::string> tokens_stack;
-     std::deque<int> found_types;
+     std::deque<StreamItemType> found_types;
 
 
   private:

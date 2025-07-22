@@ -13,7 +13,7 @@ StorageStreamSimpleJson::StorageStreamSimpleJson(StreamMedia* sm)
   ,tabsz(1)
 {
     //prepare ring buffer
-    buf.resize(4096, '\0');
+    buf.resize(4096, '\x0');
     strbegin = strend = &buf[0];
     bufBeginOff = 0;
     bufEndOff = 0;
@@ -116,7 +116,7 @@ std::string StorageStreamSimpleJson::nextTocken(){
   }
 }
 
-int StorageStreamSimpleJson::NextItem(){
+StorageStream::StreamItemType StorageStreamSimpleJson::NextItem(){
 
   for(;;){
     if(!found_types.empty()){
@@ -134,9 +134,9 @@ int StorageStreamSimpleJson::NextItem(){
       break;
     case ',':
       if(specialsymbol.find(symbols.second) ==  std::string::npos){
-        found_types.push_back(0);
-        found_types.push_back(2);
-        found_types.push_back(1);
+        found_types.push_back(StartNode);
+        found_types.push_back(StringType);
+        found_types.push_back(EndNode);
       }
       break;
     case '{':
@@ -147,16 +147,16 @@ int StorageStreamSimpleJson::NextItem(){
         nodename = value;
       else
         nodename = "item";      
-      return 0; //start node
+      return StartNode; //start node
       break;
     case '}':
     case ']':
       if(specialsymbol.find(symbols.second) ==  std::string::npos){
-        found_types.push_back(0);
-        found_types.push_back(2);
-        found_types.push_back(1);
+        found_types.push_back(StartNode);
+        found_types.push_back(StringType);
+        found_types.push_back(EndNode);
       }
-      found_types.push_back(1); // end node
+      found_types.push_back(EndNode); // end node
       break;
     default:
       if(symbols.second == ':')

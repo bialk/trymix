@@ -11,7 +11,7 @@ public:
   ~StorageStreamSimpleBinary();
 protected:
   const char* GetNodeName() override;
-  int NextItem() override;
+  StreamItemType NextItem() override;
   void GetItem(int* v) override;
   void GetItem(float* v) override;
   void GetItem(double* v) override;
@@ -84,7 +84,7 @@ private:
 
 protected:
   const char* GetNodeName() override;
-  int NextItem() override;
+  StreamItemType NextItem() override;
   void GetItem(int* v) override;
   void GetItem(float* v) override;
   void GetItem(double* v) override;
