@@ -116,7 +116,7 @@ std::string StorageStreamSimpleJson::nextTocken(){
   }
 }
 
-StorageStream::StreamItemType StorageStreamSimpleJson::NextItem(){
+StorageStreamFormatter::StreamItemType StorageStreamSimpleJson::NextItem(){
 
   for(;;){
     if(!found_types.empty()){

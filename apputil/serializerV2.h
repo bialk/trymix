@@ -37,7 +37,7 @@ public:
   virtual void Store(Serializer *s) = 0;
 };
 
-class StorageStream{
+class StorageStreamFormatter{
 public:
 
   enum StreamItemType {
@@ -50,7 +50,7 @@ public:
     BinaryType = 6  // binary (undefined type - set of bytes)
   };
 
-  virtual ~StorageStream(){};
+  virtual ~StorageStreamFormatter() = default;
   virtual StreamItemType NextItem() = 0; // returns type of the streem content
 
   virtual const char* GetNodeName()=0;
@@ -77,7 +77,7 @@ template<typename T, typename> class CSyncObj;
 class Serializer{
 public:
 
-  Serializer(StorageStream *s):ss(s){}
+  Serializer(StorageStreamFormatter *s):ss(s){}
   Serializer(Serializer *s):ss(s->ss){}
   
   ~Serializer();
@@ -109,7 +109,7 @@ public:
 
 
 private:
-  StorageStream *ss{nullptr};
+  StorageStreamFormatter *ss{nullptr};
   std::map<std::string, SyncDataInterface*> dataset;
   std::list<std::pair<std::string,SyncDataInterface*> > datalist;
 
@@ -126,7 +126,6 @@ public:
 // synchronisation any custom object with AskForData functions
 template<typename T, typename = void> class CSyncObj: public SyncDataInterface{
 public:
-  T& obj;
   CSyncObj(T& t):obj(t){}
 
   void Load(Serializer *s) override{
@@ -163,6 +162,9 @@ public:
       srlz.ss->PutEndNode(it.first.c_str());
     }
   }
+
+private:
+  T& obj;
 };
 
 
@@ -201,7 +203,6 @@ class CSyncObj<T, typename std::enable_if<atomic_type<T>::value>::type>:
 public SyncDataInterface {
 public:
   using R = typename is_compatible_type<T>::type;
-  T& obj;
   CSyncObj(T& t):obj(t){}
   void Load(Serializer *s) override{
     while(1){
@@ -224,6 +225,8 @@ public:
     R i=R(obj);
     s->ss->PutItem(&i);
   }
+private:
+  T& obj;
 };
 
 
@@ -233,8 +236,6 @@ public:
 template<>
 class CSyncObj<char*>: public SyncDataInterface{
 public:
-  char * const obj;
-  int sz;
   CSyncObj(char *t,int n):obj(t),sz(n){}
   void Load(Serializer *s) override{
     while(1){
@@ -256,6 +257,10 @@ public:
   void Store(Serializer *s) override{
     s->ss->PutItem(obj);
   }
+
+private:
+  char * const obj;
+  int sz;
 };
 
 // deduce constructor CSyncObj(T*, int) to CSyncObj<T*,void>(T*, void)
@@ -265,7 +270,6 @@ template<typename T> CSyncObj(T*, int) -> CSyncObj<T*>;
 template<>
 class CSyncObj<std::string>: public SyncDataInterface{
 public:
-  std::string& obj;
   CSyncObj(std::string& t):obj(t){}
   void Load(Serializer *s) override{
     while(1){
@@ -287,9 +291,12 @@ public:
   void Store(Serializer *s) override{
     s->ss->PutItem(obj.c_str());
   }
+private:
+  std::string& obj;
 };
 
 
+// auxilary function to deal with plain array container
 template<typename T>
 void LoadListOfItems(Serializer *s, T* obj, size_t sz)
 {
@@ -316,13 +323,10 @@ void LoadListOfItems(Serializer *s, T* obj, size_t sz)
 };
 
 
-// syncronizers for plain array container for all types
+// plain array container serialization
 template<typename T>
 class CSyncObj<T*>:public SyncDataInterface{
 public:
-  T * const obj;
-  int sz;
-
   CSyncObj(T *t, int n): obj(t), sz(n){}
 
   void Load(Serializer *s) override{
@@ -364,15 +368,17 @@ public:
     s->ss->PutEndNode("vector");
     s->ss->PutEndNode("data");
   }
+
+private:
+  T * const obj;
+  int sz;
 };
 
 
+// binary data (number of bytes ) serialization
 template<>
 class CSyncObj<void*>:public SyncDataInterface{
 public:
-  void *obj;
-  size_t sz;
-
   CSyncObj(void *t, int n): obj(t), sz(n){}
 
   void Load(Serializer *s) override{
@@ -399,6 +405,10 @@ public:
   void Store(Serializer *s) override{
     s->ss->PutItem(obj, sz);
   }
+
+private:
+  void *obj;
+  size_t sz;
 };
 
 
@@ -406,7 +416,6 @@ public:
 // syncronizers for std::map containers for all types (atomic and non atomic)
 template<typename T, typename R> class CSyncObj<std::map<T,R>>: public SyncDataInterface{
 public:
-  std::map<T,R>& obj;
   CSyncObj(std::map<T,R>& t):obj(t){}
   void Load(Serializer *s) override{
     obj.clear();
@@ -477,6 +486,9 @@ public:
     }
     s->ss->PutEndNode("vector");
   }
+
+private:
+  std::map<T,R>& obj;
 };
 
 
@@ -596,7 +608,6 @@ public:
 //std::vector for any type (including atomic types)
 template<typename T> class CSyncObj<std::vector<T>>: public SyncDataInterface{
 public:
-  std::vector<T>& obj;
   CSyncObj(std::vector<T>& t):obj(t){}
 
   void Load(Serializer *s) override{
@@ -659,13 +670,15 @@ public:
     s->ss->PutEndNode("vector");
     s->ss->PutEndNode("data");
   }
+
+private:
+  std::vector<T>& obj;
 };
 
 #endif
 
 template<typename T> class CSyncObj<std::list<T>>: public SyncDataInterface{
 public:
-  std::list<T>& obj;
   CSyncObj(std::list<T>& t):obj(t){}
   
   void Load(Serializer *s) override{
@@ -700,11 +713,13 @@ public:
     }
     s->ss->PutEndNode("vector");
   }
+
+private:
+  std::list<T>& obj;
 };
 
 template<typename T, typename K> class CSyncObj<std::set<T,K>>: public SyncDataInterface{
 public:
-  std::set<T,K>& obj;
   CSyncObj(std::set<T,K>& t):obj(t){}
   
   void Load(Serializer *s) override{
@@ -740,93 +755,17 @@ public:
     }
     s->ss->PutEndNode("vector");
   }
+
+private:
+  std::set<T,K>& obj;
 };
 
-// this class left for reference it is historically used (in fact it is acting like std::unique_ptr)
-template<class T> class CSrlzPtr{
-public:
-  T *ptr{nullptr};
-  CSrlzPtr(T *p=0):ptr(p){}
-  ~CSrlzPtr(){ Clear();} // this object should not delete a pointer
-
-  CSrlzPtr<T>(const CSrlzPtr<T>&) = delete;
-  CSrlzPtr<T>& operator=(const CSrlzPtr<T>&) = delete;
-
-  CSrlzPtr(CSrlzPtr<T> &&op){
-    std::swap(op.ptr, ptr);
-  }
-
-  CSrlzPtr<T>& operator=(CSrlzPtr<T> &&op) {
-    Clear();
-    std::swap(op.ptr, ptr);
-    return *this;
-  }
-
-  bool operator == (const CSrlzPtr<T> &op) const{
-    return op.ptr==ptr;
-  }
-
-  void Clear(){
-    if(ptr)
-      delete ptr;
-    ptr=nullptr;
-  }
-};
-
-// dynamical object pointers created during loading and populated
-template<typename T> class CSyncObj<CSrlzPtr<T>>: public SyncDataInterface{
-public:
-  CSrlzPtr<T>& crlzptr;
-  CSyncObj(CSrlzPtr<T>& p):crlzptr(p){}
-  void Load(Serializer *s) override{
-    if(crlzptr.ptr) delete crlzptr.ptr;
-    crlzptr.ptr=0;
-    while(1){
-      int type=s->ss->NextItem();
-      if(type==1){
-        return;
-      }
-      else if(type==0){
-        if(strcmp("ClassName",s->ss->GetNodeName())==0){
-          char cname[200];
-          CSyncObj<char*>(cname,200).Load(s);
-          crlzptr.ptr = T::AskForObject(cname); // create object of class cname
-        }
-        else if(strcmp("ClassData",s->ss->GetNodeName())==0){
-          CSyncObj<T>(*crlzptr.ptr).Load(s);
-        }
-        else{
-          MissingObject eo;
-          CSyncObj<MissingObject>(eo).Load(s);
-        }
-      }
-      else if(type==2){
-        assert(!"error of stream syncronization");
-      }
-    }
-  }
-
-  void Store(Serializer *s) override{
-    {
-      s->ss->PutStartNode("ClassName");
-      s->ss->PutItem(crlzptr.ptr->AskForClassName());
-      s->ss->PutEndNode("ClassName");
-
-      s->ss->PutStartNode("ClassData");
-      CSyncObj<T>(*crlzptr.ptr).Store(s);
-      s->ss->PutEndNode("ClassData");
-    }
-  }
-};
-
-
-// dynamical object pointers created during loading and populated
+// dynamic polimorphic object pointers created and populated during loading
 template<typename T> class CSyncObj<std::unique_ptr<T>>: public SyncDataInterface{
 public:
-  std::unique_ptr<T>& ptr;
   CSyncObj(std::unique_ptr<T>& p):ptr(p){}
   void Load(Serializer *s) override{
-    while(1){
+    for(;;){
       int type=s->ss->NextItem();
       if(type==1){
         return;
@@ -860,6 +799,9 @@ public:
     CSyncObj<T>(*ptr.get()).Store(s);
     s->ss->PutEndNode("ClassData");
   }
+
+private:
+  std::unique_ptr<T>& ptr;
 };
 
 

@@ -5,7 +5,7 @@
 
 namespace sV2 {
 
-class StorageStreamSimpleXML: public StorageStream{
+class StorageStreamSimpleXML: public StorageStreamFormatter{
 public:
   StorageStreamSimpleXML(StreamMedia* sm);
   ~StorageStreamSimpleXML();

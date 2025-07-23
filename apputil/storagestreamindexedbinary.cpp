@@ -28,7 +28,7 @@ const char* StorageStreamSimpleBinary::GetNodeName(){
    return &strdata[0];
 }
 
-StorageStream::StreamItemType StorageStreamSimpleBinary::NextItem(){
+StorageStreamFormatter::StreamItemType StorageStreamSimpleBinary::NextItem(){
    //data set parsing
    //fread(&type,1,1,f);
    m_streamMedia->read(&type,1);
@@ -306,7 +306,7 @@ const char* StorageStreamIndexedBinary::GetNodeName(){
    return &strdata[0];
 }
 
-StorageStream::StreamItemType StorageStreamIndexedBinary::NextItem(){
+StorageStreamFormatter::StreamItemType StorageStreamIndexedBinary::NextItem(){
   //data set parsing
   m_streamMedia->read(&type,sizeof(type));
   std::uint32_t node_id;

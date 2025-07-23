@@ -5,7 +5,7 @@
 
 namespace sV2{
 
-class StorageStreamSimpleBinary:public StorageStream{
+class StorageStreamSimpleBinary:public StorageStreamFormatter{
 public:
   StorageStreamSimpleBinary(StreamMedia* sm);
   ~StorageStreamSimpleBinary();
@@ -47,7 +47,7 @@ private:
 };
 
 
-class StorageStreamIndexedBinary:public StorageStream{
+class StorageStreamIndexedBinary:public StorageStreamFormatter{
 public:
   StorageStreamIndexedBinary(StreamMedia* sm, StreamMedia* smi);
   ~StorageStreamIndexedBinary();

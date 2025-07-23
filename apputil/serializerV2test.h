@@ -69,7 +69,7 @@ DynClassBase *DynClassBase::AskForObject(const char *cname){
    else if(strcmp(cname,"DynClassABCD")==0)
       return new DynClassABCD;
    // return 0 if object can not be constructed
-   return 0;
+   return nullptr;
 }
 
 
@@ -123,7 +123,8 @@ class MainObject{
 public:
    // this is a vector of pointer to the base class
    // object class restored dynamically from stream
-   std::vector< CSrlzPtr<DynClassBase> > dynobjlist;
+   // std::vector< CSrlzPtr<DynClassBase> > dynobjlist;
+   std::vector< std::unique_ptr<DynClassBase> > dynobjlist;
 
    std::vector<std::unique_ptr<DynClassBase>> dynobjvector;
 
@@ -182,12 +183,6 @@ public:
       doubleset.insert(8e0);
       doubleset.insert(4);
       doubleset.insert(3);
-
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABC));
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABC));
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABC));
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABCD));
-      dynobjlist.push_back(CSrlzPtr<DynClassBase>(new DynClassABCD));
 
       dynobjvector.emplace_back(new DynClassABC);
       dynobjvector.emplace_back(new DynClassABC);
@@ -304,26 +299,26 @@ public:
         }
       }
 
-      auto makeStorageStream = [](int st, sV2::StreamMediaFile& ssmedia,sV2::StreamMediaFile& ssmediaIndex) -> std::unique_ptr<StorageStream> {
+      auto makeStorageStream = [](int st, sV2::StreamMediaFile& ssmedia,sV2::StreamMediaFile& ssmediaIndex) -> std::unique_ptr<StorageStreamFormatter> {
         switch(st){
         case 0:
-          return std::unique_ptr<StorageStream>(new StorageStreamSimpleXML(&ssmedia));
+          return std::unique_ptr<StorageStreamFormatter>(new StorageStreamSimpleXML(&ssmedia));
         case 1:
-          return std::unique_ptr<StorageStream>(new StorageStreamSimpleBinary(&ssmedia));
+          return std::unique_ptr<StorageStreamFormatter>(new StorageStreamSimpleBinary(&ssmedia));
         case 2:
-          return std::unique_ptr<StorageStream>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
+          return std::unique_ptr<StorageStreamFormatter>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
         case 3:
-          return std::unique_ptr<StorageStream>(new StorageStreamSimpleJson(&ssmedia));
+          return std::unique_ptr<StorageStreamFormatter>(new StorageStreamSimpleJson(&ssmedia));
         }
         return nullptr;
       };
 
-      auto writeIndexIfNecessary = [](std::unique_ptr<StorageStream> const & ss) {
+      auto writeIndexIfNecessary = [](std::unique_ptr<StorageStreamFormatter> const & ss) {
         if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
           iss->WriteIndex();
       };
 
-      auto readIndexIfNecessary = [](std::unique_ptr<StorageStream> const & ss) {
+      auto readIndexIfNecessary = [](std::unique_ptr<StorageStreamFormatter> const & ss) {
         if(auto iss = dynamic_cast<StorageStreamIndexedBinary*>(ss.get()))
           iss->ReadIndex();
       };

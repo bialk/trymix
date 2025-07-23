@@ -9,7 +9,7 @@
 
 namespace sV2{
 
-  class StorageStreamSimpleJson: public StorageStream{
+  class StorageStreamSimpleJson: public StorageStreamFormatter{
   public:
      StorageStreamSimpleJson(StreamMedia* sm);
      ~StorageStreamSimpleJson();

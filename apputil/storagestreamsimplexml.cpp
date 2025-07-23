@@ -86,7 +86,7 @@ bool StorageStreamSimpleXML::readMore()
    return  r != 0;
 }
 
-StorageStream::StreamItemType StorageStreamSimpleXML::NextItem(){
+StorageStreamFormatter::StreamItemType StorageStreamSimpleXML::NextItem(){
    if (!nextLine(&strbegin, &strend)) {
       return EndNode; // end node
    }
