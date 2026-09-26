@@ -10,8 +10,6 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
-set(CMAKE_CXX_STANDARD 23)
-
 ###################################################################################
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/config.cmake")
   include("${CMAKE_CURRENT_LIST_DIR}/config.cmake")
@@ -55,15 +53,19 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   add_compile_options(-Wno-overriding-option)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    # options for debugging in RelWithDebInfo (it seems same as RelWithDebInfo)
-    #set(RELEASE_FOR_DEBUG_CXX_OPTIONS /JMC /Zi /Od /MD)
+endif()
 
-    # removing O2 option it will be replaced with /Od
-    string(REPLACE "/O2" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
-    # message(FATAL_ERROR ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
-    set(RELEASE_FOR_DEBUG_CXX_OPTIONS /Zi /Od /MD)
-    set(RELEASE_FOR_DEBUG_LINKER_OPTIONS /DEBUG:FULL /OPT:REF /OPT:ICF /INCREMENTAL:NO /IGNORE:4099)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
+   (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND
+    CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
+  # Make RelWithDebInfo debugger-friendly for both MSVC and clang-cl.
+  # /Ob0 is important here: it keeps small functions and overloaded operators
+  # from disappearing into their callers while debugging.
+  string(REPLACE "/O2" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO
+         "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+  set(RELEASE_FOR_DEBUG_CXX_OPTIONS /Zi /Od /Ob0 /MD)
+  set(RELEASE_FOR_DEBUG_LINKER_OPTIONS
+      /DEBUG:FULL /OPT:REF /OPT:ICF /INCREMENTAL:NO /IGNORE:4099)
 endif()
 
 
@@ -102,11 +104,13 @@ find_package(nlohmann_json 3.12.0 REQUIRED)
 # example to specify version to locate: CUDAToolkit_ROOT = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1"
 
 find_package(CUDAToolkit 12)
-if(${CUDAToolkit_FOUND})
+if(CUDAToolkit_FOUND)
+  set(TRYMIX_OPENCL_TARGET CUDA::OpenCL)
   message(STATUS CUDAToolkit_FOUND=${CUDAToolkit_FOUND})
   add_compile_definitions(OpenCL_FOUND CUDA_FOUND CL_TARGET_OPENCL_VERSION=300)
 else()
   find_package(OpenCL 3.0 REQUIRED)
+  set(TRYMIX_OPENCL_TARGET OpenCL::OpenCL)
   if(OpenCL_FOUND)
     add_compile_definitions(OpenCL_FOUND CL_TARGET_OPENCL_VERSION=300)
   endif()
@@ -266,7 +270,7 @@ set(PROJECT_SOURCES
 
     BlurTests/BlurTests_TreeItem.cpp BlurTests/BlurTests_TreeItem.h
     BlurTests/BlurTests_Panel.ui
-    BlurTests/BlurTests.cpp BlurTests/BlurTests.cpp
+    BlurTests/BlurTests.cpp BlurTests/BlurTests.h
     BlurTests/BoxBlur.cpp BlurTests/BoxBlur.h
     BlurTests/GaussBlurEngine.cpp BlurTests/GaussBlurEngine.h
 
@@ -321,8 +325,9 @@ target_include_directories(trymix PRIVATE
     ${pthread_INCLUDE_DIR}
 )
 
-target_compile_definitions(trymix PRIVATE "-D_TIMESPEC_DEFINED ")
+target_compile_definitions(trymix PRIVATE $<$<PLATFORM_ID:Windows>:_TIMESPEC_DEFINED>)
 target_compile_options(trymix PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
   $<$<CONFIG:RelWithDebInfo>:${RELEASE_FOR_DEBUG_CXX_OPTIONS}>
 )
 
@@ -337,11 +342,14 @@ target_link_options(trymix PRIVATE
 # copy qt dlls in the buld binary directory (for windows only)
 if(CMAKE_HOST_WIN32)
     # constructing path to windeployqt to copy dlls
-    string(REPLACE qmake.exe "windeployqt" windeployqt ${QT_QMAKE_EXECUTABLE} )
+    get_target_property(TRYMIX_QMAKE_EXECUTABLE ${QtVer}::qmake IMPORTED_LOCATION)
+    get_filename_component(TRYMIX_QT_BIN_DIR "${TRYMIX_QMAKE_EXECUTABLE}" DIRECTORY)
+    find_program(windeployqt NAMES windeployqt HINTS "${TRYMIX_QT_BIN_DIR}" REQUIRED)
     if(windeployqt)
         message(STATUS "Found: ${windeployqt} distributing qt dlls")
         add_custom_command(TARGET trymix POST_BUILD
-            COMMAND ${windeployqt} --list mapping  $<TARGET_FILE:trymix>
+            COMMAND "${windeployqt}" $<TARGET_FILE:trymix>
+            VERBATIM
         )
     endif()
 
@@ -364,7 +372,7 @@ target_link_libraries(trymix PRIVATE
     ${FREEIMAGE_LIB}
     OpenGL::GL    
     glm::glm
-    CUDA::OpenCL
+    ${TRYMIX_OPENCL_TARGET}
     Eigen3::Eigen
     nlohmann_json::nlohmann_json
     Boost::process

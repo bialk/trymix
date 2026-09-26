@@ -1,0 +1,24 @@
+{
+  "cmake.cmakePath": "D:/Qt/Tools/CMake_64/bin/cmake.exe",
+  "cmake.useCMakePresets": "always",
+  "cmake.useVsDeveloperEnvironment": "always",
+  "cmake.options.statusBarVisibility": "hidden",
+  "cmake.options.advanced": {
+    "folder": { "statusBarVisibility": "hidden" },
+    "configurePreset": { "statusBarVisibility": "visible" },
+    "kit": { "statusBarVisibility": "hidden" },
+    "variant": { "statusBarVisibility": "hidden" },
+    "build": { "statusBarVisibility": "visible" },
+    "buildPreset": { "statusBarVisibility": "hidden" },
+    "buildTarget": { "statusBarVisibility": "hidden" },
+    "ctest": { "statusBarVisibility": "hidden" },
+    "testPreset": { "statusBarVisibility": "hidden" },
+    "launchTarget": { "statusBarVisibility": "hidden" },
+    "debug": { "statusBarVisibility": "visible" },
+    "launch": { "statusBarVisibility": "visible" },
+    "workflow": { "statusBarVisibility": "hidden" },
+    "workflowPreset": { "statusBarVisibility": "hidden" },
+    "packagePreset": { "statusBarVisibility": "hidden" }
+  },
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+}

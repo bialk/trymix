@@ -1,6 +1,6 @@
 # Get all propreties that cmake supports
 if(NOT CMAKE_PROPERTY_LIST)
-    execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
+    execute_process(COMMAND "${CMAKE_COMMAND}" --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
 
     # Convert command output into a CMake list
     string(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
@@ -62,4 +62,3 @@ function(find_path_by_regex var_out regex_in)
         endif()
     endforeach()
 endfunction()
-
