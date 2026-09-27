@@ -83,12 +83,21 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
+# The staged Boost binaries were built with clang-cl 19.  Newer clang-cl
+# releases remain compatible with the MSVC ABI, but Boost's package config
+# otherwise rejects them solely because the compiler-version tag differs.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND
+   CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+  set(Boost_COMPILER clangw19)
+endif()
+
 find_package(Boost 1.86 REQUIRED COMPONENTS process)
 if(WIN32)
-  get_target_property(boost_process_lib Boost::process IMPORTED_LOCATION_RELEASE)
-  list(APPEND FOR_COPY_TO_BINARY_DIR "${boost_process_lib}")
-  get_target_property(boost_filesystem_lib Boost::filesystem IMPORTED_LOCATION_RELEASE)
-  list(APPEND FOR_COPY_TO_BINARY_DIR "${boost_filesystem_lib}")
+  # Copy the DLLs for the active configuration (Debug/Release/etc.).
+  list(APPEND FOR_COPY_TO_BINARY_DIR
+    "$<TARGET_FILE:Boost::process>"
+    "$<TARGET_FILE:Boost::filesystem>"
+  )
 endif()
 
 
@@ -100,21 +109,11 @@ find_package(OpenGL REQUIRED)
 
 find_package(nlohmann_json 3.12.0 REQUIRED)
 
-################### OpenGL ######################
-# example to specify version to locate: CUDAToolkit_ROOT = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1"
+################### OpenCL ######################
 
-find_package(CUDAToolkit 12)
-if(CUDAToolkit_FOUND)
-  set(TRYMIX_OPENCL_TARGET CUDA::OpenCL)
-  message(STATUS CUDAToolkit_FOUND=${CUDAToolkit_FOUND})
-  add_compile_definitions(OpenCL_FOUND CUDA_FOUND CL_TARGET_OPENCL_VERSION=300)
-else()
-  find_package(OpenCL 3.0 REQUIRED)
-  set(TRYMIX_OPENCL_TARGET OpenCL::OpenCL)
-  if(OpenCL_FOUND)
-    add_compile_definitions(OpenCL_FOUND CL_TARGET_OPENCL_VERSION=300)
-  endif()
-endif()
+find_package(OpenCL 3.0 REQUIRED)
+set(TRYMIX_OPENCL_TARGET OpenCL::OpenCL)
+add_compile_definitions(OpenCL_FOUND CL_TARGET_OPENCL_VERSION=300)
 
 
 ##################### CGAL ######################
@@ -144,8 +143,15 @@ ENDIF(UNIX OR MINGW)
 ####################### spooles ##################
 
 if(WIN32)
-  FIND_LIBRARY(SPOOLES_LIB spooles REQUIRED PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES spooles_llvm_build/RelWithDebInfo/src)
-  FIND_PATH(SPOOLES_INCLUDE_DIR InpMtx.h PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES spooles/include NO_CMAKE_PATH)
+  if(DEFINED SPOOLES_ROOT)
+    unset(SPOOLES_LIB CACHE)
+    unset(SPOOLES_INCLUDE_DIR CACHE)
+    FIND_LIBRARY(SPOOLES_LIB spooles REQUIRED HINTS "${SPOOLES_ROOT}/lib" NO_DEFAULT_PATH)
+    FIND_PATH(SPOOLES_INCLUDE_DIR InpMtx.h REQUIRED HINTS "${SPOOLES_ROOT}/include" NO_DEFAULT_PATH)
+  else()
+    FIND_LIBRARY(SPOOLES_LIB spooles REQUIRED PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES spooles_llvm_build/RelWithDebInfo/src)
+    FIND_PATH(SPOOLES_INCLUDE_DIR InpMtx.h PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES spooles/include NO_CMAKE_PATH)
+  endif()
 else(UNIX)
   FIND_LIBRARY(SPOOLES_LIB spooles)
   FIND_PATH(SPOOLES_INCLUDE_DIR InpMtx.h PATH_SUFFIXES spooles/include)
@@ -159,20 +165,27 @@ find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 
 if(MINGW)
 elseif(WIN32)
-    find_path_by_regex(pthread_DIR "pthreads-w32-*[0-9]-*[0-9]-*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH})
+    if(DEFINED pthread_ROOT)
+      set(pthread_DIR "${pthread_ROOT}")
+      unset(pthread_INCLUDE_DIR CACHE)
+      unset(pthread_LIB CACHE)
+      unset(pthread_DLL CACHE)
+    else()
+      find_path_by_regex(pthread_DIR "pthreads-w32-*[0-9]-*[0-9]-*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH})
+    endif()
 
     FIND_PATH(pthread_INCLUDE_DIR pthread.h
-      HINTS ${pthread_DIR} PATH_SUFFIXES Pre-built.2/include
+      HINTS ${pthread_DIR} PATH_SUFFIXES include Pre-built.2/include
       REQUIRED
     )
 
     FIND_LIBRARY(pthread_LIB pthreadVC2 REQUIRED
-      HINTS ${pthread_DIR}/Pre-built.2/lib/x64
+      HINTS ${pthread_DIR}/lib ${pthread_DIR}/Pre-built.2/lib/x64
       REQUIRED
     )
 
-    FIND_FILE(pthread_DLL Pre-built.2/dll/x64/pthreadVC2.dll
-      HINTS ${pthread_DIR}
+    FIND_FILE(pthread_DLL pthreadVC2.dll
+      HINTS ${pthread_DIR}/dll ${pthread_DIR}/Pre-built.2/dll/x64
       REQUIRED
     )
 

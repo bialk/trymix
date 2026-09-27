@@ -147,7 +147,7 @@ initialize_vs_environment() {
 }
 
 initialize_vs_environment
-export PATH="/d/Qt/Tools/CMake_64/bin:/d/Qt/Tools/Ninja:$PATH"
+export PATH="/c/Users/Alex/D/Qt/Tools/CMake_64/bin:/c/Users/Alex/D/Qt/Tools/Ninja:$PATH"
 
 build_count=${#BUILD_PRESETS[@]}
 build_number=0
