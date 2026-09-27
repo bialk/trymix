@@ -95,6 +95,12 @@ StorageStreamFormatter::StreamItemType StorageStreamSimpleXML::NextItem(){
       // skip initial whitespace
    }
 
+   // Empty and whitespace-only lines are scalar values in this line-oriented
+   // format. In particular, do not inspect strend[-1] for an empty line.
+   if (strbegin == strend) {
+      return StringType;
+   }
+
    if (*strbegin != '<' || strend[-1] != '>') {
       return StringType; // data node
    }

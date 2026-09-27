@@ -5,6 +5,48 @@ namespace sV2{
 
 constexpr char const zero_ch = '\0';
 
+namespace {
+
+// Prevent a damaged stream from turning a serialized length into an
+// effectively unbounded allocation. This is a format sanity limit, not the
+// size of the I/O buffer.
+constexpr std::uint32_t maxSerializedItemSize = 256u * 1024u * 1024u;
+constexpr std::uint32_t maxIndexEntries = 1024u * 1024u;
+
+bool readExact(StreamMedia* stream, void* destination, size_t size)
+{
+  auto* out = static_cast<unsigned char*>(destination);
+  size_t total = 0;
+  while (total < size) {
+    const size_t count = stream->read(out + total, size - total);
+    if (count == 0 || count > size - total)
+      return false;
+    total += count;
+  }
+  return true;
+}
+
+enum class LineReadResult { Complete, EndOfStream, Invalid };
+
+LineReadResult readLine(StreamMedia* stream, std::string& line, size_t maximumLength)
+{
+  line.clear();
+  char c = 0;
+  while (line.size() < maximumLength) {
+    if (!readExact(stream, &c, 1))
+      return line.empty() ? LineReadResult::EndOfStream : LineReadResult::Complete;
+    if (c == '\n') {
+      if (!line.empty() && line.back() == '\r')
+        line.pop_back();
+      return LineReadResult::Complete;
+    }
+    line.push_back(c);
+  }
+  return LineReadResult::Invalid;
+}
+
+} // namespace
+
 //Simple Binary storage
 //////////////////////
 
@@ -25,40 +67,40 @@ StorageStreamSimpleBinary::~StorageStreamSimpleBinary(){
 
 //atomic storage operations
 const char* StorageStreamSimpleBinary::GetNodeName(){
-   return &strdata[0];
+   return strdata.empty() ? &zero_ch : strdata.data();
 }
 
 StorageStreamFormatter::StreamItemType StorageStreamSimpleBinary::NextItem(){
    //data set parsing
    //fread(&type,1,1,f);
-   m_streamMedia->read(&type,1);
-   //if(!f || feof(f)) return 1;
-   if(m_streamMedia->eos()) return EndNode;
+   if (!readExact(m_streamMedia, &type, 1))
+      return EndNode;
    switch(type){
       case StartNode: // start node
       case StringType: // string
       case BinaryType: // binary
          if (type == BinaryType) {
-           m_streamMedia->read(&biglen, sizeof(biglen));
-            shortlen = biglen;
-         } else {
-           m_streamMedia->read(&shortlen, sizeof(shortlen));
-            biglen = shortlen;
-         }
-         strdata.resize(biglen + 1);
-         m_streamMedia->read(strdata.data(), biglen);
+           if (!readExact(m_streamMedia, &biglen, sizeof(biglen))) return EndNode;
+             shortlen = biglen;
+          } else {
+           if (!readExact(m_streamMedia, &shortlen, sizeof(shortlen))) return EndNode;
+             biglen = shortlen;
+          }
+          if (biglen > maxSerializedItemSize) return EndNode;
+          strdata.resize(biglen + 1);
+          if (!readExact(m_streamMedia, strdata.data(), biglen)) return EndNode;
          strdata[biglen] = zero_ch;
          return type == StartNode ? StartNode : StringType;
       case EndNode: // end node
          return EndNode;
       case IntType: // int
-         m_streamMedia->read(&idata, sizeof(idata));
+         if (!readExact(m_streamMedia, &idata, sizeof(idata))) return EndNode;
          return StringType;
       case FloatType: // float
-         m_streamMedia->read(&fdata, sizeof(fdata));
+         if (!readExact(m_streamMedia, &fdata, sizeof(fdata))) return EndNode;
          return StringType;
       case DoubleType: // double
-         m_streamMedia->read(&ddata, sizeof(ddata));
+         if (!readExact(m_streamMedia, &ddata, sizeof(ddata))) return EndNode;
          return StringType;
    }
    return StringType;
@@ -247,35 +289,35 @@ StorageStreamIndexedBinary::~StorageStreamIndexedBinary(){
    Close();
 }
 
-void gets(char*s, int maxCount, StreamMedia* sm){
-  int count = 0;
-  while(!sm->eos() && count < maxCount-1){
-    sm->read(s+count,1);
-    ++count;
-    if(s[count-1] == '\n')
-      break;
-  }
-  s[count]=0;
-}
-
 int StorageStreamIndexedBinary::ReadIndex(){
-   int maxidx=0;
-   while(!m_streamMediaIndex->eos()){
-      char key[256],value[50];
-      gets(key,sizeof(key),m_streamMediaIndex);
-      gets(value,sizeof(key),m_streamMediaIndex);
-      auto keylen = strlen(key);
-      auto vallen = strlen(value);
-      if(keylen != 0 && vallen !=0){
-        key[keylen-1]=value[vallen-1]=0;
-        int val=atoi(value);
-        str2int[key]=val;
-        maxidx= std::max(maxidx,val);
-      }
+   str2int.clear();
+   int2str.clear();
+   std::uint32_t maxidx = 0;
+   std::string key;
+   std::string value;
+   for (;;) {
+      const auto keyResult = readLine(m_streamMediaIndex, key, 255);
+      if (keyResult == LineReadResult::EndOfStream) break;
+      if (keyResult != LineReadResult::Complete ||
+          readLine(m_streamMediaIndex, value, 49) != LineReadResult::Complete)
+         return 1;
+      if (key.empty() || value.empty()) return 1;
+
+      char* end = nullptr;
+      const unsigned long parsed = std::strtoul(value.c_str(), &end, 10);
+      if (!end || *end != '\0' || parsed == 0 || parsed > maxIndexEntries)
+         return 1;
+      const auto id = static_cast<std::uint32_t>(parsed);
+      str2int[key] = id;
+      maxidx = std::max(maxidx, id);
    }
-   int2str.resize(maxidx+1);
-   for(auto it=str2int.begin();it!=str2int.end();it++)
-      int2str[it->second]=it->first.c_str();
+
+   if (maxidx > str2int.size()) return 1; // IDs written by this format are dense.
+   int2str.assign(maxidx + 1, nullptr);
+   for (auto it = str2int.begin(); it != str2int.end(); ++it) {
+      if (int2str[it->second] != nullptr) return 1; // duplicate ID
+      int2str[it->second] = it->first.c_str();
+   }
    return 0;
 }
 
@@ -303,18 +345,19 @@ void StorageStreamIndexedBinary::Close(){
 
 //atomic storage operations
 const char* StorageStreamIndexedBinary::GetNodeName(){
-   return &strdata[0];
+   return strdata.empty() ? &zero_ch : strdata.data();
 }
 
 StorageStreamFormatter::StreamItemType StorageStreamIndexedBinary::NextItem(){
   //data set parsing
-  m_streamMedia->read(&type,sizeof(type));
-  std::uint32_t node_id;
-  if(m_streamMedia->eos())
+  if (!readExact(m_streamMedia, &type, sizeof(type)))
     return EndNode;
+  std::uint32_t node_id;
   switch(type){
   case StartNode: { // start node
-    m_streamMedia->read(&node_id,sizeof(node_id));
+    if (!readExact(m_streamMedia, &node_id, sizeof(node_id)) ||
+        node_id >= int2str.size() || int2str[node_id] == nullptr)
+      return EndNode;
     char const* str = int2str[node_id];
 
     biglen = (std::uint32_t)strlen(str);
@@ -330,24 +373,25 @@ StorageStreamFormatter::StreamItemType StorageStreamIndexedBinary::NextItem(){
   case StringType: // string
   case BinaryType: // binary
     if (type == 6) { //this is for binary: case 6
-      m_streamMedia->read(&biglen,sizeof(biglen));
+      if (!readExact(m_streamMedia, &biglen, sizeof(biglen))) return EndNode;
       shortlen = biglen;
     } else { //this is for string: case 2
-      m_streamMedia->read(&shortlen,sizeof(shortlen));
+      if (!readExact(m_streamMedia, &shortlen, sizeof(shortlen))) return EndNode;
       biglen = shortlen;
     }
+    if (biglen > maxSerializedItemSize) return EndNode;
     strdata.resize(biglen + 1);
-    m_streamMedia->read(strdata.data(),biglen);
+    if (!readExact(m_streamMedia, strdata.data(), biglen)) return EndNode;
     strdata[biglen]=zero_ch;
     return StringType;
   case IntType: // data node int
-    m_streamMedia->read(&idata,sizeof(idata));
+    if (!readExact(m_streamMedia, &idata, sizeof(idata))) return EndNode;
     return StringType;
   case FloatType: // data node float
-    m_streamMedia->read(&fdata,sizeof(fdata));
+    if (!readExact(m_streamMedia, &fdata, sizeof(fdata))) return EndNode;
     return StringType;
   case DoubleType: // double
-    m_streamMedia->read(&ddata,sizeof(ddata));
+    if (!readExact(m_streamMedia, &ddata, sizeof(ddata))) return EndNode;
     return StringType;
   }
   return StringType;
@@ -442,14 +486,17 @@ void StorageStreamIndexedBinary::GetItem(char const** v){
          *v = &strdata[0];
          break;
       case IntType: //from int
+         strdata.resize(32);
          sprintf_s(&strdata[0], strdata.size(), "%d", idata);
          *v = &strdata[0];
          break;
     case FloatType: // from float
+         strdata.resize(32);
          sprintf_s(&strdata[0], strdata.size(), "%e", fdata);
          *v = &strdata[0];
          break;
       case DoubleType: // from double
+         strdata.resize(32);
          sprintf_s(&strdata[0], strdata.size(), "%e", ddata);
          *v = &strdata[0];
          break;

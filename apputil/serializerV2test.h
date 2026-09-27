@@ -2,6 +2,7 @@
 #define SERIALIZERV2TEST
 #include "serializerV2.h"
 #include "storagestreamjson.h"
+#include "storagestreamyaml.h"
 #include "storagestreamsimplexml.h"
 #include "storagestreamindexedbinary.h"
 #include <memory>
@@ -309,6 +310,8 @@ public:
           return std::unique_ptr<StorageStreamFormatter>(new StorageStreamIndexedBinary(&ssmedia,&ssmediaIndex));
         case 3:
           return std::unique_ptr<StorageStreamFormatter>(new StorageStreamSimpleJson(&ssmedia));
+        case 4:
+          return std::unique_ptr<StorageStreamFormatter>(new StorageStreamSimpleYaml(&ssmedia));
         }
         return nullptr;
       };
@@ -323,7 +326,7 @@ public:
           iss->ReadIndex();
       };
 
-      for(auto i: {0,1,2,3}){
+      for(auto i: {0,1,2,3,4}){
         std::stringstream test_data_a; test_data_a << "test_data_a" << std::to_string(i) << ".txt";
         std::stringstream test_data_a_idx; test_data_a_idx << "test_data_a" << std::to_string(i) << ".txt.idx";
         std::stringstream test_data_b; test_data_b << "test_data_b" << std::to_string(i) << ".txt";
@@ -355,9 +358,9 @@ public:
         }
         printf("test finished\n");
       }
-      std::cout << "for i in 0 1 2 3; do diff --binary test_data_a${i}.txt test_data_b${i}.txt; done" << std::endl;
+      std::cout << "for i in 0 1 2 3 4; do diff --binary test_data_a${i}.txt test_data_b${i}.txt; done" << std::endl;
       std::system("\"\"C:/Program Files/Git/git-bash.exe\" -c "
-                  "\"for i in 0 1 2 3; do "
+                  "\"for i in 0 1 2 3 4; do "
                   "echo compare test_data_a${i}.txt and test_data_b${i}.txt; "
                   "diff --binary test_data_a${i}.txt test_data_b${i}.txt; "
                   "done; echo done; read \"");
