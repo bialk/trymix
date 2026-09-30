@@ -91,12 +91,12 @@ const char *opencl_errstr(cl_int err)
 const char kernel_boxBlurH_4[] =
 R"V0G0N(
 
-float3 getf3(float* v, int index){
+float3 getf3(float* v, size_t index){
   index *= 3;
   return (float3)(v[index], v[index+1], v[index+2]);
 }
 
-void setf3(float* dst, int index, float3 v){
+void setf3(float* dst, size_t index, float3 v){
   index *= 3;
   dst[index+0] = v.x;
   dst[index+1] = v.y;
@@ -105,27 +105,29 @@ void setf3(float* dst, int index, float3 v){
 
 void kernel boxBlurH_4(global float* scl_, global float* tcl_, int w, int h, int r)
 {
-  const int nCnl = 3;
-  const int nHead = r+1;
-  const int nTail = r;
-  const int nBody = w-(nHead+nTail);
+  const size_t width = (size_t)w;
+  const size_t radius = (size_t)r;
+  const size_t nCnl = 3;
+  const size_t nHead = radius + 1;
+  const size_t nTail = radius;
+  const size_t nBody = width - (nHead + nTail);
 
-  const float iarr = 1.0f / (float)(r + r + 1);
+  const float iarr = 1.0f / (float)(radius + radius + 1);
 
-  int const i = get_global_id(0);
+  const size_t i = get_global_id(0);
 
-  float* scl = scl_ + w * i* nCnl;
-  float* tcl = tcl_ + w * i* nCnl;
+  float* scl = scl_ + width * i * nCnl;
+  float* tcl = tcl_ + width * i * nCnl;
 
   float* liSCL = scl;
-  float* riSCL = scl+r*nCnl;
+  float* riSCL = scl + radius * nCnl;
   float* tiTCL = tcl;
 
   float3 fv  = getf3(scl,0);
-  float3 lv  = getf3(scl, w - 1);
-  float3 val = (r + 1) * fv;
+  float3 lv  = getf3(scl, width - 1);
+  float3 val = (float)(radius + 1) * fv;
 
-  for(size_t j=0; j<r; j++)
+  for(size_t j=0; j<radius; j++)
     val += getf3(scl, j);
 
   for(float* tiTCLMax=tiTCL+nHead*nCnl; tiTCL<tiTCLMax; riSCL+=nCnl, tiTCL+=nCnl)
@@ -156,8 +158,11 @@ const char  kernel_boxBlurT_4[] =
 R"V0G0N(
 void kernel boxBlurT_4(global float* scl_, global float* tcl_, int w, int h, int r)
 {
-  const int nCnl = 3;
-  const float iarr = 1.0f / (r + r + 1);
+  const size_t width = (size_t)w;
+  const size_t height = (size_t)h;
+  const size_t radius = (size_t)r;
+  const size_t nCnl = 3;
+  const float iarr = 1.0f / (float)(radius + radius + 1);
 
   size_t const i = get_global_id(0);
 
@@ -166,37 +171,37 @@ void kernel boxBlurT_4(global float* scl_, global float* tcl_, int w, int h, int
 
   size_t ti = 0;
   size_t li = 0;
-  size_t ri = r * w;
+  size_t ri = radius * width;
 
   float3 fv = getf3(scl, 0);
-  float3 lv = getf3(scl, w * (h - 1));
-  float3 val = (r + 1)*fv;
+  float3 lv = getf3(scl, width * (height - 1));
+  float3 val = (float)(radius + 1) * fv;
 
-  for(size_t j=0; j<r; j++)
-    val += getf3(scl, j * w);
+  for(size_t j=0; j<radius; j++)
+    val += getf3(scl, j * width);
 
-  for(size_t j=0; j<=r; j++)
+  for(size_t j=0; j<=radius; j++)
   {
     val += getf3(scl, ri) - fv;
     setf3(tcl, ti,val*iarr);
-    ri += w; ti += w;
+    ri += width; ti += width;
   }
 
-  for(size_t j=r+1; j<h-r; j++)
+  for(size_t j=radius+1; j<height-radius; j++)
   {
     val += getf3(scl, ri) - getf3(scl, li);
     setf3(tcl,ti, val*iarr);
-    li += w;
-    ri += w;
-    ti += w;
+    li += width;
+    ri += width;
+    ti += width;
   }
 
-  for(size_t j=h-r; j<h; j++)
+  for(size_t j=height-radius; j<height; j++)
   {
     val += lv-getf3(scl,li);
     setf3(tcl,ti, val*iarr);
-    li += w;
-    ti += w;
+    li += width;
+    ti += width;
   }
 }
 )V0G0N";
