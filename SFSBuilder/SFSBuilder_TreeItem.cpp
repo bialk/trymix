@@ -130,7 +130,7 @@ R"(
         - bln1x2.ppm: [ -0.5, 0.4, 2.]
         - bln2x2.ppm: [  0.5, 0.4, 2.]
         - bln3x2.ppm: [  0.5, -0.4, 2.]
-        - bln4x2.ppm: [  -0.5, -0.4, 2.]
+        - bln4x2.ppm: [ -0.5, -0.4, 2.]
 )"
   );
   m_panel.plainTextEdit->moveCursor(QTextCursor::Start);
@@ -170,6 +170,10 @@ R"(
 
     m_sfs->TreeScan(&TSOCntx::TSO_ProjectLoad);
     m_sfs->Build();
+    if(auto* mainWindow = findParentOfType<QMainWindow>(m_dockWidget.data())) {
+      if(auto* viewport = mainWindow->findChild<CentralWidget*>())
+        viewport->update();
+    }
   });
 }
 
