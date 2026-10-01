@@ -11,6 +11,10 @@
 #include <QOpenGLWidget>
 #include <QPainter>
 #include <QDebug>
+#include <QTextCursor>
+
+#include <yaml-cpp/yaml.h>
+#include <filesystem>
 
 
 namespace {
@@ -20,6 +24,7 @@ class EventHandler_PositionController: public EventHandler3D{
 public:
   ViewCtrl* m_vp = nullptr;
   Lights* m_lights = nullptr;
+  
 
   ViewCtrl::Opercode Op{ViewCtrl::Opercode::origRotate};
 
@@ -116,8 +121,56 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
 
   drawTestScene();
 
-  m_sfs->TreeScan(&TSOCntx::TSO_ProjectLoad);
-  m_sfs->Build();
+  m_panel.plainTextEdit->clear();
+  m_panel.plainTextEdit->appendPlainText(
+R"(
+    SFSModelConfig:
+      workdir: C:/Users/Alex/D/zero-devel/research/pmetrics/data/
+      images:
+        - bln1x2.ppm: [ -0.5, 0.4, 2.]
+        - bln2x2.ppm: [  0.5, 0.4, 2.]
+        - bln3x2.ppm: [  0.5, -0.4, 2.]
+        - bln4x2.ppm: [  -0.5, -0.4, 2.]
+)"
+  );
+  m_panel.plainTextEdit->moveCursor(QTextCursor::Start);
+
+  QObject::connect(m_panel.toolButton_RunModel,&QToolButton::clicked,[&](){
+  
+    const QByteArray yamlText = m_panel.plainTextEdit->toPlainText().toUtf8();
+    try {
+      const YAML::Node document = YAML::Load(
+        std::string(yamlText.constData(), static_cast<std::size_t>(yamlText.size())));
+      const YAML::Node config = document["SFSModelConfig"];
+      const auto workdir = config["workdir"].as<std::string>();
+      const YAML::Node images = config["images"];
+      auto idx = 0;
+      for( auto i: images ) {
+        const auto imageShortName =  i.begin()->first.as<std::string>();
+        const auto imageFile = std::filesystem::path(workdir) / imageShortName;
+        const std::vector<float> lightPos = i.begin()->second.as<std::vector<float>>();      
+        if(lightPos.size() == 3) {
+          m_sfs->imagefname[idx] = imageFile.generic_string();
+          m_sfs->lights[idx][0] = lightPos[0];
+          m_sfs->lights[idx][1] = lightPos[1];
+          m_sfs->lights[idx][2] = lightPos[2];
+        } else {
+          qWarning() << "Invalid light position for image" << QString::fromStdString(imageShortName) << "- expected 3 values, got" << lightPos.size();
+          return;
+        }
+        // Here you can use imageFile and lightPos as needed
+        qDebug() << "Parsed image:" << QString::fromStdString(imageShortName) << "at path:" << QString::fromStdString(imageFile.generic_string())
+                << "with light position:" << lightPos[0] << lightPos[1] << lightPos[2];
+        idx++;
+      }
+    }
+    catch (const YAML::Exception& error) {
+      qWarning() << "Failed to parse SFS model YAML:" << error.what();
+    }
+
+    m_sfs->TreeScan(&TSOCntx::TSO_ProjectLoad);
+    m_sfs->Build();
+  });
 }
 
 SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}

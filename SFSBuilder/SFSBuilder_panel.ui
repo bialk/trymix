@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>159</width>
-    <height>467</height>
+    <width>174</width>
+    <height>512</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -143,12 +143,19 @@
      </widget>
     </item>
     <item>
+     <widget class="QToolButton" name="toolButton_RunModel">
+      <property name="text">
+       <string>Run SFS Model</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QPlainTextEdit" name="plainTextEdit">
       <property name="lineWidth">
        <number>0</number>
       </property>
       <property name="lineWrapMode">
-       <enum>QPlainTextEdit::NoWrap</enum>
+       <enum>QPlainTextEdit::LineWrapMode::NoWrap</enum>
       </property>
       <property name="plainText">
        <string/>

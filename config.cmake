@@ -9,5 +9,7 @@ set(Eigen3_DIR C:/Users/Alex/D/zero-devel/eigen3/eigen-3.4.0_install/share/eigen
     CACHE PATH "Eigen3 package directory" FORCE)
 set(nlohmann_json_DIR C:/Users/Alex/D/zero-devel/nlohmann_json_install/share/cmake/nlohmann_json
     CACHE PATH "nlohmann-json package directory" FORCE)
+set(yaml-cpp_DIR C:/Users/Alex/D/zero-devel/yaml-cpp-install/lib/cmake/yaml-cpp
+    CACHE PATH "yaml-cpp package directory" FORCE)
 set(pthread_ROOT C:/Users/Alex/D/zero-devel/pthreads-w32-2-9-1_install)
 set(SPOOLES_ROOT C:/Users/Alex/D/zero-devel/spooles_install)

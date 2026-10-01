@@ -109,6 +109,14 @@ find_package(OpenGL REQUIRED)
 
 find_package(nlohmann_json 3.12.0 REQUIRED)
 
+##################### yaml-cpp #####################
+
+find_package(yaml-cpp 0.9.0 REQUIRED)
+set_property(TARGET yaml-cpp::yaml-cpp PROPERTY
+  MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
+set_property(TARGET yaml-cpp::yaml-cpp PROPERTY
+  MAP_IMPORTED_CONFIG_MINSIZEREL Release)
+
 ################### OpenCL ######################
 
 find_package(OpenCL 3.0 REQUIRED)
@@ -389,6 +397,7 @@ target_link_libraries(trymix PRIVATE
     ${TRYMIX_OPENCL_TARGET}
     Eigen3::Eigen
     nlohmann_json::nlohmann_json
+    yaml-cpp::yaml-cpp
     Boost::process
     Boost::filesystem
 )
