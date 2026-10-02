@@ -11,14 +11,22 @@
 #include <QOpenGLWidget>
 #include <QPainter>
 #include <QDebug>
-#include <QTextCursor>
 #include <QAction>
 #include <QActionGroup>
+#include <QColor>
+#include <QFontDatabase>
+#include <QKeyEvent>
 #include <QKeySequence>
+#include <QPalette>
 #include <QToolButton>
 
+#include <Qsci/qscilexeryaml.h>
+#include <Qsci/qsciscintilla.h>
+
 #include <yaml-cpp/yaml.h>
+#include <algorithm>
 #include <filesystem>
+#include <vector>
 
 
 namespace {
@@ -92,6 +100,139 @@ public:
   std::unique_ptr<EventHandler3D> m_dragHandler;
   EventHandler3D m_mouseDragLight;
 };
+
+class MultiCaretNavigationFilter final : public QObject
+{
+public:
+  explicit MultiCaretNavigationFilter(QsciScintilla* editor)
+    : QObject(editor), m_editor(editor)
+  {}
+
+protected:
+  bool eventFilter(QObject* watched, QEvent* event) override
+  {
+    if (watched != m_editor || event->type() != QEvent::KeyPress)
+      return QObject::eventFilter(watched, event);
+
+    auto* keyEvent = static_cast<QKeyEvent*>(event);
+    const bool moveLeft = keyEvent->key() == Qt::Key_Left;
+    const bool moveRight = keyEvent->key() == Qt::Key_Right;
+    const bool moveHome = keyEvent->key() == Qt::Key_Home;
+    const bool moveEnd = keyEvent->key() == Qt::Key_End;
+    if (!moveLeft && !moveRight && !moveHome && !moveEnd)
+      return QObject::eventFilter(watched, event);
+
+    const auto modifiers = keyEvent->modifiers() & ~Qt::KeypadModifier;
+    if (modifiers != Qt::NoModifier && modifiers != Qt::ShiftModifier)
+      return QObject::eventFilter(watched, event);
+
+    const int selectionCount = static_cast<int>(m_editor->SendScintilla(
+      QsciScintilla::SCI_GETSELECTIONS));
+    if (selectionCount <= 1)
+      return QObject::eventFilter(watched, event);
+
+    const bool extendSelection = modifiers == Qt::ShiftModifier;
+    std::vector<long> newCarets(selectionCount);
+    for (int selection = 0; selection < selectionCount; ++selection) {
+      const long caret = m_editor->SendScintilla(
+        QsciScintilla::SCI_GETSELECTIONNCARET, selection);
+      const long anchor = m_editor->SendScintilla(
+        QsciScintilla::SCI_GETSELECTIONNANCHOR, selection);
+
+      if (moveHome || moveEnd) {
+        const long line = m_editor->SendScintilla(
+          QsciScintilla::SCI_LINEFROMPOSITION, caret);
+        newCarets[selection] = m_editor->SendScintilla(
+          moveHome ? QsciScintilla::SCI_POSITIONFROMLINE
+                   : QsciScintilla::SCI_GETLINEENDPOSITION,
+          line);
+      } else if (!extendSelection && caret != anchor) {
+        newCarets[selection] = moveLeft
+          ? std::min(caret, anchor)
+          : std::max(caret, anchor);
+      } else {
+        newCarets[selection] = m_editor->SendScintilla(
+          moveLeft ? QsciScintilla::SCI_POSITIONBEFORE
+                   : QsciScintilla::SCI_POSITIONAFTER,
+          caret);
+      }
+    }
+
+    for (int selection = 0; selection < selectionCount; ++selection) {
+      const auto index = static_cast<unsigned long>(selection);
+      m_editor->SendScintilla(
+        QsciScintilla::SCI_SETSELECTIONNCARET, index, newCarets[selection]);
+      if (!extendSelection) {
+        m_editor->SendScintilla(
+          QsciScintilla::SCI_SETSELECTIONNANCHOR, index,
+          newCarets[selection]);
+      }
+    }
+
+    return true;
+  }
+
+private:
+  QsciScintilla* m_editor;
+};
+
+void configureYamlEditor(QsciScintilla* editor)
+{
+  const QPalette palette = editor->palette();
+  const QColor background = palette.color(QPalette::Base);
+  const QColor foreground = palette.color(QPalette::Text);
+  const bool darkTheme = background.lightness() < foreground.lightness();
+  QFont editorFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+  editorFont.setPointSizeF(editorFont.pointSizeF() + 1.0);
+
+  auto* lexer = new QsciLexerYAML(editor);
+  editor->setLexer(lexer);
+  lexer->setDefaultFont(editorFont);
+  lexer->setFont(editorFont, -1);
+  lexer->setDefaultPaper(background);
+  lexer->setPaper(background, -1);
+  lexer->setDefaultColor(foreground);
+  lexer->setColor(foreground, -1);
+
+  lexer->setColor(darkTheme ? QColor("#6A9955") : QColor("#008000"),
+                  QsciLexerYAML::Comment);
+  lexer->setColor(darkTheme ? QColor("#9CDCFE") : QColor("#001080"),
+                  QsciLexerYAML::Identifier);
+  lexer->setColor(darkTheme ? QColor("#C586C0") : QColor("#AF00DB"),
+                  QsciLexerYAML::Keyword);
+  lexer->setColor(darkTheme ? QColor("#B5CEA8") : QColor("#098658"),
+                  QsciLexerYAML::Number);
+  lexer->setColor(darkTheme ? QColor("#4EC9B0") : QColor("#267F99"),
+                  QsciLexerYAML::Reference);
+  lexer->setColor(darkTheme ? QColor("#569CD6") : QColor("#0000FF"),
+                  QsciLexerYAML::DocumentDelimiter);
+  lexer->setColor(darkTheme ? QColor("#DCDCAA") : QColor("#795E26"),
+                  QsciLexerYAML::TextBlockMarker);
+  lexer->setColor(darkTheme ? QColor("#F44747") : QColor("#CD3131"),
+                  QsciLexerYAML::SyntaxErrorMarker);
+  lexer->setColor(darkTheme ? QColor("#D4D4D4") : QColor("#202020"),
+                  QsciLexerYAML::Operator);
+
+  editor->setFont(editorFont);
+  editor->setExtraAscent(1);
+  editor->setExtraDescent(1);
+  editor->SendScintilla(QsciScintilla::SCI_SETMULTIPLESELECTION, 1);
+  editor->SendScintilla(QsciScintilla::SCI_SETADDITIONALSELECTIONTYPING, 1);
+  editor->SendScintilla(QsciScintilla::SCI_SETADDITIONALCARETSVISIBLE, 1);
+  editor->SendScintilla(QsciScintilla::SCI_SETADDITIONALCARETSBLINK, 1);
+  editor->SendScintilla(QsciScintilla::SCI_SETADDITIONALCARETFORE, foreground);
+  editor->SendScintilla(
+    QsciScintilla::SCI_SETMULTIPASTE, QsciScintilla::SC_MULTIPASTE_EACH);
+  editor->installEventFilter(new MultiCaretNavigationFilter(editor));
+  editor->setColor(foreground);
+  editor->setPaper(background);
+  editor->setCaretForegroundColor(foreground);
+  editor->setSelectionBackgroundColor(palette.color(QPalette::Highlight));
+  editor->setSelectionForegroundColor(palette.color(QPalette::HighlightedText));
+  editor->setMarginsBackgroundColor(palette.color(QPalette::AlternateBase));
+  editor->setMarginsForegroundColor(foreground);
+  editor->setMarginsFont(editorFont);
+}
 }
 
 
@@ -125,19 +266,27 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
 
   drawTestScene();
 
-  m_panel.plainTextEdit->clear();
-  m_panel.plainTextEdit->appendPlainText(
+  configureYamlEditor(m_panel.configEditor);
+  m_panel.configEditor->setMarginType(0, QsciScintilla::NumberMargin);
+  m_panel.configEditor->setMarginLineNumbers(0, true);
+  m_panel.configEditor->setMarginWidth(0, QStringLiteral("0000"));
+  m_panel.configEditor->setWrapMode(QsciScintilla::WrapNone);
+  m_panel.configEditor->setIndentationsUseTabs(false);
+  m_panel.configEditor->setTabWidth(2);
+  m_panel.configEditor->setAutoIndent(true);
+  m_panel.configEditor->setText(
 R"(
-    SFSModelConfig:
-      workdir: C:/Users/Alex/D/zero-devel/research/pmetrics/data/
-      images:
-        - bln1x2.ppm: [ -0.5, 0.7, 2.]
-        - bln2x2.ppm: [  0.5, 0.7, 2.]
-        - bln3x2.ppm: [  0.5, -0.7, 2.]
-        - bln4x2.ppm: [ -0.5, -0.7, 2.]
+SFSModelConfig:
+  workdir: C:/Users/Alex/D/zero-devel/research/pmetrics/data/
+  images:
+    - bln1x2.ppm: [ -0.5, 0.7, 2.]
+    - bln2x2.ppm: [  0.5, 0.7, 2.]
+    - bln3x2.ppm: [  0.5, -0.7, 2.]
+    - bln4x2.ppm: [ -0.5, -0.7, 2.]
 )"
   );
-  m_panel.plainTextEdit->moveCursor(QTextCursor::Start);
+  m_panel.configEditor->recolor();
+  m_panel.configEditor->setCursorPosition(0, 0);
 
   createActions();
   bindActions();
@@ -226,7 +375,7 @@ void SFSBuilder_TreeItem::selectImageSlot(int slot)
 
 void SFSBuilder_TreeItem::runModel()
 {
-  const QByteArray yamlText = m_panel.plainTextEdit->toPlainText().toUtf8();
+  const QByteArray yamlText = m_panel.configEditor->text().toUtf8();
   try {
     const YAML::Node document = YAML::Load(
       std::string(yamlText.constData(), static_cast<std::size_t>(yamlText.size())));

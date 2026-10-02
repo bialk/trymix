@@ -55,6 +55,30 @@ set(QtVer Qt${QT_VERSION_MAJOR})
 
 find_package(${QtVer} REQUIRED COMPONENTS Concurrent OpenGL Widgets OpenGLWidgets LinguistTools)
 
+################### QScintilla ###################
+
+if(WIN32)
+  if(NOT DEFINED QSCINTILLA_ROOT)
+    message(FATAL_ERROR "Please define QSCINTILLA_ROOT")
+  endif()
+
+  add_library(QScintilla::QScintilla SHARED IMPORTED)
+  set_target_properties(QScintilla::QScintilla PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${QSCINTILLA_ROOT}/include"
+    INTERFACE_COMPILE_DEFINITIONS QSCINTILLA_DLL
+    IMPORTED_CONFIGURATIONS "DEBUG;RELEASE"
+    IMPORTED_LOCATION_DEBUG "${QSCINTILLA_ROOT}/bin/qscintilla2_qt6d.dll"
+    IMPORTED_IMPLIB_DEBUG "${QSCINTILLA_ROOT}/lib/qscintilla2_qt6d.lib"
+    IMPORTED_LOCATION_RELEASE "${QSCINTILLA_ROOT}/bin/qscintilla2_qt6.dll"
+    IMPORTED_IMPLIB_RELEASE "${QSCINTILLA_ROOT}/lib/qscintilla2_qt6.lib"
+    MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+    MAP_IMPORTED_CONFIG_MINSIZEREL Release
+  )
+  list(APPEND FOR_COPY_TO_BINARY_DIR "$<TARGET_FILE:QScintilla::QScintilla>")
+else()
+  message(FATAL_ERROR "QScintilla discovery is currently configured for Windows only")
+endif()
+
 ################### Boost #######################
 
 set(Boost_USE_STATIC_LIBS OFF)
@@ -377,6 +401,7 @@ target_link_libraries(trymix PRIVATE
     Eigen3::Eigen
     nlohmann_json::nlohmann_json
     yaml-cpp::yaml-cpp
+    QScintilla::QScintilla
     Boost::process
     Boost::filesystem
 )

@@ -152,27 +152,18 @@
      </layout>
     </item>
     <item>
-     <widget class="QPlainTextEdit" name="plainTextEdit">
-      <property name="lineWidth">
-       <number>0</number>
-      </property>
-      <property name="lineWrapMode">
-       <enum>QPlainTextEdit::LineWrapMode::NoWrap</enum>
-      </property>
-      <property name="plainText">
-       <string/>
-      </property>
-      <property name="backgroundVisible">
-       <bool>false</bool>
-      </property>
-      <property name="centerOnScroll">
-       <bool>true</bool>
-      </property>
-     </widget>
+     <widget class="QsciScintilla" name="configEditor"/>
     </item>
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QsciScintilla</class>
+   <extends>QAbstractScrollArea</extends>
+   <header>Qsci/qsciscintilla.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
