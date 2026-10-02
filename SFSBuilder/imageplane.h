@@ -4,9 +4,12 @@
 #include "CommonComponents/drawContext.h"
 #include "CommonComponents/ImageTile.h"
 #include "CommonComponents/glhelper.h"
+#include "shapefromshade.h"
+#include <functional>
 #include <vector>
 
 namespace sV2 { class Serializer; }
+class QObject;
 
 class ImagePlane: public EditViewObj{
  public:
@@ -51,7 +54,6 @@ class ImagePlane: public EditViewObj{
   int edit_mode;
 
   GLListHandle shape;
-  void BuildShape();
 
   int  cache_slot;
   void Open(int slot);
@@ -61,7 +63,9 @@ class ImagePlane: public EditViewObj{
   GLuint glsel_light[4];
   void DrawLightPoints();
 
-  void Build();
+  using BuildFinished = std::function<void(DataExchangeBlock)>;
+  void Build(QObject* callbackContext, BuildFinished finished);
+  void ApplyBuildResult(DataExchangeBlock data);
 };
 
 #endif

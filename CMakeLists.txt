@@ -10,28 +10,6 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
-###################################################################################
-if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/config.cmake")
-  include("${CMAKE_CURRENT_LIST_DIR}/config.cmake")
-else()
-  message(FATAL_ERROR
-    "You have to prepare config.cmake file for your project. Exitting now...
-    ###################################################################################
-    # consider to specify cmake variables in cmake configuration file
-    # config.cmake. I.e.:
-    set(WINDOWS_EXTERNAL_LIBS_PATH D:/trymix/test_omi;D:/zero-devel)
-    # this is directories where <PackageName>Config.cmake file placed
-    # you may search it with command, i.e.
-    # find /d/zero-devel -name BoostConfig.cmake
-    set(CUDAToolkit_ROOT C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin)
-    set(Boost_ROOT D:/zero-devel/boost_1_87_0/lib64-msvc-14.3/lib/cmake/Boost-1.87.0)
-    set(CGAL_ROOT D:/zero-devel/CGAL-6.0.1/lib/cmake/CGAL)
-    set(glm_ROOT D:/zero-devel/glm/install/lib/cmake/glm)
-    set(Eigen3_ROOT D:/zero-devel/eigen3/eigen-3.4.0_build)
-    "
-  )
-endif()
-
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_AUTOUIC ON)
@@ -75,7 +53,7 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 message(STATUS "found Qt${QT_VERSION_MAJOR}")
 set(QtVer Qt${QT_VERSION_MAJOR})
 
-find_package(${QtVer} REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets  LinguistTools)
+find_package(${QtVer} REQUIRED COMPONENTS Concurrent OpenGL Widgets OpenGLWidgets LinguistTools)
 
 ################### Boost #######################
 
@@ -383,6 +361,7 @@ endif()
 
 target_link_libraries(trymix PRIVATE
     ${QtVer}::Widgets
+    ${QtVer}::Concurrent
     ${QtVer}::OpenGL
     ${QtVer}::OpenGLWidgets
 

@@ -12,6 +12,10 @@
 #include <QPainter>
 #include <QDebug>
 #include <QTextCursor>
+#include <QAction>
+#include <QActionGroup>
+#include <QKeySequence>
+#include <QToolButton>
 
 #include <yaml-cpp/yaml.h>
 #include <filesystem>
@@ -93,13 +97,13 @@ public:
 
 
 SFSBuilder_TreeItem::SFSBuilder_TreeItem()
-  :m_sfs(new ImagePlane)
+  :m_imagePlane(new ImagePlane)
   ,m_viewCtrl(new ViewCtrl)
   ,m_lights(new Lights)
   ,m_toolsPanel(new ToolPanel)
 {
   m_viewCtrl->TreeScan(&TSOCntx::TSO_Init);
-  m_sfs->TreeScan(&TSOCntx::TSO_Init);
+  m_imagePlane->TreeScan(&TSOCntx::TSO_Init);
   m_toolsPanel->Add(&m_lights->glic1);
   m_toolsPanel->Add(&m_lights->glic2);
   m_lights->TreeScan(&TSOCntx::TSO_Init);
@@ -127,54 +131,144 @@ R"(
     SFSModelConfig:
       workdir: C:/Users/Alex/D/zero-devel/research/pmetrics/data/
       images:
-        - bln1x2.ppm: [ -0.5, 0.4, 2.]
-        - bln2x2.ppm: [  0.5, 0.4, 2.]
-        - bln3x2.ppm: [  0.5, -0.4, 2.]
-        - bln4x2.ppm: [ -0.5, -0.4, 2.]
+        - bln1x2.ppm: [ -0.5, 0.7, 2.]
+        - bln2x2.ppm: [  0.5, 0.7, 2.]
+        - bln3x2.ppm: [  0.5, -0.7, 2.]
+        - bln4x2.ppm: [ -0.5, -0.7, 2.]
 )"
   );
   m_panel.plainTextEdit->moveCursor(QTextCursor::Start);
 
-  QObject::connect(m_panel.toolButton_RunModel,&QToolButton::clicked,[&](){
-  
-    const QByteArray yamlText = m_panel.plainTextEdit->toPlainText().toUtf8();
-    try {
-      const YAML::Node document = YAML::Load(
-        std::string(yamlText.constData(), static_cast<std::size_t>(yamlText.size())));
-      const YAML::Node config = document["SFSModelConfig"];
-      const auto workdir = config["workdir"].as<std::string>();
-      const YAML::Node images = config["images"];
-      auto idx = 0;
-      for( auto i: images ) {
-        const auto imageShortName =  i.begin()->first.as<std::string>();
-        const auto imageFile = std::filesystem::path(workdir) / imageShortName;
-        const std::vector<float> lightPos = i.begin()->second.as<std::vector<float>>();      
-        if(lightPos.size() == 3) {
-          m_sfs->imagefname[idx] = imageFile.generic_string();
-          m_sfs->lights[idx][0] = lightPos[0];
-          m_sfs->lights[idx][1] = lightPos[1];
-          m_sfs->lights[idx][2] = lightPos[2];
-        } else {
-          qWarning() << "Invalid light position for image" << QString::fromStdString(imageShortName) << "- expected 3 values, got" << lightPos.size();
-          return;
-        }
-        // Here you can use imageFile and lightPos as needed
-        qDebug() << "Parsed image:" << QString::fromStdString(imageShortName) << "at path:" << QString::fromStdString(imageFile.generic_string())
-                << "with light position:" << lightPos[0] << lightPos[1] << lightPos[2];
-        idx++;
-      }
-    }
-    catch (const YAML::Exception& error) {
-      qWarning() << "Failed to parse SFS model YAML:" << error.what();
-    }
+  createActions();
+  bindActions();
+}
 
-    m_sfs->TreeScan(&TSOCntx::TSO_ProjectLoad);
-    m_sfs->Build();
-    if(auto* mainWindow = findParentOfType<QMainWindow>(m_dockWidget.data())) {
-      if(auto* viewport = mainWindow->findChild<CentralWidget*>())
-        viewport->update();
+void SFSBuilder_TreeItem::createActions()
+{
+  auto* slotActionGroup = new QActionGroup(m_dockWidget.data());
+  slotActionGroup->setExclusive(true);
+  for (int slot = 0; slot < static_cast<int>(m_slotActions.size()); ++slot) {
+    auto* action = new QAction(
+      QObject::tr("Image Slot %1").arg(slot + 1), m_dockWidget.data());
+    action->setCheckable(true);
+    action->setData(slot);
+    slotActionGroup->addAction(action);
+    m_slotActions[slot] = action;
+  }
+  m_slotActions[0]->setChecked(true);
+  QObject::connect(
+    slotActionGroup, &QActionGroup::triggered, m_dockWidget.data(),
+    [this](QAction* action) { selectImageSlot(action->data().toInt()); });
+
+  m_loadConfigAction = new QAction(
+    QObject::tr("Load Configuration"), m_dockWidget.data());
+  m_saveConfigAction = new QAction(
+    QObject::tr("Save Configuration"), m_dockWidget.data());
+  m_saveConfigAsAction = new QAction(
+    QObject::tr("Save Configuration As"), m_dockWidget.data());
+  m_runModelAction = new QAction(QObject::tr("Run Model"), m_dockWidget.data());
+  m_runModelAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+R")));
+
+  QObject::connect(
+    m_runModelAction, &QAction::triggered, m_dockWidget.data(),
+    [this]() { runModel(); });
+}
+
+void SFSBuilder_TreeItem::bindActions()
+{
+  const auto bindButton = [](QToolButton* button, QAction* action) {
+    button->setEnabled(action->isEnabled());
+    QObject::connect(button, &QToolButton::clicked, action, &QAction::trigger);
+    QObject::connect(action, &QAction::changed, button, [button, action]() {
+      button->setEnabled(action->isEnabled());
+    });
+  };
+
+  const std::array slotButtons{
+    m_panel.toolButton_slot1,
+    m_panel.toolButton_slot2,
+    m_panel.toolButton_slot3,
+    m_panel.toolButton_slot4
+  };
+  for (int slot = 0; slot < static_cast<int>(slotButtons.size()); ++slot) {
+    slotButtons[slot]->setCheckable(true);
+    bindButton(slotButtons[slot], m_slotActions[slot]);
+  }
+  slotButtons[0]->setChecked(true);
+
+  bindButton(m_panel.toolButton_ConfigLoad, m_loadConfigAction);
+  bindButton(m_panel.toolButton_ConfigSave, m_saveConfigAction);
+  bindButton(m_panel.toolButton_2, m_saveConfigAsAction);
+  bindButton(m_panel.toolButton_RunModel, m_runModelAction);
+  m_dockWidget->addAction(m_runModelAction);
+}
+
+void SFSBuilder_TreeItem::selectImageSlot(int slot)
+{
+  if (slot < 0 || slot >= static_cast<int>(m_slotActions.size()))
+    return;
+
+  const std::array slotButtons{
+    m_panel.toolButton_slot1,
+    m_panel.toolButton_slot2,
+    m_panel.toolButton_slot3,
+    m_panel.toolButton_slot4
+  };
+  for (int index = 0; index < static_cast<int>(slotButtons.size()); ++index)
+    slotButtons[index]->setChecked(index == slot);
+
+  m_imagePlane->curslot = slot;
+  if(auto* mainWindow = findParentOfType<QMainWindow>(m_dockWidget.data())) {
+    if(auto* viewport = mainWindow->findChild<CentralWidget*>())
+      viewport->update();
+  }
+}
+
+void SFSBuilder_TreeItem::runModel()
+{
+  const QByteArray yamlText = m_panel.plainTextEdit->toPlainText().toUtf8();
+  try {
+    const YAML::Node document = YAML::Load(
+      std::string(yamlText.constData(), static_cast<std::size_t>(yamlText.size())));
+    const YAML::Node config = document["SFSModelConfig"];
+    const auto workdir = config["workdir"].as<std::string>();
+    const YAML::Node images = config["images"];
+    auto idx = 0;
+    for( auto i: images ) {
+      const auto imageShortName =  i.begin()->first.as<std::string>();
+      const auto imageFile = std::filesystem::path(workdir) / imageShortName;
+      const std::vector<float> lightPos = i.begin()->second.as<std::vector<float>>();
+      if(lightPos.size() == 3) {
+        m_imagePlane->imagefname[idx] = imageFile.generic_string();
+        m_imagePlane->lights[idx][0] = lightPos[0];
+        m_imagePlane->lights[idx][1] = lightPos[1];
+        m_imagePlane->lights[idx][2] = lightPos[2];
+      } else {
+        qWarning() << "Invalid light position for image" << QString::fromStdString(imageShortName) << "- expected 3 values, got" << lightPos.size();
+        return;
+      }
+      // Here you can use imageFile and lightPos as needed
+      qDebug() << "Parsed image:" << QString::fromStdString(imageShortName) << "at path:" << QString::fromStdString(imageFile.generic_string())
+              << "with light position:" << lightPos[0] << lightPos[1] << lightPos[2];
+      idx++;
     }
-  });
+  }
+  catch (const YAML::Exception& error) {
+    qWarning() << "Failed to parse SFS model YAML:" << error.what();
+  }
+
+  m_imagePlane->TreeScan(&TSOCntx::TSO_ProjectLoad);
+  m_runModelAction->setEnabled(false);
+  m_imagePlane->Build(
+    m_dockWidget.data(),
+    [this](DataExchangeBlock data) {
+      m_imagePlane->ApplyBuildResult(std::move(data));
+      m_runModelAction->setEnabled(true);
+      if(auto* mainWindow = findParentOfType<QMainWindow>(m_dockWidget.data())) {
+        if(auto* viewport = mainWindow->findChild<CentralWidget*>())
+          viewport->update();
+      }
+    });
 }
 
 SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}
@@ -211,10 +305,10 @@ SFSBuilder_TreeItem::showModel(DrawCntx* cx)
   m_lights->Draw(cx);
 
 
-  m_sfs->image_mode = ImagePlane::image_mode_image;
-  m_sfs->shape_mode = ImagePlane::shape_mode_image;
-  m_sfs->edit_mode = ImagePlane::edit_mode_off;
-  m_sfs->Draw(cx);
+  m_imagePlane->image_mode = ImagePlane::image_mode_image;
+  m_imagePlane->shape_mode = ImagePlane::shape_mode_image;
+  m_imagePlane->edit_mode = ImagePlane::edit_mode_off;
+  m_imagePlane->Draw(cx);
 
   m_toolsPanel->Draw(cx);
 }

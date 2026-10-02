@@ -1,11 +1,15 @@
 #include "imageplane.h"
 #include <FreeImage.h>
+#include <QFutureWatcher>
 #include <QOpenGLFunctions>
+#include <QtConcurrent/QtConcurrentRun>
 #include "apputil/serializerV2.h"
 #include "CommonComponents/glhelper.h"
 #include "shapefromshade.h"
 #include "mathlib/mathutl/mymath.h"
 //#include "mathlib/mathutl/imageandfft.h"
+
+#include <utility>
 
 ImagePlane::ImagePlane():
   w(0),h(0),
@@ -375,51 +379,53 @@ void ImagePlane::Draw(DrawCntx *cntx){
 };
   
 
-void ImagePlane::Build(){
+void ImagePlane::Build(QObject* callbackContext, BuildFinished finished){
   ShapeFromShade sfs;
-  sfs.w=w;
-  sfs.h=h;
   memcpy(sfs.s,lights,sizeof(sfs.s));
   memcpy(sfs.s_alb,lights,sizeof(sfs.s));
 
-  std::vector<float> image[4];
-  image[0].resize(w*h*3);
-  image[1].resize(w*h*3);
-  image[2].resize(w*h*3);
-  image[3].resize(w*h*3);
-  std::vector<float> albedo(w*h*3);
-  std::vector<float> data_norm(w*h*3);
-  //std::vector<float> data_attd(w*h);
-  data_attd.resize(w*h);
-
-  sfs.image[0]=&image[0][0];
-  sfs.image[1]=&image[1][0];
-  sfs.image[2]=&image[2][0];
-  sfs.image[3]=&image[3][0];
-  sfs.albedo=&albedo[0];
-  sfs.data_norm=&data_norm[0];
-  sfs.data_attd=&data_attd[0];
+  // preparing data for ShapeFromShade
+  DataExchangeBlock data(w, h);
 
   int i;
   for(i=0;i<w*h;++i){
-    image[0][i*3+0]=float(img[0][i*4+2])/255.f;
-    image[0][i*3+1]=float(img[0][i*4+1])/255.f;
-    image[0][i*3+2]=float(img[0][i*4+0])/255.f;
+    data.image[0][i*3+0]=float(img[0][i*4+2])/255.f;
+    data.image[0][i*3+1]=float(img[0][i*4+1])/255.f;
+    data.image[0][i*3+2]=float(img[0][i*4+0])/255.f;
 
-    image[1][i*3+0]=float(img[1][i*4+2])/255.f;
-    image[1][i*3+1]=float(img[1][i*4+1])/255.f;
-    image[1][i*3+2]=float(img[1][i*4+0])/255.f;
+    data.image[1][i*3+0]=float(img[1][i*4+2])/255.f;
+    data.image[1][i*3+1]=float(img[1][i*4+1])/255.f;
+    data.image[1][i*3+2]=float(img[1][i*4+0])/255.f;
 
-    image[2][i*3+0]=float(img[2][i*4+2])/255.f;
-    image[2][i*3+1]=float(img[2][i*4+1])/255.f;
-    image[2][i*3+2]=float(img[2][i*4+0])/255.f;
+    data.image[2][i*3+0]=float(img[2][i*4+2])/255.f;
+    data.image[2][i*3+1]=float(img[2][i*4+1])/255.f;
+    data.image[2][i*3+2]=float(img[2][i*4+0])/255.f;
 
-    image[3][i*3+0]=float(img[3][i*4+2])/255.f;
-    image[3][i*3+1]=float(img[3][i*4+1])/255.f;
-    image[3][i*3+2]=float(img[3][i*4+0])/255.f;
+    data.image[3][i*3+0]=float(img[3][i*4+2])/255.f;
+    data.image[3][i*3+1]=float(img[3][i*4+1])/255.f;
+    data.image[3][i*3+2]=float(img[3][i*4+0])/255.f;
 
   }
-  sfs.build();
+  auto* watcher = new QFutureWatcher<DataExchangeBlock>(callbackContext);
+  QObject::connect(
+    watcher, &QFutureWatcher<DataExchangeBlock>::finished, callbackContext,
+    [watcher, finished = std::move(finished)]() mutable {
+      DataExchangeBlock result = watcher->result();
+      watcher->deleteLater();
+      finished(std::move(result));
+    });
+
+  watcher->setFuture(QtConcurrent::run(
+    [sfs = std::move(sfs), data = std::move(data)]() mutable {
+      sfs.build(data);
+      return data;
+    }));
+}
+
+void ImagePlane::ApplyBuildResult(DataExchangeBlock data)
+{
+  data_attd = std::move(data.data_attd);
+  // reset cached shape display gllist
   shape.clear();
 }
 

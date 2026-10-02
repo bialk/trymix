@@ -4,7 +4,10 @@
 #include "CommonComponents/Projects_TreeItem.h"
 #include "ui_SFSBuilder_panel.h"
 
+#include <array>
+
 class QDockWidget;
+class QAction;
 class PolygonTest;
 class ImagePlane;
 class ViewCtrl;
@@ -22,9 +25,19 @@ public:
   void showModel(DrawCntx* gl) override;
   void activateProjectTreeItem(QDockWidget* dock, bool activate)  override;
 private:
+  void createActions();
+  void bindActions();
+  void selectImageSlot(int slot);
+  void runModel();
+
   QScopedPointer<QDockWidget> m_dockWidget;
   Ui::SFSBuilder_panel m_panel;
-  std::unique_ptr<ImagePlane> m_sfs;
+  std::array<QAction*, 4> m_slotActions{};
+  QAction* m_loadConfigAction = nullptr;
+  QAction* m_saveConfigAction = nullptr;
+  QAction* m_saveConfigAsAction = nullptr;
+  QAction* m_runModelAction = nullptr;
+  std::unique_ptr<ImagePlane> m_imagePlane;
   std::unique_ptr<ViewCtrl> m_viewCtrl;
   std::unique_ptr<EventHandler3D> m_viewCtrlEH;
   std::unique_ptr<Lights> m_lights;
