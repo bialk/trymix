@@ -6,6 +6,7 @@
 #include "CommonComponents/viewctrl.h"
 #include "CommonComponents/EventHandling.h"
 #include "CommonComponents/CentralWidget.h"
+#include "CommonComponents/FileLauncher.h"
 #include "CommonComponents/QScintillaEditor.h"
 #include "CommonComponents/testScene.h"
 
@@ -14,13 +15,18 @@
 #include <QDebug>
 #include <QAction>
 #include <QActionGroup>
+#include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QHBoxLayout>
 #include <QKeySequence>
+#include <QMenu>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSaveFile>
 #include <QToolButton>
+#include <QWidgetAction>
 
 #include <yaml-cpp/yaml.h>
 #include <filesystem>
@@ -103,7 +109,10 @@ public:
 
 
 SFSBuilder_TreeItem::SFSBuilder_TreeItem()
-  :m_imagePlane(new ImagePlane)
+  :m_configFileHistory(
+     QStringLiteral("SFSBuilder"), 10,
+     QStringLiteral("lastConfigFile"), QStringLiteral("recentConfigFiles"))
+  ,m_imagePlane(new ImagePlane)
   ,m_viewCtrl(new ViewCtrl)
   ,m_lights(new Lights)
   ,m_toolsPanel(new ToolPanel)
@@ -145,6 +154,8 @@ SFSModelConfig:
   );
   m_panel.configEditor->recolor();
   m_panel.configEditor->setCursorPosition(0, 0);
+  restoreState();
+  updateConfigFileLabel();
 
   createActions();
   bindActions();
@@ -174,7 +185,12 @@ void SFSBuilder_TreeItem::createActions()
   m_saveConfigAsAction = new QAction(
     QObject::tr("Save Configuration As"), m_dockWidget.data());
   m_runModelAction = new QAction(QObject::tr("Run Model"), m_dockWidget.data());
+  m_openConfigInVSCodeAction = new QAction(
+    QObject::tr("Open Configuration in VS Code"), m_dockWidget.data());
+  m_showConfigInExplorerAction = new QAction(
+    QObject::tr("Show Configuration in File Explorer"), m_dockWidget.data());
   m_runModelAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+R")));
+  m_recentConfigsMenu = new QMenu(m_dockWidget.data());
 
   QObject::connect(
     m_loadConfigAction, &QAction::triggered, m_dockWidget.data(),
@@ -188,6 +204,15 @@ void SFSBuilder_TreeItem::createActions()
   QObject::connect(
     m_runModelAction, &QAction::triggered, m_dockWidget.data(),
     [this]() { runModel(); });
+  QObject::connect(
+    m_openConfigInVSCodeAction, &QAction::triggered, m_dockWidget.data(),
+    [this]() { openConfigInVSCode(); });
+  QObject::connect(
+    m_showConfigInExplorerAction, &QAction::triggered, m_dockWidget.data(),
+    [this]() { showConfigInFileExplorer(); });
+  QObject::connect(
+    m_recentConfigsMenu, &QMenu::aboutToShow, m_dockWidget.data(),
+    [this]() { rebuildRecentConfigsMenu(); });
 }
 
 void SFSBuilder_TreeItem::bindActions()
@@ -213,58 +238,191 @@ void SFSBuilder_TreeItem::bindActions()
   slotButtons[0]->setChecked(true);
 
   bindButton(m_panel.toolButton_ConfigLoad, m_loadConfigAction);
+  m_panel.toolButton_ConfigLoad->setMenu(m_recentConfigsMenu);
+  m_panel.toolButton_ConfigLoad->setPopupMode(QToolButton::DelayedPopup);
   bindButton(m_panel.toolButton_ConfigSave, m_saveConfigAction);
   bindButton(m_panel.toolButton_2, m_saveConfigAsAction);
   bindButton(m_panel.toolButton_RunModel, m_runModelAction);
+  bindButton(
+    m_panel.toolButton_OpenConfigInVSCode, m_openConfigInVSCodeAction);
+  bindButton(
+    m_panel.toolButton_ShowConfigInExplorer, m_showConfigInExplorerAction);
   m_dockWidget->addAction(m_runModelAction);
+  updateConfigFileLabel();
 }
 
 void SFSBuilder_TreeItem::loadConfig()
 {
   const QString filePath = QFileDialog::getOpenFileName(
     m_dockWidget.data(), QObject::tr("Load Configuration"),
-    m_configFilePath, QObject::tr("YAML files (*.yaml *.yml);;All files (*.*)"));
+    m_configFileHistory.currentFile(),
+    QObject::tr("YAML files (*.yaml *.yml);;All files (*.*)"));
   if (filePath.isEmpty())
     return;
 
+  loadConfigFrom(filePath);
+}
+
+bool SFSBuilder_TreeItem::loadConfigFrom(
+  const QString& filePath, bool showErrors)
+{
   QFile file(filePath);
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-    QMessageBox::warning(
-      m_dockWidget.data(), QObject::tr("Load Configuration"),
-      QObject::tr("Could not open %1:\n%2")
-        .arg(QFileInfo(filePath).fileName(), file.errorString()));
-    return;
+    if (showErrors) {
+      QMessageBox::warning(
+        m_dockWidget.data(), QObject::tr("Load Configuration"),
+        QObject::tr("Could not open %1:\n%2")
+          .arg(QFileInfo(filePath).fileName(), file.errorString()));
+    }
+    return false;
   }
 
   m_panel.configEditor->setText(QString::fromUtf8(file.readAll()));
   m_panel.configEditor->recolor();
   m_panel.configEditor->setCursorPosition(0, 0);
-  m_configFilePath = filePath;
+  m_configFileHistory.rememberFile(filePath);
+  updateConfigFileLabel();
+  return true;
+}
+
+void SFSBuilder_TreeItem::restoreState()
+{
+  const QString filePath = m_configFileHistory.currentFile();
+  if (!filePath.isEmpty() && !loadConfigFrom(filePath, false))
+    m_configFileHistory.clearCurrentFile();
+}
+
+void SFSBuilder_TreeItem::updateConfigFileLabel()
+{
+  const QString filePath = m_configFileHistory.currentFile();
+  const bool hasFile = QFileInfo::exists(filePath);
+  if (m_openConfigInVSCodeAction)
+    m_openConfigInVSCodeAction->setEnabled(hasFile);
+  if (m_showConfigInExplorerAction)
+    m_showConfigInExplorerAction->setEnabled(hasFile);
+
+  if (!hasFile) {
+    m_panel.label_ConfigFilePath->setFullText(
+      QObject::tr("Unsaved configuration"));
+    m_panel.label_ConfigFilePath->setToolTip({});
+    return;
+  }
+
+  const QString displayPath = QDir::toNativeSeparators(filePath);
+  m_panel.label_ConfigFilePath->setFullText(displayPath);
+  m_panel.label_ConfigFilePath->setToolTip(displayPath);
+}
+
+void SFSBuilder_TreeItem::openConfigInVSCode()
+{
+  const QString filePath = m_configFileHistory.currentFile();
+  if (!QFileInfo::exists(filePath)) {
+    updateConfigFileLabel();
+    return;
+  }
+
+  if (!FileLauncher::openInVSCode(filePath)) {
+    QMessageBox::warning(
+      m_dockWidget.data(), QObject::tr("Open in VS Code"),
+      QObject::tr("Could not find or start Visual Studio Code."));
+  }
+}
+
+void SFSBuilder_TreeItem::showConfigInFileExplorer()
+{
+  const QString filePath = m_configFileHistory.currentFile();
+  if (!QFileInfo::exists(filePath)) {
+    updateConfigFileLabel();
+    return;
+  }
+
+  if (!FileLauncher::showInFileBrowser(filePath)) {
+    QMessageBox::warning(
+      m_dockWidget.data(), QObject::tr("Show in File Explorer"),
+      QObject::tr("Could not open File Explorer."));
+  }
+}
+
+void SFSBuilder_TreeItem::rebuildRecentConfigsMenu()
+{
+  m_recentConfigsMenu->clear();
+
+  for (const QString& filePath : m_configFileHistory.existingRecentFiles()) {
+    const QFileInfo fileInfo(filePath);
+    auto* rowAction = new QWidgetAction(m_recentConfigsMenu);
+    auto* row = new QWidget(m_recentConfigsMenu);
+    auto* layout = new QHBoxLayout(row);
+    layout->setContentsMargins(4, 1, 4, 1);
+    layout->setSpacing(4);
+
+    auto* openButton = new QPushButton(
+      QStringLiteral("%1 — %2").arg(fileInfo.fileName(), fileInfo.path()), row);
+    openButton->setFlat(true);
+    openButton->setToolTip(filePath);
+    openButton->setStyleSheet(QStringLiteral("text-align: left;"));
+    layout->addWidget(openButton, 1);
+
+    auto* removeButton = new QToolButton(row);
+    removeButton->setText(QStringLiteral("×"));
+    removeButton->setToolTip(QObject::tr("Remove from recent configurations"));
+    removeButton->setAutoRaise(true);
+    layout->addWidget(removeButton);
+
+    rowAction->setDefaultWidget(row);
+    m_recentConfigsMenu->addAction(rowAction);
+
+    QObject::connect(openButton, &QPushButton::clicked, m_dockWidget.data(),
+      [this, filePath]() {
+        m_recentConfigsMenu->close();
+        loadConfigFrom(filePath);
+      });
+    QObject::connect(removeButton, &QToolButton::clicked, m_dockWidget.data(),
+      [this, filePath, rowAction]() {
+        m_configFileHistory.removeFile(filePath);
+        m_recentConfigsMenu->removeAction(rowAction);
+        rowAction->deleteLater();
+        if (m_recentConfigsMenu->actions().isEmpty()) {
+          auto* emptyAction = m_recentConfigsMenu->addAction(
+            QObject::tr("No recent configurations"));
+          emptyAction->setEnabled(false);
+        }
+      });
+  }
+
+  if (m_recentConfigsMenu->isEmpty()) {
+    auto* emptyAction = m_recentConfigsMenu->addAction(
+      QObject::tr("No recent configurations"));
+    emptyAction->setEnabled(false);
+  }
 }
 
 void SFSBuilder_TreeItem::saveConfig()
 {
-  if (m_configFilePath.isEmpty()) {
+  const QString filePath = m_configFileHistory.currentFile();
+  if (filePath.isEmpty()) {
     saveConfigAs();
     return;
   }
 
-  saveConfigTo(m_configFilePath);
+  saveConfigTo(filePath);
 }
 
 void SFSBuilder_TreeItem::saveConfigAs()
 {
-  const QString initialPath = m_configFilePath.isEmpty()
+  const QString currentPath = m_configFileHistory.currentFile();
+  const QString initialPath = currentPath.isEmpty()
     ? QStringLiteral("sfs-config.yaml")
-    : m_configFilePath;
+    : currentPath;
   const QString filePath = QFileDialog::getSaveFileName(
     m_dockWidget.data(), QObject::tr("Save Configuration As"),
     initialPath, QObject::tr("YAML files (*.yaml *.yml);;All files (*.*)"));
   if (filePath.isEmpty())
     return;
 
-  if (saveConfigTo(filePath))
-    m_configFilePath = filePath;
+  if (saveConfigTo(filePath)) {
+    m_configFileHistory.rememberFile(filePath);
+    updateConfigFileLabel();
+  }
 }
 
 bool SFSBuilder_TreeItem::saveConfigTo(const QString& filePath)

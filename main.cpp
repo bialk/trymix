@@ -16,6 +16,7 @@ void test_ProcessAsServer();
 int main(int argc, char *argv[])
 {
   QApplication a(argc, argv);  
+  a.setOrganizationName("AlBi");
   a.setApplicationName("Try Mix!");
   a.setApplicationVersion("1.0");
   a.setStyle(QStyleFactory::create("Fusion"));

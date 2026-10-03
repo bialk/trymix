@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowIcon(QIcon(":/system/images/zeroapp-icon.png"));
 
     // should be last block (after interface is constructed)
-    QSettings settings("AlBi", QCoreApplication::applicationName());
+    QSettings settings;
     restoreGeometry(settings.value("geometry").toByteArray());
     restoreState(settings.value("windowState").toByteArray());
 }
@@ -37,7 +37,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent* e)
 {
-  QSettings settings("AlBi", QCoreApplication::applicationName());
+  QSettings settings;
   settings.setValue("geometry",saveGeometry());
   settings.setValue("windowState",saveState());
   QMainWindow::closeEvent(e);

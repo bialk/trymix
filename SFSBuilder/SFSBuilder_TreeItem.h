@@ -2,6 +2,7 @@
 #define SFSBUILDER_TREEITEM_H
 
 #include "CommonComponents/Projects_TreeItem.h"
+#include "CommonComponents/FileHistory.h"
 #include "ui_SFSBuilder_panel.h"
 
 #include <array>
@@ -9,6 +10,7 @@
 
 class QDockWidget;
 class QAction;
+class QMenu;
 class PolygonTest;
 class ImagePlane;
 class ViewCtrl;
@@ -28,7 +30,13 @@ public:
 private:
   void createActions();
   void bindActions();
+  void restoreState();
+  void updateConfigFileLabel();
+  void openConfigInVSCode();
+  void showConfigInFileExplorer();
+  void rebuildRecentConfigsMenu();
   void loadConfig();
+  bool loadConfigFrom(const QString& filePath, bool showErrors = true);
   void saveConfig();
   void saveConfigAs();
   bool saveConfigTo(const QString& filePath);
@@ -37,12 +45,15 @@ private:
 
   QScopedPointer<QDockWidget> m_dockWidget;
   Ui::SFSBuilder_panel m_panel;
+  FileHistory m_configFileHistory;
   std::array<QAction*, 4> m_slotActions{};
   QAction* m_loadConfigAction = nullptr;
   QAction* m_saveConfigAction = nullptr;
   QAction* m_saveConfigAsAction = nullptr;
   QAction* m_runModelAction = nullptr;
-  QString m_configFilePath;
+  QAction* m_openConfigInVSCodeAction = nullptr;
+  QAction* m_showConfigInExplorerAction = nullptr;
+  QMenu* m_recentConfigsMenu = nullptr;
   std::unique_ptr<ImagePlane> m_imagePlane;
   std::unique_ptr<ViewCtrl> m_viewCtrl;
   std::unique_ptr<EventHandler3D> m_viewCtrlEH;

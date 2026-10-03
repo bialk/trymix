@@ -233,6 +233,9 @@ set(PROJECT_SOURCES
 
     CommonComponents/EventHandling.h CommonComponents/EventHandling.cpp
     CommonComponents/EventParser.h CommonComponents/EventParser.cpp
+    CommonComponents/ElidedPathLabel.h CommonComponents/ElidedPathLabel.cpp
+    CommonComponents/FileHistory.h CommonComponents/FileHistory.cpp
+    CommonComponents/FileLauncher.h CommonComponents/FileLauncher.cpp
     CommonComponents/QScintillaEditor.h CommonComponents/QScintillaEditor.cpp
 
     CommonComponents/testScene.cpp CommonComponents/testScene.h
