@@ -6,6 +6,7 @@
 #include "CommonComponents/viewctrl.h"
 #include "CommonComponents/EventHandling.h"
 #include "CommonComponents/CentralWidget.h"
+#include "CommonComponents/QScintillaEditor.h"
 #include "CommonComponents/testScene.h"
 
 #include <QOpenGLWidget>
@@ -13,20 +14,16 @@
 #include <QDebug>
 #include <QAction>
 #include <QActionGroup>
-#include <QColor>
-#include <QFontDatabase>
-#include <QKeyEvent>
+#include <QFile>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QKeySequence>
-#include <QPalette>
+#include <QMessageBox>
+#include <QSaveFile>
 #include <QToolButton>
 
-#include <Qsci/qscilexeryaml.h>
-#include <Qsci/qsciscintilla.h>
-
 #include <yaml-cpp/yaml.h>
-#include <algorithm>
 #include <filesystem>
-#include <vector>
 
 
 namespace {
@@ -101,138 +98,6 @@ public:
   EventHandler3D m_mouseDragLight;
 };
 
-class MultiCaretNavigationFilter final : public QObject
-{
-public:
-  explicit MultiCaretNavigationFilter(QsciScintilla* editor)
-    : QObject(editor), m_editor(editor)
-  {}
-
-protected:
-  bool eventFilter(QObject* watched, QEvent* event) override
-  {
-    if (watched != m_editor || event->type() != QEvent::KeyPress)
-      return QObject::eventFilter(watched, event);
-
-    auto* keyEvent = static_cast<QKeyEvent*>(event);
-    const bool moveLeft = keyEvent->key() == Qt::Key_Left;
-    const bool moveRight = keyEvent->key() == Qt::Key_Right;
-    const bool moveHome = keyEvent->key() == Qt::Key_Home;
-    const bool moveEnd = keyEvent->key() == Qt::Key_End;
-    if (!moveLeft && !moveRight && !moveHome && !moveEnd)
-      return QObject::eventFilter(watched, event);
-
-    const auto modifiers = keyEvent->modifiers() & ~Qt::KeypadModifier;
-    if (modifiers != Qt::NoModifier && modifiers != Qt::ShiftModifier)
-      return QObject::eventFilter(watched, event);
-
-    const int selectionCount = static_cast<int>(m_editor->SendScintilla(
-      QsciScintilla::SCI_GETSELECTIONS));
-    if (selectionCount <= 1)
-      return QObject::eventFilter(watched, event);
-
-    const bool extendSelection = modifiers == Qt::ShiftModifier;
-    std::vector<long> newCarets(selectionCount);
-    for (int selection = 0; selection < selectionCount; ++selection) {
-      const long caret = m_editor->SendScintilla(
-        QsciScintilla::SCI_GETSELECTIONNCARET, selection);
-      const long anchor = m_editor->SendScintilla(
-        QsciScintilla::SCI_GETSELECTIONNANCHOR, selection);
-
-      if (moveHome || moveEnd) {
-        const long line = m_editor->SendScintilla(
-          QsciScintilla::SCI_LINEFROMPOSITION, caret);
-        newCarets[selection] = m_editor->SendScintilla(
-          moveHome ? QsciScintilla::SCI_POSITIONFROMLINE
-                   : QsciScintilla::SCI_GETLINEENDPOSITION,
-          line);
-      } else if (!extendSelection && caret != anchor) {
-        newCarets[selection] = moveLeft
-          ? std::min(caret, anchor)
-          : std::max(caret, anchor);
-      } else {
-        newCarets[selection] = m_editor->SendScintilla(
-          moveLeft ? QsciScintilla::SCI_POSITIONBEFORE
-                   : QsciScintilla::SCI_POSITIONAFTER,
-          caret);
-      }
-    }
-
-    for (int selection = 0; selection < selectionCount; ++selection) {
-      const auto index = static_cast<unsigned long>(selection);
-      m_editor->SendScintilla(
-        QsciScintilla::SCI_SETSELECTIONNCARET, index, newCarets[selection]);
-      if (!extendSelection) {
-        m_editor->SendScintilla(
-          QsciScintilla::SCI_SETSELECTIONNANCHOR, index,
-          newCarets[selection]);
-      }
-    }
-
-    return true;
-  }
-
-private:
-  QsciScintilla* m_editor;
-};
-
-void configureYamlEditor(QsciScintilla* editor)
-{
-  const QPalette palette = editor->palette();
-  const QColor background = palette.color(QPalette::Base);
-  const QColor foreground = palette.color(QPalette::Text);
-  const bool darkTheme = background.lightness() < foreground.lightness();
-  QFont editorFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-  editorFont.setPointSizeF(editorFont.pointSizeF() + 1.0);
-
-  auto* lexer = new QsciLexerYAML(editor);
-  editor->setLexer(lexer);
-  lexer->setDefaultFont(editorFont);
-  lexer->setFont(editorFont, -1);
-  lexer->setDefaultPaper(background);
-  lexer->setPaper(background, -1);
-  lexer->setDefaultColor(foreground);
-  lexer->setColor(foreground, -1);
-
-  lexer->setColor(darkTheme ? QColor("#6A9955") : QColor("#008000"),
-                  QsciLexerYAML::Comment);
-  lexer->setColor(darkTheme ? QColor("#9CDCFE") : QColor("#001080"),
-                  QsciLexerYAML::Identifier);
-  lexer->setColor(darkTheme ? QColor("#C586C0") : QColor("#AF00DB"),
-                  QsciLexerYAML::Keyword);
-  lexer->setColor(darkTheme ? QColor("#B5CEA8") : QColor("#098658"),
-                  QsciLexerYAML::Number);
-  lexer->setColor(darkTheme ? QColor("#4EC9B0") : QColor("#267F99"),
-                  QsciLexerYAML::Reference);
-  lexer->setColor(darkTheme ? QColor("#569CD6") : QColor("#0000FF"),
-                  QsciLexerYAML::DocumentDelimiter);
-  lexer->setColor(darkTheme ? QColor("#DCDCAA") : QColor("#795E26"),
-                  QsciLexerYAML::TextBlockMarker);
-  lexer->setColor(darkTheme ? QColor("#F44747") : QColor("#CD3131"),
-                  QsciLexerYAML::SyntaxErrorMarker);
-  lexer->setColor(darkTheme ? QColor("#D4D4D4") : QColor("#202020"),
-                  QsciLexerYAML::Operator);
-
-  editor->setFont(editorFont);
-  editor->setExtraAscent(1);
-  editor->setExtraDescent(1);
-  editor->SendScintilla(QsciScintilla::SCI_SETMULTIPLESELECTION, 1);
-  editor->SendScintilla(QsciScintilla::SCI_SETADDITIONALSELECTIONTYPING, 1);
-  editor->SendScintilla(QsciScintilla::SCI_SETADDITIONALCARETSVISIBLE, 1);
-  editor->SendScintilla(QsciScintilla::SCI_SETADDITIONALCARETSBLINK, 1);
-  editor->SendScintilla(QsciScintilla::SCI_SETADDITIONALCARETFORE, foreground);
-  editor->SendScintilla(
-    QsciScintilla::SCI_SETMULTIPASTE, QsciScintilla::SC_MULTIPASTE_EACH);
-  editor->installEventFilter(new MultiCaretNavigationFilter(editor));
-  editor->setColor(foreground);
-  editor->setPaper(background);
-  editor->setCaretForegroundColor(foreground);
-  editor->setSelectionBackgroundColor(palette.color(QPalette::Highlight));
-  editor->setSelectionForegroundColor(palette.color(QPalette::HighlightedText));
-  editor->setMarginsBackgroundColor(palette.color(QPalette::AlternateBase));
-  editor->setMarginsForegroundColor(foreground);
-  editor->setMarginsFont(editorFont);
-}
 }
 
 
@@ -266,14 +131,7 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
 
   drawTestScene();
 
-  configureYamlEditor(m_panel.configEditor);
-  m_panel.configEditor->setMarginType(0, QsciScintilla::NumberMargin);
-  m_panel.configEditor->setMarginLineNumbers(0, true);
-  m_panel.configEditor->setMarginWidth(0, QStringLiteral("0000"));
-  m_panel.configEditor->setWrapMode(QsciScintilla::WrapNone);
-  m_panel.configEditor->setIndentationsUseTabs(false);
-  m_panel.configEditor->setTabWidth(2);
-  m_panel.configEditor->setAutoIndent(true);
+  QScintillaEditor::configureYaml(m_panel.configEditor);
   m_panel.configEditor->setText(
 R"(
 SFSModelConfig:
@@ -319,6 +177,15 @@ void SFSBuilder_TreeItem::createActions()
   m_runModelAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+R")));
 
   QObject::connect(
+    m_loadConfigAction, &QAction::triggered, m_dockWidget.data(),
+    [this]() { loadConfig(); });
+  QObject::connect(
+    m_saveConfigAction, &QAction::triggered, m_dockWidget.data(),
+    [this]() { saveConfig(); });
+  QObject::connect(
+    m_saveConfigAsAction, &QAction::triggered, m_dockWidget.data(),
+    [this]() { saveConfigAs(); });
+  QObject::connect(
     m_runModelAction, &QAction::triggered, m_dockWidget.data(),
     [this]() { runModel(); });
 }
@@ -350,6 +217,77 @@ void SFSBuilder_TreeItem::bindActions()
   bindButton(m_panel.toolButton_2, m_saveConfigAsAction);
   bindButton(m_panel.toolButton_RunModel, m_runModelAction);
   m_dockWidget->addAction(m_runModelAction);
+}
+
+void SFSBuilder_TreeItem::loadConfig()
+{
+  const QString filePath = QFileDialog::getOpenFileName(
+    m_dockWidget.data(), QObject::tr("Load Configuration"),
+    m_configFilePath, QObject::tr("YAML files (*.yaml *.yml);;All files (*.*)"));
+  if (filePath.isEmpty())
+    return;
+
+  QFile file(filePath);
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    QMessageBox::warning(
+      m_dockWidget.data(), QObject::tr("Load Configuration"),
+      QObject::tr("Could not open %1:\n%2")
+        .arg(QFileInfo(filePath).fileName(), file.errorString()));
+    return;
+  }
+
+  m_panel.configEditor->setText(QString::fromUtf8(file.readAll()));
+  m_panel.configEditor->recolor();
+  m_panel.configEditor->setCursorPosition(0, 0);
+  m_configFilePath = filePath;
+}
+
+void SFSBuilder_TreeItem::saveConfig()
+{
+  if (m_configFilePath.isEmpty()) {
+    saveConfigAs();
+    return;
+  }
+
+  saveConfigTo(m_configFilePath);
+}
+
+void SFSBuilder_TreeItem::saveConfigAs()
+{
+  const QString initialPath = m_configFilePath.isEmpty()
+    ? QStringLiteral("sfs-config.yaml")
+    : m_configFilePath;
+  const QString filePath = QFileDialog::getSaveFileName(
+    m_dockWidget.data(), QObject::tr("Save Configuration As"),
+    initialPath, QObject::tr("YAML files (*.yaml *.yml);;All files (*.*)"));
+  if (filePath.isEmpty())
+    return;
+
+  if (saveConfigTo(filePath))
+    m_configFilePath = filePath;
+}
+
+bool SFSBuilder_TreeItem::saveConfigTo(const QString& filePath)
+{
+  QSaveFile file(filePath);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    QMessageBox::warning(
+      m_dockWidget.data(), QObject::tr("Save Configuration"),
+      QObject::tr("Could not open %1 for writing:\n%2")
+        .arg(QFileInfo(filePath).fileName(), file.errorString()));
+    return false;
+  }
+
+  const QByteArray contents = m_panel.configEditor->text().toUtf8();
+  if (file.write(contents) != contents.size() || !file.commit()) {
+    QMessageBox::warning(
+      m_dockWidget.data(), QObject::tr("Save Configuration"),
+      QObject::tr("Could not save %1:\n%2")
+        .arg(QFileInfo(filePath).fileName(), file.errorString()));
+    return false;
+  }
+
+  return true;
 }
 
 void SFSBuilder_TreeItem::selectImageSlot(int slot)

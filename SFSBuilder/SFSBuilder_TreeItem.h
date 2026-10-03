@@ -5,6 +5,7 @@
 #include "ui_SFSBuilder_panel.h"
 
 #include <array>
+#include <QString>
 
 class QDockWidget;
 class QAction;
@@ -27,6 +28,10 @@ public:
 private:
   void createActions();
   void bindActions();
+  void loadConfig();
+  void saveConfig();
+  void saveConfigAs();
+  bool saveConfigTo(const QString& filePath);
   void selectImageSlot(int slot);
   void runModel();
 
@@ -37,6 +42,7 @@ private:
   QAction* m_saveConfigAction = nullptr;
   QAction* m_saveConfigAsAction = nullptr;
   QAction* m_runModelAction = nullptr;
+  QString m_configFilePath;
   std::unique_ptr<ImagePlane> m_imagePlane;
   std::unique_ptr<ViewCtrl> m_viewCtrl;
   std::unique_ptr<EventHandler3D> m_viewCtrlEH;

@@ -233,6 +233,7 @@ set(PROJECT_SOURCES
 
     CommonComponents/EventHandling.h CommonComponents/EventHandling.cpp
     CommonComponents/EventParser.h CommonComponents/EventParser.cpp
+    CommonComponents/QScintillaEditor.h CommonComponents/QScintillaEditor.cpp
 
     CommonComponents/testScene.cpp CommonComponents/testScene.h
 
