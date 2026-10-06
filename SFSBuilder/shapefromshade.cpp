@@ -7,13 +7,13 @@
 #include <map>
 
 #if defined(SOLVER_EIGEN)
-   #include "lineqsolEigen.h"
+   #include "LinSolverEigen.h"
    using ShapeFromShadeSolver = LinSolverEigen;
 #elif defined(SOLVER_MPI)
-   #include "lineqsolMPI.h"
+   #include "LinSolverMPI.h"
    using ShapeFromShadeSolver = LinSolverMPI;
 #else
-   #include "lineqsolMT.h"
+   #include "LinSolverMT.h"
    using ShapeFromShadeSolver = LinSolverMT;
 #endif
 

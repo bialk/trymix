@@ -1,5 +1,7 @@
-#ifndef lineqsol_mpi_h
-#define lineqsol_mpi_h
+#ifndef lin_solver_mpi_h
+#define lin_solver_mpi_h
+
+#include "LinSolver.h"
 
 #include <vector>
 
@@ -7,23 +9,23 @@ extern "C" {
 #include <spoolesMPI.h>
 }
 
-class LinSolverMPI {
+class LinSolverMPI final : public LinSolver {
 public:
   // MPI must be initialized before construction. Every rank calls the same
   // methods; A() and B() distribute rows internally in round-robin order.
   explicit LinSolverMPI(MPI_Comm communicator = MPI_COMM_WORLD);
-  ~LinSolverMPI();
+  ~LinSolverMPI() override;
 
   LinSolverMPI(const LinSolverMPI &) = delete;
   LinSolverMPI &operator=(const LinSolverMPI &) = delete;
 
-  void clear();
-  void MtrxA(int rows, int cols, int ent);
-  void A(int i, int j, float value);
-  void MtrxB();
-  void B(int i, float value);
-  float X(int i) const;
-  void solve();
+  void clear() override;
+  void MtrxA(int rows, int cols, int ent) override;
+  void A(int i, int j, float value) override;
+  void MtrxB() override;
+  void B(int i, float value) override;
+  float X(int i) const override;
+  void solve() override;
 
 private:
   void requireMPI() const;

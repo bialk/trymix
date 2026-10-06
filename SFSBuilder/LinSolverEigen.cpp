@@ -1,4 +1,4 @@
-#include "lineqsolEigen.h"
+#include "LinSolverEigen.h"
 
 LinSolverEigen::LinSolverEigen()
 {
@@ -39,7 +39,7 @@ void LinSolverEigen::MtrxB()
 
 void LinSolverEigen::B(int irow, float v) { mtxY[irow] += v; }
 
-float LinSolverEigen::X(int irow)
+float LinSolverEigen::X(int irow) const
 {
   return mtxX.size() > irow ? static_cast<float>(mtxX[irow]) : 0.0f;
 }

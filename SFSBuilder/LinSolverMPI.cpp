@@ -1,4 +1,4 @@
-#include "lineqsolMPI.h"
+#include "LinSolverMPI.h"
 
 #include <stdexcept>
 

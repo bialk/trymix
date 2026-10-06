@@ -1,4 +1,4 @@
-#include "lineqsolMT.h"
+#include "LinSolverMT.h"
 
 #include <thread>
 
@@ -72,7 +72,7 @@ void LinSolverMT::B(int irow, float v){
 }
 
 
-float LinSolverMT::X(int irow){
+float LinSolverMT::X(int irow) const {
   double v;
   DenseMtx_realEntry (mtxX, irow, 0, &v);
   //double complex;
