@@ -1,6 +1,12 @@
 #ifndef lin_solver_h
 #define lin_solver_h
 
+enum class LinSolverKind {
+  MT,
+  Eigen,
+  MPI
+};
+
 class LinSolver {
 public:
   virtual ~LinSolver() = default;

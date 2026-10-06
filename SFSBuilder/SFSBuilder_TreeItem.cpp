@@ -7,7 +7,9 @@
 #include "CommonComponents/EventHandling.h"
 #include "CommonComponents/CentralWidget.h"
 #include "CommonComponents/FileLauncher.h"
+#include "CommonComponents/PaletteWidgets.h"
 #include "CommonComponents/QScintillaEditor.h"
+#include "CommonComponents/ReleaseSelectingMenu.h"
 #include "CommonComponents/testScene.h"
 
 #include <QOpenGLWidget>
@@ -15,6 +17,7 @@
 #include <QDebug>
 #include <QAction>
 #include <QActionGroup>
+#include <QComboBox>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -25,6 +28,8 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSaveFile>
+#include <QSettings>
+#include <QStandardItemModel>
 #include <QToolButton>
 #include <QWidgetAction>
 
@@ -33,6 +38,9 @@
 
 
 namespace {
+
+constexpr auto settingsGroup = "SFSBuilder";
+constexpr auto solverSettingsKey = "solver";
 
 class EventHandler_PositionController: public EventHandler3D{
 
@@ -137,6 +145,27 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
 
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());
+  applyPalettePopupStyle(m_panel.comboBox_solver);
+  m_panel.comboBox_solver->setItemData(
+    0, static_cast<int>(LinSolverKind::MT));
+  m_panel.comboBox_solver->setItemData(
+    1, static_cast<int>(LinSolverKind::Eigen));
+  m_panel.comboBox_solver->setItemData(
+    2, static_cast<int>(LinSolverKind::MPI));
+
+#if defined(SOLVER_MPI)
+  m_panel.comboBox_solver->setCurrentIndex(2);
+#else
+  m_panel.comboBox_solver->setCurrentIndex(0);
+#endif
+#if !defined(SOLVER_MPI)
+  if (auto* model = qobject_cast<QStandardItemModel*>(
+        m_panel.comboBox_solver->model())) {
+    model->item(2)->setEnabled(false);
+    model->item(2)->setToolTip(
+      QObject::tr("Configure with TRYMIX_SFS_USE_MPI=ON to enable MPI"));
+  }
+#endif
 
   drawTestScene();
 
@@ -190,7 +219,7 @@ void SFSBuilder_TreeItem::createActions()
   m_showConfigInExplorerAction = new QAction(
     QObject::tr("Show Configuration in File Explorer"), m_dockWidget.data());
   m_runModelAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+R")));
-  m_recentConfigsMenu = new QMenu(m_dockWidget.data());
+  m_recentConfigsMenu = new ReleaseSelectingMenu(m_dockWidget.data());
 
   QObject::connect(
     m_loadConfigAction, &QAction::triggered, m_dockWidget.data(),
@@ -247,6 +276,15 @@ void SFSBuilder_TreeItem::bindActions()
     m_panel.toolButton_OpenConfigInVSCode, m_openConfigInVSCodeAction);
   bindButton(
     m_panel.toolButton_ShowConfigInExplorer, m_showConfigInExplorerAction);
+  QObject::connect(
+    m_panel.comboBox_solver, &QComboBox::currentIndexChanged,
+    m_dockWidget.data(), [this](int) {
+      QSettings settings;
+      settings.beginGroup(QString::fromLatin1(settingsGroup));
+      settings.setValue(
+        QString::fromLatin1(solverSettingsKey),
+        m_panel.comboBox_solver->currentData().toInt());
+    });
   m_dockWidget->addAction(m_runModelAction);
   updateConfigFileLabel();
 }
@@ -290,6 +328,21 @@ void SFSBuilder_TreeItem::restoreState()
   const QString filePath = m_configFileHistory.currentFile();
   if (!filePath.isEmpty() && !loadConfigFrom(filePath, false))
     m_configFileHistory.clearCurrentFile();
+
+  QSettings settings;
+  settings.beginGroup(QString::fromLatin1(settingsGroup));
+  const int storedSolver = settings.value(
+    QString::fromLatin1(solverSettingsKey),
+    m_panel.comboBox_solver->currentData()).toInt();
+  const int storedIndex = m_panel.comboBox_solver->findData(storedSolver);
+  auto* model = qobject_cast<QStandardItemModel*>(
+    m_panel.comboBox_solver->model());
+  if (storedIndex >= 0 && (!model || model->item(storedIndex)->isEnabled())) {
+    m_panel.comboBox_solver->setCurrentIndex(storedIndex);
+  } else {
+    m_panel.comboBox_solver->setCurrentIndex(
+      m_panel.comboBox_solver->findData(static_cast<int>(LinSolverKind::MT)));
+  }
 }
 
 void SFSBuilder_TreeItem::updateConfigFileLabel()
@@ -350,7 +403,7 @@ void SFSBuilder_TreeItem::rebuildRecentConfigsMenu()
   for (const QString& filePath : m_configFileHistory.existingRecentFiles()) {
     const QFileInfo fileInfo(filePath);
     auto* rowAction = new QWidgetAction(m_recentConfigsMenu);
-    auto* row = new QWidget(m_recentConfigsMenu);
+    auto* row = new PaletteHoverRow(m_recentConfigsMenu);
     auto* layout = new QHBoxLayout(row);
     layout->setContentsMargins(4, 1, 4, 1);
     layout->setSpacing(4);
@@ -372,6 +425,11 @@ void SFSBuilder_TreeItem::rebuildRecentConfigsMenu()
     m_recentConfigsMenu->addAction(rowAction);
 
     QObject::connect(openButton, &QPushButton::clicked, m_dockWidget.data(),
+      [this, filePath]() {
+        m_recentConfigsMenu->close();
+        loadConfigFrom(filePath);
+      });
+    QObject::connect(rowAction, &QAction::triggered, m_dockWidget.data(),
       [this, filePath]() {
         m_recentConfigsMenu->close();
         loadConfigFrom(filePath);
@@ -504,8 +562,11 @@ void SFSBuilder_TreeItem::runModel()
 
   m_imagePlane->TreeScan(&TSOCntx::TSO_ProjectLoad);
   m_runModelAction->setEnabled(false);
+  const auto solverKind = static_cast<LinSolverKind>(
+    m_panel.comboBox_solver->currentData().toInt());
   m_imagePlane->Build(
     m_dockWidget.data(),
+    solverKind,
     [this](DataExchangeBlock data) {
       m_imagePlane->ApplyBuildResult(std::move(data));
       m_runModelAction->setEnabled(true);

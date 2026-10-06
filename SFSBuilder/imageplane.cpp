@@ -379,8 +379,9 @@ void ImagePlane::Draw(DrawCntx *cntx){
 };
   
 
-void ImagePlane::Build(QObject* callbackContext, BuildFinished finished){
-  ShapeFromShade sfs;
+void ImagePlane::Build(
+  QObject* callbackContext, LinSolverKind solverKind, BuildFinished finished){
+  ShapeFromShade sfs(solverKind);
   memcpy(sfs.s,lights,sizeof(sfs.s));
   memcpy(sfs.s_alb,lights,sizeof(sfs.s));
 

@@ -64,7 +64,8 @@ class ImagePlane: public EditViewObj{
   void DrawLightPoints();
 
   using BuildFinished = std::function<void(DataExchangeBlock)>;
-  void Build(QObject* callbackContext, BuildFinished finished);
+  void Build(
+    QObject* callbackContext, LinSolverKind solverKind, BuildFinished finished);
   void ApplyBuildResult(DataExchangeBlock data);
 };
 

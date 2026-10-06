@@ -1,6 +1,8 @@
 #ifndef shapefromshade_h
 #define shapefromshade_h
 
+#include "LinSolver.h"
+
 #include <array>
 #include <vector>
 
@@ -17,10 +19,15 @@ struct DataExchangeBlock {
 
 class ShapeFromShade{
 public:
+  explicit ShapeFromShade(LinSolverKind solverKind = LinSolverKind::MT);
+
   float s[4][3]; // four sources of illumination
   float s_alb[4][3]; // four sources of illumination for albedo
 
   void build(DataExchangeBlock& data);
+
+private:
+  LinSolverKind solverKind_;
 };
 
 #endif

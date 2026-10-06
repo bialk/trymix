@@ -19,12 +19,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(TRYMIX_SFS_USE_EIGEN "Use the Eigen solver for shape-from-shading" OFF)
 option(TRYMIX_SFS_USE_MPI "Use the MPI SPOOLES solver for shape-from-shading" OFF)
-if(TRYMIX_SFS_USE_EIGEN AND TRYMIX_SFS_USE_MPI)
-  message(FATAL_ERROR
-    "TRYMIX_SFS_USE_EIGEN and TRYMIX_SFS_USE_MPI cannot both be enabled")
-endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(this_project_utils)
@@ -269,7 +264,9 @@ set(PROJECT_SOURCES
     CommonComponents/ElidedPathLabel.h CommonComponents/ElidedPathLabel.cpp
     CommonComponents/FileHistory.h CommonComponents/FileHistory.cpp
     CommonComponents/FileLauncher.h CommonComponents/FileLauncher.cpp
+    CommonComponents/PaletteWidgets.h CommonComponents/PaletteWidgets.cpp
     CommonComponents/QScintillaEditor.h CommonComponents/QScintillaEditor.cpp
+    CommonComponents/ReleaseSelectingMenu.h CommonComponents/ReleaseSelectingMenu.cpp
 
     CommonComponents/testScene.cpp CommonComponents/testScene.h
 
@@ -390,9 +387,7 @@ target_include_directories(trymix PRIVATE
 )
 
 target_compile_definitions(trymix PRIVATE $<$<PLATFORM_ID:Windows>:_TIMESPEC_DEFINED>)
-if(TRYMIX_SFS_USE_EIGEN)
-  target_compile_definitions(trymix PRIVATE SOLVER_EIGEN)
-elseif(TRYMIX_SFS_USE_MPI)
+if(TRYMIX_SFS_USE_MPI)
   target_compile_definitions(trymix PRIVATE SOLVER_MPI)
 endif()
 target_compile_options(trymix PRIVATE

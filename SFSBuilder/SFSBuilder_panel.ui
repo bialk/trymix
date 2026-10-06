@@ -83,6 +83,34 @@
      </widget>
     </item>
     <item>
+     <widget class="QGroupBox" name="groupBox_solver">
+      <property name="title">
+       <string>Solver</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_solver">
+       <item>
+        <widget class="QComboBox" name="comboBox_solver">
+         <item>
+          <property name="text">
+           <string>SPOOLES MT</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Eigen</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>SPOOLES MPI</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
      <widget class="Line" name="line">
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>

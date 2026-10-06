@@ -5,17 +5,27 @@
 #include <math.h>
 #include <algorithm>
 #include <map>
+#include <memory>
+#include <stdexcept>
 
-#if defined(SOLVER_EIGEN)
-   #include "LinSolverEigen.h"
-   using ShapeFromShadeSolver = LinSolverEigen;
-#elif defined(SOLVER_MPI)
-   #include "LinSolverMPI.h"
-   using ShapeFromShadeSolver = LinSolverMPI;
-#else
-   #include "LinSolverMT.h"
-   using ShapeFromShadeSolver = LinSolverMT;
-#endif
+#include "LinSolverEigen.h"
+#include "LinSolverMPI.h"
+#include "LinSolverMT.h"
+
+namespace {
+std::unique_ptr<LinSolver> makeSolver(LinSolverKind kind)
+{
+   switch (kind) {
+   case LinSolverKind::MT:
+      return std::make_unique<LinSolverMT>();
+   case LinSolverKind::Eigen:
+      return std::make_unique<LinSolverEigen>();
+   case LinSolverKind::MPI:
+      return std::make_unique<LinSolverMPI>();
+   }
+   throw std::invalid_argument("Unknown linear solver kind");
+}
+}
 
 //======================================================================
 
@@ -28,6 +38,11 @@ DataExchangeBlock::DataExchangeBlock(int width, int height)
 {
    for (auto& imageData : image)
       imageData.resize(width * height * 3);
+}
+
+ShapeFromShade::ShapeFromShade(LinSolverKind solverKind)
+   : solverKind_(solverKind)
+{
 }
 
 void ShapeFromShade::build(DataExchangeBlock& data)
@@ -43,18 +58,6 @@ void ShapeFromShade::build(DataExchangeBlock& data)
    float* albedo = data.albedo.data();
    float* data_norm = data.data_norm.data();
    float* data_attd = data.data_attd.data();
-
-   if (false)
-   {
-      ShapeFromShadeSolver lsvr;
-
-      int sizem = h * w;
-      lsvr.MtrxA(sizem, sizem, sizem * 3);
-      lsvr.MtrxB();
-      lsvr.solve();
-
-      return;
-   }
 
    // calculating normals and albedo from shadow
    int ix, iy;
@@ -107,15 +110,15 @@ void ShapeFromShade::build(DataExchangeBlock& data)
 
    // assembling matrices A & B
 
-   ShapeFromShadeSolver lsvr;
+   auto lsvr = makeSolver(solverKind_);
    int sizem = h * w;
-   lsvr.MtrxA(sizem, sizem, sizem * 3);
-   lsvr.MtrxB();
+   lsvr->MtrxA(sizem, sizem, sizem * 3);
+   lsvr->MtrxB();
 
    class TCntrElem
    {
    public:
-      TCntrElem(ShapeFromShadeSolver &lsvr, int w, int h,
+      TCntrElem(LinSolver &lsvr, int w, int h,
                 float *const data)
           : m_lsvr(lsvr), m_h(h), m_w(w), m_d(data)
       {
@@ -157,7 +160,7 @@ void ShapeFromShade::build(DataExchangeBlock& data)
       }
 
    private:
-      ShapeFromShadeSolver &m_lsvr;
+      LinSolver &m_lsvr;
       int const m_h;
       int const m_w;
       float *const m_d;
@@ -166,7 +169,7 @@ void ShapeFromShade::build(DataExchangeBlock& data)
          return m_d[(m_w * y + x) * 3 + z];
       }
 
-   } cntrelem(lsvr, w, h, data_norm);
+   } cntrelem(*lsvr, w, h, data_norm);
 
    // scanning all internal nodes
    for (ix = 0; ix < w - 1; ix++)
@@ -177,17 +180,17 @@ void ShapeFromShade::build(DataExchangeBlock& data)
       }
    }
    // add boundary condition
-   lsvr.A(0, 0, 2.0);
+   lsvr->A(0, 0, 2.0);
 
    // solving system of linear equations
-   lsvr.solve();
+   lsvr->solve();
 
    // get result back into attitude data set
    for (ix = 0; ix < w; ix++)
       for (iy = 0; iy < h; iy++)
       {
          float a;
-         a = lsvr.X(h * ix + iy);
+         a = lsvr->X(h * ix + iy);
          data_attd[w * iy + ix] = a;
       }
 }
