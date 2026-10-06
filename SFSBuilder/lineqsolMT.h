@@ -1,19 +1,19 @@
-#ifndef lineqsol_h
-#define lineqsol_h
+#ifndef lineqsol_mt_h
+#define lineqsol_mt_h
 
 extern "C" {
 #include <InpMtx.h>
 }
 
-class LinSolver{
+class LinSolverMT {
 public:
 
   InpMtx *mtxA ; 
   DenseMtx *mtxY, *mtxX; 
   int neqns, nrhs, pivotingflag, seed, symmetryflag, type; 
 
-  LinSolver();
-  ~LinSolver();
+  LinSolverMT();
+  ~LinSolverMT();
 
   void clear();
 

@@ -6,12 +6,15 @@
 #include <algorithm>
 #include <map>
 
-#define SOLVER2_OFF
-
-#ifdef SOLVER2
-   #include "lineqsol2.h"
+#if defined(SOLVER_EIGEN)
+   #include "lineqsolEigen.h"
+   using ShapeFromShadeSolver = LinSolverEigen;
+#elif defined(SOLVER_MPI)
+   #include "lineqsolMPI.h"
+   using ShapeFromShadeSolver = LinSolverMPI;
 #else
-   #include "lineqsol.h"
+   #include "lineqsolMT.h"
+   using ShapeFromShadeSolver = LinSolverMT;
 #endif
 
 //======================================================================
@@ -43,11 +46,7 @@ void ShapeFromShade::build(DataExchangeBlock& data)
 
    if (false)
    {
-#ifdef SOLVER2
-      LinSolver2 lsvr;
-#else
-      LinSolver lsvr;
-#endif
+      ShapeFromShadeSolver lsvr;
 
       int sizem = h * w;
       lsvr.MtrxA(sizem, sizem, sizem * 3);
@@ -108,11 +107,7 @@ void ShapeFromShade::build(DataExchangeBlock& data)
 
    // assembling matrices A & B
 
-#ifdef SOLVER2
-   LinSolver2 lsvr;
-#else
-   LinSolver lsvr;
-#endif
+   ShapeFromShadeSolver lsvr;
    int sizem = h * w;
    lsvr.MtrxA(sizem, sizem, sizem * 3);
    lsvr.MtrxB();
@@ -120,11 +115,8 @@ void ShapeFromShade::build(DataExchangeBlock& data)
    class TCntrElem
    {
    public:
-#ifdef SOLVER2
-      TCntrElem(LinSolver2 &lsvr, int w, int h, float *const data)
-#else
-      TCntrElem(LinSolver &lsvr, int w, int h, float *const data)
-#endif
+      TCntrElem(ShapeFromShadeSolver &lsvr, int w, int h,
+                float *const data)
           : m_lsvr(lsvr), m_h(h), m_w(w), m_d(data)
       {
       }
@@ -165,11 +157,7 @@ void ShapeFromShade::build(DataExchangeBlock& data)
       }
 
    private:
-#ifdef SOLVER2
-      LinSolver2 &m_lsvr;
-#else
-      LinSolver &m_lsvr;
-#endif
+      ShapeFromShadeSolver &m_lsvr;
       int const m_h;
       int const m_w;
       float *const m_d;

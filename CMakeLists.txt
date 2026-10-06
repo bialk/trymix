@@ -19,6 +19,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(TRYMIX_SFS_USE_EIGEN "Use the Eigen solver for shape-from-shading" OFF)
+option(TRYMIX_SFS_USE_MPI "Use the MPI SPOOLES solver for shape-from-shading" OFF)
+if(TRYMIX_SFS_USE_EIGEN AND TRYMIX_SFS_USE_MPI)
+  message(FATAL_ERROR
+    "TRYMIX_SFS_USE_EIGEN and TRYMIX_SFS_USE_MPI cannot both be enabled")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(this_project_utils)
 
@@ -152,11 +159,37 @@ ENDIF(UNIX OR MINGW)
 
 ####################### spooles ##################
 
+# spoolesMPI.h includes mpi.h, so consumers of the MPI interface must also
+# inherit the MPI SDK include directory and link library.
+if(WIN32)
+  # FindMPI recognizes these MS-MPI variables. Supply the standard installer
+  # locations when the developer environment has not already defined them.
+  if(NOT DEFINED ENV{MSMPI_INC} AND
+     EXISTS "C:/Program Files (x86)/Microsoft SDKs/MPI/Include/mpi.h")
+    set(ENV{MSMPI_INC} "C:/Program Files (x86)/Microsoft SDKs/MPI/Include")
+  endif()
+  if(NOT DEFINED ENV{MSMPI_LIB64} AND
+     EXISTS "C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64/msmpi.lib")
+    set(ENV{MSMPI_LIB64} "C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64")
+  endif()
+  if(NOT DEFINED ENV{MSMPI_BIN} AND
+     EXISTS "C:/Program Files/Microsoft MPI/Bin/mpiexec.exe")
+    set(ENV{MSMPI_BIN} "C:/Program Files/Microsoft MPI/Bin")
+  endif()
+endif()
+find_package(MPI REQUIRED COMPONENTS CXX)
+
 if(WIN32)
   if(DEFINED SPOOLES_ROOT)
     unset(SPOOLES_LIB CACHE)
     unset(SPOOLES_INCLUDE_DIR CACHE)
-    FIND_LIBRARY(SPOOLES_LIB spooles REQUIRED HINTS "${SPOOLES_ROOT}/lib" NO_DEFAULT_PATH)
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      set(SPOOLES_LIBRARY_NAME spoolesd)
+    else()
+      set(SPOOLES_LIBRARY_NAME spooles)
+    endif()
+    FIND_LIBRARY(SPOOLES_LIB NAMES ${SPOOLES_LIBRARY_NAME} REQUIRED HINTS "${SPOOLES_ROOT}/lib" NO_DEFAULT_PATH)
     FIND_PATH(SPOOLES_INCLUDE_DIR InpMtx.h REQUIRED HINTS "${SPOOLES_ROOT}/include" NO_DEFAULT_PATH)
   else()
     FIND_LIBRARY(SPOOLES_LIB spooles REQUIRED PATHS ${WINDOWS_EXTERNAL_LIBS_PATH} PATH_SUFFIXES spooles_llvm_build/RelWithDebInfo/src)
@@ -175,31 +208,31 @@ find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 
 if(MINGW)
 elseif(WIN32)
-    if(DEFINED pthread_ROOT)
-      set(pthread_DIR "${pthread_ROOT}")
-      unset(pthread_INCLUDE_DIR CACHE)
-      unset(pthread_LIB CACHE)
-      unset(pthread_DLL CACHE)
-    else()
-      find_path_by_regex(pthread_DIR "pthreads-w32-*[0-9]-*[0-9]-*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH})
-    endif()
+    # if(DEFINED pthread_ROOT)
+    #   set(pthread_DIR "${pthread_ROOT}")
+    #   unset(pthread_INCLUDE_DIR CACHE)
+    #   unset(pthread_LIB CACHE)
+    #   unset(pthread_DLL CACHE)
+    # else()
+    #   find_path_by_regex(pthread_DIR "pthreads-w32-*[0-9]-*[0-9]-*[0-9]" PATHS ${WINDOWS_EXTERNAL_LIBS_PATH})
+    # endif()
 
-    FIND_PATH(pthread_INCLUDE_DIR pthread.h
-      HINTS ${pthread_DIR} PATH_SUFFIXES include Pre-built.2/include
-      REQUIRED
-    )
+    # FIND_PATH(pthread_INCLUDE_DIR pthread.h
+    #   HINTS ${pthread_DIR} PATH_SUFFIXES include Pre-built.2/include
+    #   REQUIRED
+    # )
 
-    FIND_LIBRARY(pthread_LIB pthreadVC2 REQUIRED
-      HINTS ${pthread_DIR}/lib ${pthread_DIR}/Pre-built.2/lib/x64
-      REQUIRED
-    )
+    # FIND_LIBRARY(pthread_LIB pthreadVC2 REQUIRED
+    #   HINTS ${pthread_DIR}/lib ${pthread_DIR}/Pre-built.2/lib/x64
+    #   REQUIRED
+    # )
 
-    FIND_FILE(pthread_DLL pthreadVC2.dll
-      HINTS ${pthread_DIR}/dll ${pthread_DIR}/Pre-built.2/dll/x64
-      REQUIRED
-    )
+    # FIND_FILE(pthread_DLL pthreadVC2.dll
+    #   HINTS ${pthread_DIR}/dll ${pthread_DIR}/Pre-built.2/dll/x64
+    #   REQUIRED
+    # )
 
-    list(APPEND FOR_COPY_TO_BINARY_DIR ${pthread_DLL})    
+    # list(APPEND FOR_COPY_TO_BINARY_DIR ${pthread_DLL})
 endif(MINGW)
 
 ################# LAPACK #########################
@@ -277,8 +310,10 @@ set(PROJECT_SOURCES
     SFSBuilder/SFSBuilder_TreeItem.h SFSBuilder/SFSBuilder_TreeItem.cpp
     SFSBuilder/SFSBuilder_panel.ui
     SFSBuilder/shapefromshade.cpp SFSBuilder/shapefromshade.h
-    SFSBuilder/lineqsol.h SFSBuilder/lineqsol.cpp
-    SFSBuilder/lineqsol2.h SFSBuilder/lineqsol2.cpp
+    SFSBuilder/lineqsolMT.h SFSBuilder/lineqsolMT.cpp
+    SFSBuilder/lineqsolMPI.h SFSBuilder/lineqsolMPI.cpp
+    SFSBuilder/MpiRuntime.h SFSBuilder/MpiRuntime.cpp
+    SFSBuilder/lineqsolEigen.h SFSBuilder/lineqsolEigen.cpp
 
     SFSBuilder/imageplane.h SFSBuilder/imageplane.cpp
     CommonComponents/ImageTile.h CommonComponents/ImageTile.cpp
@@ -354,6 +389,11 @@ target_include_directories(trymix PRIVATE
 )
 
 target_compile_definitions(trymix PRIVATE $<$<PLATFORM_ID:Windows>:_TIMESPEC_DEFINED>)
+if(TRYMIX_SFS_USE_EIGEN)
+  target_compile_definitions(trymix PRIVATE SOLVER_EIGEN)
+elseif(TRYMIX_SFS_USE_MPI)
+  target_compile_definitions(trymix PRIVATE SOLVER_MPI)
+endif()
 target_compile_options(trymix PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
   $<$<CONFIG:RelWithDebInfo>:${RELEASE_FOR_DEBUG_CXX_OPTIONS}>
@@ -369,6 +409,13 @@ target_link_options(trymix PRIVATE
 
 # copy qt dlls in the buld binary directory (for windows only)
 if(CMAKE_HOST_WIN32)
+    # Keep this copy step before windeployqt: Qt6PrintSupport is an indirect
+    # dependency of QScintilla, not of trymix.exe.  windeployqt can discover
+    # and deploy it only when the QScintilla DLL is already beside the EXE.
+    foreach(PATHITEM ${FOR_COPY_TO_BINARY_DIR})
+      add_dll_by_path("${PATHITEM}")
+    endforeach()
+
     # constructing path to windeployqt to copy dlls
     get_target_property(TRYMIX_QMAKE_EXECUTABLE ${QtVer}::qmake IMPORTED_LOCATION)
     get_filename_component(TRYMIX_QT_BIN_DIR "${TRYMIX_QMAKE_EXECUTABLE}" DIRECTORY)
@@ -381,10 +428,6 @@ if(CMAKE_HOST_WIN32)
         )
     endif()
 
-    #copy dlls from other packages
-    foreach(PATHITEM ${FOR_COPY_TO_BINARY_DIR})
-      add_dll_by_path("${PATHITEM}")
-    endforeach()
 endif()
 
 target_link_libraries(trymix PRIVATE
@@ -395,6 +438,7 @@ target_link_libraries(trymix PRIVATE
 
     CGAL::CGAL CGAL::CGAL_Core
     ${SPOOLES_LIB}
+    MPI::MPI_CXX
     ${pthread_LIB}
     ${LAPACK_LIB}
     ${BLAS_LIB}

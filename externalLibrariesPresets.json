@@ -41,13 +41,9 @@
           "type": "PATH",
           "value": "C:/Users/Alex/D/zero-devel/QScintilla-2.14.1"
         },
-        "pthread_ROOT": {
-          "type": "PATH",
-          "value": "C:/Users/Alex/D/zero-devel/pthreads-w32-2-9-1_install"
-        },
         "SPOOLES_ROOT": {
           "type": "PATH",
-          "value": "C:/Users/Alex/D/zero-devel/spooles_install"
+          "value": "C:/Users/Alex/D/zero-devel/spooles-install-std-thread/install/msvc"
         }
       }
     }

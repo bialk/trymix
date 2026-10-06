@@ -1,4 +1,6 @@
-#include "lineqsol.h"
+#include "lineqsolMT.h"
+
+#include <thread>
 
 #ifdef WIN32
 #define _CRT_NO_TIME_T
@@ -15,19 +17,19 @@ extern "C" {
 /*--------------------------------------------------------------------*/ 
 
 
-LinSolver::LinSolver():mtxA(0),mtxY(0),mtxX(0){}
+LinSolverMT::LinSolverMT():mtxA(0),mtxY(0),mtxX(0){}
 
-LinSolver::~LinSolver(){
+LinSolverMT::~LinSolverMT(){
   clear();
 }
 
-void LinSolver::clear(){
+void LinSolverMT::clear(){
   if(mtxA)  { InpMtx_free(mtxA); mtxA=0;}
   if(mtxY)  { DenseMtx_free(mtxY); mtxY=0; }
   if(mtxX)  { DenseMtx_free(mtxX); mtxX=0; }  
 }
 
-void LinSolver::MtrxA(int nrow,int ncol, int nent){
+void LinSolverMT::MtrxA(int nrow,int ncol, int nent){
   //nrow number of rows 
   //ncol number of cols 
   //nent numver of entries
@@ -46,14 +48,14 @@ void LinSolver::MtrxA(int nrow,int ncol, int nent){
 
 #include <set>
 
-void LinSolver::A(int i, int j, float v){
+void LinSolverMT::A(int i, int j, float v){
    InpMtx_inputRealEntry(mtxA, i, j, v) ;
    // example for complex entry
    // InpMtx_inputComplexEntry(mtxA, irow, jcol, real, imag) ;
 }
 
 
-void LinSolver::MtrxB(){
+void LinSolverMT::MtrxB(){
 
   if(mtxY) DenseMtx_free(mtxY);
 
@@ -62,7 +64,7 @@ void LinSolver::MtrxB(){
   DenseMtx_init(mtxY, type, 0, 0, neqns, nrhs, 1, 1);
   DenseMtx_zero(mtxY); 
 }
-void LinSolver::B(int irow, float v){
+void LinSolverMT::B(int irow, float v){
   double v1;
   DenseMtx_realEntry (mtxY, irow, 0, &v1);
   DenseMtx_setRealEntry(mtxY, irow, 0, v1+v) ;
@@ -70,7 +72,7 @@ void LinSolver::B(int irow, float v){
 }
 
 
-float LinSolver::X(int irow){
+float LinSolverMT::X(int irow){
   double v;
   DenseMtx_realEntry (mtxX, irow, 0, &v);
   //double complex;
@@ -79,7 +81,7 @@ float LinSolver::X(int irow){
 }
 
 
-void LinSolver::solve() { 
+void LinSolverMT::solve() { 
   if(mtxX)  DenseMtx_free(mtxX);
 
   /*
@@ -245,7 +247,10 @@ void LinSolver::solve() {
   DVfill(20, cpus, 0.0) ;
   IVfill(10, stats, 0) ;
 #ifdef MT_SUPPORT
-  int nthread=8, nfront;
+  const unsigned int hardwareThreads = std::thread::hardware_concurrency();
+  int nthread = std::max(1, static_cast<int>(hardwareThreads*0.75));
+                    
+  int nfront;
   if ( nthread > (nfront = FrontMtx_nfront(frontmtx)) ) {
     nthread = nfront ;
   }
@@ -364,4 +369,3 @@ void LinSolver::solve() {
   return ; 
 }
 /*--------------------------------------------------------------------*/
-

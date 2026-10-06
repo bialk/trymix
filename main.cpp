@@ -9,12 +9,22 @@
 #include <QScreen>
 #include <QCommandLineParser>
 #include <QStyleFactory>
+#ifdef SOLVER_MPI
+#include "SFSBuilder/MpiRuntime.h"
+#endif
 
 // test definitions
 void test_ProcessAsServer();
 
 int main(int argc, char *argv[])
 {
+#ifdef SOLVER_MPI
+  MpiRuntime mpi(argc, argv);
+  if (!mpi.active()) {
+    return 1;
+  }
+#endif
+
   QApplication a(argc, argv);  
   a.setOrganizationName("AlBi");
   a.setApplicationName("Try Mix!");
