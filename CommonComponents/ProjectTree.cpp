@@ -10,7 +10,11 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QHeaderView>
 #include <QMenu>
+#include <QShowEvent>
+#include <QStyle>
+#include <QToolButton>
 
 std::vector<ProjectTree::AbstractFactoryItem *> const& ProjectTree::TreeItemFactoryList()
 {
@@ -45,8 +49,8 @@ ProjectTree::ProjectTree(QWidget *parent)
       {
         auto newItem = i->create();
         newItem->setIcon(0,QIcon(i->iconPath()));
-        auto pt  = dynamic_cast<ProjectTree*>(this);
         invisibleRootItem()->addChild(newItem);
+        addRemoveButton(newItem);
         //setExpanded(true);
       }
     );
@@ -110,11 +114,59 @@ ProjectTree::gl(){
   return m_gl;
 }
 
+void ProjectTree::addRemoveButton(ProjectTreeItem* item)
+{
+  constexpr int removeColumn = 2;
+  const QSize buttonSize = removeButtonSize();
+  configureRemoveColumn(buttonSize.width());
+
+  auto* button = new QToolButton(this);
+  button->setAutoRaise(true);
+  button->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
+  const int iconExtent = style()->pixelMetric(
+    QStyle::PM_SmallIconSize, nullptr, button);
+  button->setIconSize(QSize(iconExtent, iconExtent));
+  button->setToolTip(QObject::tr("Remove %1").arg(item->text(0)));
+  button->setFixedSize(buttonSize);
+  setItemWidget(item, removeColumn, button);
+
+  connect(button, &QToolButton::clicked, this, [this, item]() {
+    if (item->treeWidget() == this)
+      removeItem(item);
+  });
+}
+
+void ProjectTree::showEvent(QShowEvent* event)
+{
+  QTreeWidget::showEvent(event);
+  configureRemoveColumn(removeButtonSize().width());
+}
+
+QSize ProjectTree::removeButtonSize() const
+{
+  QToolButton button;
+  button.setAutoRaise(true);
+  button.setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
+  const int iconExtent = style()->pixelMetric(
+    QStyle::PM_SmallIconSize, nullptr, &button);
+  button.setIconSize(QSize(iconExtent, iconExtent));
+  return button.sizeHint();
+}
+
+void ProjectTree::configureRemoveColumn(int buttonWidth)
+{
+  constexpr int removeColumn = 2;
+  headerItem()->setText(removeColumn, {});
+  header()->setStretchLastSection(false);
+  header()->setSectionResizeMode(0, QHeaderView::Stretch);
+  header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+  header()->setSectionResizeMode(removeColumn, QHeaderView::Fixed);
+  header()->resizeSection(removeColumn, buttonWidth + 2);
+}
+
 void ProjectTree::removeItem(ProjectTreeItem* item)
 {
   if(m_activeTreeItem == item)
     m_activeTreeItem = nullptr;
   delete item;
 }
-
-

@@ -25,6 +25,7 @@ void ProjectTreeItem::buildContextMenuStandardItems(){
           else
             newItem->setIcon(0,QIcon(i->iconPath()));
           p->insertChild(p->indexOfChild(this)+1, newItem);
+          dynamic_cast<ProjectTree*>(treeWidget())->addRemoveButton(newItem);
           newItem->buildContextMenuStandardItems();
         }
       );
@@ -42,4 +43,3 @@ void ProjectTreeItem::buildContextMenuStandardItems(){
     );
     m_actions.append(newAct);
 }
-

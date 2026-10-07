@@ -9,6 +9,7 @@ class ProjectTreeItem;
 class CentralWidget;
 class DrawCntx;
 class ProjectTreeItem;
+class QShowEvent;
 
 class ProjectTree : public QTreeWidget
 {
@@ -16,6 +17,7 @@ public:
   ProjectTree(QWidget* parent);
   virtual void showModel(DrawCntx* cx);
   CentralWidget* gl();
+  void addRemoveButton(ProjectTreeItem* item);
   void removeItem(ProjectTreeItem* item);
 
   struct AbstractFactoryItem
@@ -37,7 +39,14 @@ public:
     };
 
   static std::vector<AbstractFactoryItem*> const& TreeItemFactoryList();
+
+protected:
+  void showEvent(QShowEvent* event) override;
+
 private:
+  QSize removeButtonSize() const;
+  void configureRemoveColumn(int buttonWidth);
+
   ProjectTreeItem* m_activeTreeItem{nullptr};
   CentralWidget* m_gl{nullptr};
   QList<QAction*> m_actions;

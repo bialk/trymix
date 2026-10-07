@@ -218,6 +218,8 @@ void SFSBuilder_TreeItem::createActions()
     QObject::tr("Open Configuration in VS Code"), m_dockWidget.data());
   m_showConfigInExplorerAction = new QAction(
     QObject::tr("Show Configuration in File Explorer"), m_dockWidget.data());
+  m_saveConfigAction->setShortcut(QKeySequence::Save);
+  m_saveConfigAction->setShortcutContext(Qt::WidgetWithChildrenShortcut);
   m_runModelAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+R")));
   m_recentConfigsMenu = new ReleaseSelectingMenu(m_dockWidget.data());
 
@@ -285,6 +287,7 @@ void SFSBuilder_TreeItem::bindActions()
         QString::fromLatin1(solverSettingsKey),
         m_panel.comboBox_solver->currentData().toInt());
     });
+  m_dockWidget->addAction(m_saveConfigAction);
   m_dockWidget->addAction(m_runModelAction);
   updateConfigFileLabel();
 }
