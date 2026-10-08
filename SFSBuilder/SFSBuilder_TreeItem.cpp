@@ -10,6 +10,7 @@
 #include "CommonComponents/PaletteWidgets.h"
 #include "CommonComponents/QScintillaEditor.h"
 #include "CommonComponents/ReleaseSelectingMenu.h"
+#include "CommonComponents/mainwindow.h"
 #include "CommonComponents/testScene.h"
 
 #include <QOpenGLWidget>
@@ -524,10 +525,8 @@ void SFSBuilder_TreeItem::selectImageSlot(int slot)
     slotButtons[index]->setChecked(index == slot);
 
   m_imagePlane->curslot = slot;
-  if(auto* mainWindow = findParentOfType<QMainWindow>(m_dockWidget.data())) {
-    if(auto* viewport = mainWindow->findChild<CentralWidget*>())
-      viewport->update();
-  }
+  if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))
+    mainWindow->refreshViews();
 }
 
 void SFSBuilder_TreeItem::runModel()
@@ -573,10 +572,8 @@ void SFSBuilder_TreeItem::runModel()
     [this](DataExchangeBlock data) {
       m_imagePlane->ApplyBuildResult(std::move(data));
       m_runModelAction->setEnabled(true);
-      if(auto* mainWindow = findParentOfType<QMainWindow>(m_dockWidget.data())) {
-        if(auto* viewport = mainWindow->findChild<CentralWidget*>())
-          viewport->update();
-      }
+      if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))
+        mainWindow->refreshViews();
     });
 }
 

@@ -178,7 +178,7 @@ MRFSegm_TreeItem::MRFSegm_TreeItem()
        QApplication::setOverrideCursor(Qt::WaitCursor);
        auto msec = MRFSegm_Test(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
                 m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, false);
-       findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
+       findParentOfType<MainWindow>(treeWidget())->refreshViews();
        QApplication::restoreOverrideCursor();
        m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms").arg(msec));
        m_img.convertTo(QImage::Format_RGB888);
@@ -188,7 +188,7 @@ MRFSegm_TreeItem::MRFSegm_TreeItem()
        QApplication::setOverrideCursor(Qt::WaitCursor);
        auto msec = MRFSegm_Test(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
                 m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, true);
-       findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
+       findParentOfType<MainWindow>(treeWidget())->refreshViews();
        QApplication::restoreOverrideCursor();
        m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms").arg(msec));
        m_img.convertTo(QImage::Format_RGB888);

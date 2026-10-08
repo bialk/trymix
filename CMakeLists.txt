@@ -20,6 +20,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(TRYMIX_SFS_USE_MPI "Use the MPI SPOOLES solver for shape-from-shading" OFF)
+option(TRYMIX_ENABLE_VTK "Enable the incremental VTK viewport migration" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(this_project_utils)
@@ -56,6 +57,21 @@ message(STATUS "found Qt${QT_VERSION_MAJOR}")
 set(QtVer Qt${QT_VERSION_MAJOR})
 
 find_package(${QtVer} REQUIRED COMPONENTS Concurrent OpenGL Widgets OpenGLWidgets LinguistTools)
+
+if(TRYMIX_ENABLE_VTK)
+  find_package(VTK 9.7 REQUIRED COMPONENTS
+    CommonCore
+    CommonDataModel
+    FiltersCore
+    FiltersSources
+    GUISupportQt
+    InteractionStyle
+    InteractionWidgets
+    RenderingCore
+    RenderingOpenGL2
+    RenderingUI
+  )
+endif()
 
 ################### QScintilla ###################
 
@@ -449,6 +465,37 @@ target_link_libraries(trymix PRIVATE
     Boost::process
     Boost::filesystem
 )
+
+if(TRYMIX_ENABLE_VTK)
+  target_compile_definitions(trymix PRIVATE TRYMIX_ENABLE_VTK)
+  target_sources(trymix PRIVATE
+    CommonComponents/VtkCentralWidget.h
+    CommonComponents/VtkCentralWidget.cpp
+  )
+  set(TRYMIX_VTK_MODULES
+    VTK::CommonCore
+    VTK::CommonDataModel
+    VTK::FiltersCore
+    VTK::FiltersSources
+    VTK::GUISupportQt
+    VTK::InteractionStyle
+    VTK::InteractionWidgets
+    VTK::RenderingCore
+    VTK::RenderingOpenGL2
+    VTK::RenderingUI
+  )
+  target_link_libraries(trymix PRIVATE ${TRYMIX_VTK_MODULES})
+  vtk_module_autoinit(TARGETS trymix MODULES ${TRYMIX_VTK_MODULES})
+
+  if(WIN32)
+    add_custom_command(TARGET trymix POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+              $<TARGET_RUNTIME_DLLS:trymix> $<TARGET_FILE_DIR:trymix>
+      COMMAND_EXPAND_LISTS
+      VERBATIM
+    )
+  endif()
+endif()
 
 set_target_properties(trymix PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

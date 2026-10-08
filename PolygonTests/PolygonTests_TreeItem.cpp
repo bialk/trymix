@@ -243,15 +243,15 @@ PolygonTests_TreeItem::showModel(DrawCntx* cx){
 
 void PolygonTests_TreeItem::tryConvexPartitioning(int polygonSize){
   polygentest.reset(new PolygonTestConvexPartitioning(polygonSize));
-  findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
+  findParentOfType<MainWindow>(treeWidget())->refreshViews();
 }
 
 void PolygonTests_TreeItem::tryMonotonePartitioning(int polygonSize){
   polygentest.reset(new PolygonTestMonotonePartitioning(polygonSize));
-  findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
+  findParentOfType<MainWindow>(treeWidget())->refreshViews();
 }
 
 void PolygonTests_TreeItem::tryConformingDelanay(int polygonSize, float meshCellSize){
   polygentest.reset(new PolygonTestConformingDelanay(polygonSize, meshCellSize));
-  findParentOfType<MainWindow>(treeWidget())->centralWidget()->update();
+  findParentOfType<MainWindow>(treeWidget())->refreshViews();
 }

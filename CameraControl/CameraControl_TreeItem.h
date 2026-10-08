@@ -11,6 +11,9 @@ class ViewCtrl;
 class Lights;
 class ToolPanel;
 class EventHandler3D;
+#ifdef TRYMIX_ENABLE_VTK
+class vtkRenderer;
+#endif
 
 class CameraControl_TreeItem : public ProjectTreeItem
 {
@@ -20,6 +23,9 @@ public:
   static QString name(){ return "Camera Control"; }
   static QString iconPath() { return ":/system/images/trymix.png"; }
   void showModel(DrawCntx* gl) override;
+#ifdef TRYMIX_ENABLE_VTK
+  void showVtkModel(vtkRenderer* renderer) override;
+#endif
   void activateProjectTreeItem(QDockWidget* dock, bool activate)  override;
 private:
   QScopedPointer<QDockWidget> m_dockWidget;

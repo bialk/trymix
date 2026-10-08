@@ -10,12 +10,18 @@ class CentralWidget;
 class DrawCntx;
 class ProjectTreeItem;
 class QShowEvent;
+#ifdef TRYMIX_ENABLE_VTK
+class vtkRenderer;
+#endif
 
 class ProjectTree : public QTreeWidget
 {
 public:
   ProjectTree(QWidget* parent);
   virtual void showModel(DrawCntx* cx);
+#ifdef TRYMIX_ENABLE_VTK
+  void showVtkModel(vtkRenderer* renderer);
+#endif
   CentralWidget* gl();
   void addRemoveButton(ProjectTreeItem* item);
   void removeItem(ProjectTreeItem* item);

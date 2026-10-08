@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QObject>
 #include <QOpenGLFunctions>
+#include <QSurfaceFormat>
 
 #include <vector>
 #include <unordered_set>
@@ -44,6 +45,14 @@ CentralWidget::CentralWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , ui(new Ui::CentralWidget)
 {
+  QSurfaceFormat legacyFormat;
+  legacyFormat.setRenderableType(QSurfaceFormat::OpenGL);
+  legacyFormat.setVersion(2, 1);
+  legacyFormat.setProfile(QSurfaceFormat::CompatibilityProfile);
+  legacyFormat.setDepthBufferSize(24);
+  legacyFormat.setStencilBufferSize(8);
+  setFormat(legacyFormat);
+
   ui->setupUi(this);
   setMouseTracking(true);
   setFocusPolicy (Qt::StrongFocus);
@@ -76,6 +85,8 @@ CentralWidget::resizeGL(int w, int h) {}
 
 void
 CentralWidget::paintGL(){
+  glClearColor(0.0F, 0.0F, 0.0F, 1.0F);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 #ifdef off // physical viewport size test
   float viewport[4];
   glGetFloatv(GL_VIEWPORT,viewport);

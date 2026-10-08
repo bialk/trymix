@@ -4,12 +4,23 @@
 #include "CommonComponents/viewctrl.h"
 #include "CommonComponents/EventHandling.h"
 #include "CommonComponents/CentralWidget.h"
+#include "CommonComponents/mainwindow.h"
 #include "CommonComponents/testScene.h"
 
 #include "QMainWindow"
 #include <QOpenGLWidget>
 #include <QPainter>
 #include <QDebug>
+
+#ifdef TRYMIX_ENABLE_VTK
+#include <vtkActor.h>
+#include <vtkConeSource.h>
+#include <vtkCubeSource.h>
+#include <vtkNew.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkProperty.h>
+#include <vtkRenderer.h>
+#endif
 
 
 namespace {
@@ -117,6 +128,40 @@ CameraControl_TreeItem::CameraControl_TreeItem()
 
 CameraControl_TreeItem::~CameraControl_TreeItem(){}
 
+#ifdef TRYMIX_ENABLE_VTK
+void CameraControl_TreeItem::showVtkModel(vtkRenderer* renderer)
+{
+  renderer->SetBackground(0.08, 0.10, 0.14);
+
+  vtkNew<vtkCubeSource> cube;
+  cube->SetCenter(-0.9, 0.0, 0.0);
+  cube->SetXLength(1.1);
+  cube->SetYLength(1.1);
+  cube->SetZLength(1.1);
+
+  vtkNew<vtkPolyDataMapper> cubeMapper;
+  cubeMapper->SetInputConnection(cube->GetOutputPort());
+  vtkNew<vtkActor> cubeActor;
+  cubeActor->SetMapper(cubeMapper);
+  cubeActor->GetProperty()->SetColor(0.20, 0.65, 0.95);
+  renderer->AddActor(cubeActor);
+
+  vtkNew<vtkConeSource> cone;
+  cone->SetCenter(0.9, 0.0, 0.0);
+  cone->SetDirection(0.0, 1.0, 0.0);
+  cone->SetHeight(1.8);
+  cone->SetRadius(0.65);
+  cone->SetResolution(64);
+
+  vtkNew<vtkPolyDataMapper> coneMapper;
+  coneMapper->SetInputConnection(cone->GetOutputPort());
+  vtkNew<vtkActor> coneActor;
+  coneActor->SetMapper(coneMapper);
+  coneActor->GetProperty()->SetColor(0.95, 0.45, 0.18);
+  renderer->AddActor(coneActor);
+}
+#endif
+
 void
 CameraControl_TreeItem::showModel(DrawCntx* cx)
 {
@@ -157,7 +202,7 @@ CameraControl_TreeItem::showModel(DrawCntx* cx)
 
 void
 CameraControl_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
-  auto mainwin = findParentOfType<QMainWindow>(dock);
+  auto mainwin = findParentOfType<MainWindow>(dock);
   CentralWidget* cw= mainwin->findChild<CentralWidget*>();
   if(activate){
     if(!m_dockWidget->isActiveWindow()){

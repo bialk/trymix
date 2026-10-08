@@ -13,6 +13,7 @@
         "CMAKE_MAKE_PROGRAM": "C:/Users/Alex/D/Qt/Tools/Ninja/ninja.exe",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_TOOLCHAIN_FILE": "C:/Users/Alex/D/Qt/6.12.0/msvc2022_64/lib/cmake/Qt6/qt.toolchain.cmake",
+        "TRYMIX_ENABLE_VTK": true,
         "TRYMIX_SFS_USE_MPI": true
       }
     },
@@ -28,6 +29,7 @@
         "CMAKE_MAKE_PROGRAM": "C:/Users/Alex/D/Qt/Tools/Ninja/ninja.exe",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_TOOLCHAIN_FILE": "C:/Users/Alex/D/Qt/6.12.0/msvc2022_64/lib/cmake/Qt6/qt.toolchain.cmake",
+        "TRYMIX_ENABLE_VTK": true,
         "TRYMIX_SFS_USE_MPI": true
       }
     },

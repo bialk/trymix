@@ -62,9 +62,14 @@ ProjectTree::ProjectTree(QWidget *parent)
   newAct->connect(newAct, &QAction::triggered, newAct,
     [this]()
     {
+      auto mainwnd = findParentOfType<MainWindow>(this->parent());
+      if(m_activeTreeItem)
+        m_activeTreeItem->activateProjectTreeItem(
+          mainwnd->UI()->dockWidget_params, false);
       while(invisibleRootItem()->childCount())
           delete invisibleRootItem()->takeChild(0);
       m_activeTreeItem=nullptr;
+      mainwnd->refreshViews();
     }
   );
   m_actions.append(newAct);
@@ -98,7 +103,7 @@ ProjectTree::ProjectTree(QWidget *parent)
       m_activeTreeItem->activateProjectTreeItem(mainwnd->UI()->dockWidget_params, false);
     m_activeTreeItem=dynamic_cast<ProjectTreeItem*>(item);
     m_activeTreeItem->activateProjectTreeItem(mainwnd->UI()->dockWidget_params);
-    m_gl->update();
+    mainwnd->refreshViews();
   });
 }
 
@@ -108,6 +113,14 @@ ProjectTree::showModel(DrawCntx* cx)
   if(m_activeTreeItem)
     m_activeTreeItem->showModel(cx);
 }
+
+#ifdef TRYMIX_ENABLE_VTK
+void ProjectTree::showVtkModel(vtkRenderer* renderer)
+{
+  if(m_activeTreeItem)
+    m_activeTreeItem->showVtkModel(renderer);
+}
+#endif
 
 CentralWidget*
 ProjectTree::gl(){
@@ -166,7 +179,11 @@ void ProjectTree::configureRemoveColumn(int buttonWidth)
 
 void ProjectTree::removeItem(ProjectTreeItem* item)
 {
-  if(m_activeTreeItem == item)
+  if(m_activeTreeItem == item) {
+    auto mainwnd = findParentOfType<MainWindow>(this->parent());
+    item->activateProjectTreeItem(mainwnd->UI()->dockWidget_params, false);
     m_activeTreeItem = nullptr;
+    mainwnd->refreshViews();
+  }
   delete item;
 }

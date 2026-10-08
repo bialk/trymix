@@ -9,6 +9,9 @@
 class CentralWidget;
 class QDockWidget;
 class DrawCntx;
+#ifdef TRYMIX_ENABLE_VTK
+class vtkRenderer;
+#endif
 
 template<typename T>
 T* findParentOfType(QObject* p){
@@ -25,6 +28,9 @@ T* findParentOfType(QObject* p){
 class ProjectTreeItem : public QTreeWidgetItem{
 public:
   virtual void showModel(DrawCntx* gl) {};
+#ifdef TRYMIX_ENABLE_VTK
+  virtual void showVtkModel(vtkRenderer*) {}
+#endif
   virtual void activateProjectTreeItem(QDockWidget* dock, bool activate = true) {}
   QList<QAction*>& contextMenuActions(){return m_actions;}
   void buildContextMenuStandardItems();

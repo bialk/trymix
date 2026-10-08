@@ -44,6 +44,10 @@
         "SPOOLES_ROOT": {
           "type": "PATH",
           "value": "C:/Users/Alex/D/zero-devel/spooles-install-std-thread/install/msvc"
+        },
+        "VTK_DIR": {
+          "type": "PATH",
+          "value": "C:/Users/Alex/D/zero-devel/vtk-install-qt6/install/msvc/lib/cmake/vtk-9.7"
         }
       }
     }
