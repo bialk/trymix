@@ -6,6 +6,8 @@
 #include <QMatrix4x4>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
+#include <QOpenGLFunctions_3_3_Core>
+#include <QOpenGLVersionFunctionsFactory>
 #include <QTextStream>
 
 #include <array>
@@ -27,6 +29,13 @@ bool ModernOpenGLRenderer::initialize()
     return false;
   }
   m_functions = context->functions();
+  m_coreFunctions =
+    QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(context);
+  if(!m_coreFunctions) {
+    qWarning() << "OpenGL 3.3 Core function table is unavailable";
+    m_functions = nullptr;
+    return false;
+  }
 
   constexpr auto vertexShader = R"(
     #version 330 core
@@ -322,6 +331,7 @@ void ModernOpenGLRenderer::destroy()
   m_program.removeAllShaders();
   m_textureProgram.removeAllShaders();
   m_functions = nullptr;
+  m_coreFunctions = nullptr;
   m_initialized = false;
 }
 
@@ -383,10 +393,10 @@ void ModernOpenGLRenderer::drawPoints(
 {
   if(!m_initialized && !initialize())
     return;
-  ::glPointSize(size);
+  m_coreFunctions->glPointSize(size);
   drawPrimitive(mesh, projection, modelView, {1.0F, 1.0F, 1.0F},
                 GL_POINTS, false, false);
-  ::glPointSize(1.0F);
+  m_coreFunctions->glPointSize(1.0F);
 }
 
 void ModernOpenGLRenderer::drawCube(

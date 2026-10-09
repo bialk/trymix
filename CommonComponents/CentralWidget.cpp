@@ -125,11 +125,13 @@ CentralWidget::resizeGL(int w, int h) {}
 
 void
 CentralWidget::paintGL(){
-  glClearColor(0.0F, 0.0F, 0.0F, 1.0F);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+  QOpenGLFunctions* functions = context()->functions();
+  functions->glClearColor(0.0F, 0.0F, 0.0F, 1.0F);
+  functions->glClear(
+    GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 #ifdef off // physical viewport size test
   float viewport[4];
-  glGetFloatv(GL_VIEWPORT,viewport);
+  functions->glGetFloatv(GL_VIEWPORT,viewport);
   qDebug() << "viewport" << viewport[0] << viewport[1] << viewport[2] << viewport[3];
 #endif
   m_projectTree->showModel(&m_treeEventFilter->m_drawContext);

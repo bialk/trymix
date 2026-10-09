@@ -78,8 +78,15 @@ void ImageTile::LoadBGRA(const unsigned char* bgra, int ww, int hh){
   if(!bgra || ww <= 0 || hh <= 0)
     return;
 
+  QOpenGLContext* context = QOpenGLContext::currentContext();
+  if(!context) {
+    qWarning() << "Cannot upload an image without a current OpenGL context";
+    return;
+  }
+
   GLint maximumTextureSize = 0;
-  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
+  QOpenGLFunctions* functions = context->functions();
+  functions->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
   if(maximumTextureSize <= 0) {
     qWarning() << "Unable to determine the maximum OpenGL texture size";
     return;
@@ -97,10 +104,10 @@ void ImageTile::LoadBGRA(const unsigned char* bgra, int ww, int hh){
 
   GLint previousRowLength = 0;
   GLint previousAlignment = 0;
-  glGetIntegerv(GL_UNPACK_ROW_LENGTH, &previousRowLength);
-  glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, w);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  functions->glGetIntegerv(GL_UNPACK_ROW_LENGTH, &previousRowLength);
+  functions->glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment);
+  functions->glPixelStorei(GL_UNPACK_ROW_LENGTH, w);
+  functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   for(int row = 0; row < ntileh; ++row) {
     for(int column = 0; column < ntilew; ++column) {
@@ -110,19 +117,25 @@ void ImageTile::LoadBGRA(const unsigned char* bgra, int ww, int hh){
       const int tileHeight = std::min(tile_size, h - y);
       const auto* tilePixels = bgra + 4LL * (y * static_cast<long long>(w) + x);
 
-      glBindTexture(GL_TEXTURE_2D, texset.texid[ntilew * row + column]);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tileWidth, tileHeight, 0,
-                   GL_BGRA, GL_UNSIGNED_BYTE, tilePixels);
+      functions->glBindTexture(
+        GL_TEXTURE_2D, texset.texid[ntilew * row + column]);
+      functions->glTexParameteri(
+        GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      functions->glTexParameteri(
+        GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      functions->glTexParameteri(
+        GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      functions->glTexParameteri(
+        GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      functions->glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGBA8, tileWidth, tileHeight, 0,
+        GL_BGRA, GL_UNSIGNED_BYTE, tilePixels);
     }
   }
 
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, previousRowLength);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment);
+  functions->glBindTexture(GL_TEXTURE_2D, 0);
+  functions->glPixelStorei(GL_UNPACK_ROW_LENGTH, previousRowLength);
+  functions->glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment);
 }
 
 

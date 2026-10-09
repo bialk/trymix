@@ -8,6 +8,7 @@
 
 #include "QMainWindow"
 #include <QOpenGLWidget>
+#include <QOpenGLFunctions>
 #include <QPainter>
 #include <QDebug>
 #include <QMatrix4x4>
@@ -127,7 +128,7 @@ ShaderMix_TreeItem::showModel(DrawCntx* cx)
 
   m_toolsPanel->Draw(cx);
 
-  glClear(GL_DEPTH_BUFFER_BIT);
+  cx->openGLFunctions().glClear(GL_DEPTH_BUFFER_BIT);
   cx->modernRenderer().drawTestScene(
     cx->projectionMatrix(), cx->modelViewMatrix());
 }

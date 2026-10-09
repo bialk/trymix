@@ -85,14 +85,14 @@ glm::mat4 const& ViewCtrl::updateProjectionMtrx(){
 
 void ViewCtrl::Draw(DrawCntx *cntx){
 
-  glClearDepth(1.0);
+  QOpenGLFunctions& functions = cntx->openGLFunctions();
   if(m_background==0)
-    glClearColor(.0, .0, .0, 0.0);
+    functions.glClearColor(.0, .0, .0, 0.0);
   else
-    glClearColor(1.0, 1.0, 1.0, 0.0);  
+    functions.glClearColor(1.0, 1.0, 1.0, 0.0);
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-          GL_STENCIL_BUFFER_BIT);
+  functions.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+                    GL_STENCIL_BUFFER_BIT);
 
   cntx->setViewMatrices(
     toQMatrix4x4(getProjectionMtrx()),

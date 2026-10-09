@@ -2,6 +2,9 @@
 #include "CentralWidget.h"
 #include "ModernOpenGLRenderer.h"
 
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
+
 // class TSOCntx (TreeScanOperCntx)
 //================================================
 
@@ -49,6 +52,13 @@ const QMatrix4x4& DrawCntx::modelViewMatrix() const
 ModernOpenGLRenderer& DrawCntx::modernRenderer()
 {
   return m_centralWidget->modernRenderer();
+}
+
+QOpenGLFunctions& DrawCntx::openGLFunctions()
+{
+  QOpenGLContext* context = QOpenGLContext::currentContext();
+  Q_ASSERT(context);
+  return *context->functions();
 }
 
 QOpenGLWidget* DrawCntx::glWidget(){

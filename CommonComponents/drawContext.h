@@ -8,6 +8,7 @@ class QOpenGLWidget;
 class CentralWidget;
 class EventContext3D;
 class ModernOpenGLRenderer;
+class QOpenGLFunctions;
 
 #define SRLZ_LAYOUT   1
 #define SRLZ_PROJECT  2
@@ -48,6 +49,7 @@ class DrawCntx{
   const QMatrix4x4& projectionMatrix() const;
   const QMatrix4x4& modelViewMatrix() const;
   ModernOpenGLRenderer& modernRenderer();
+  QOpenGLFunctions& openGLFunctions();
 
 private:  
   CentralWidget* m_centralWidget{nullptr};

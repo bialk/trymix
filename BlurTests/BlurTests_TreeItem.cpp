@@ -6,6 +6,7 @@
 
 #include <QAction>
 #include <QOpenGLWidget>
+#include <QOpenGLFunctions>
 #include <QPainter>
 #include <QMainWindow>
 #include <QPushButton>
@@ -230,8 +231,8 @@ BlurTests_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate){
 void
 BlurTests_TreeItem::showModel(DrawCntx* cx){
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-          GL_STENCIL_BUFFER_BIT);
+  cx->openGLFunctions().glClear(
+    GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   QPainter p(cx->glWidget());
 

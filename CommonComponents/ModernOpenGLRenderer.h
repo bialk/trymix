@@ -9,6 +9,7 @@
 
 class QMatrix4x4;
 class QOpenGLFunctions;
+class QOpenGLFunctions_3_3_Core;
 
 class ModernOpenGLRenderer
 {
@@ -52,6 +53,7 @@ private:
   QVector3D m_lightDirections[2]{{0.0F, 0.0F, 1.0F}, {0.0F, 0.0F, 1.0F}};
   bool m_lightEnabled[2]{true, true};
   QOpenGLFunctions* m_functions = nullptr;
+  QOpenGLFunctions_3_3_Core* m_coreFunctions = nullptr;
   bool m_initialized = false;
 };
 

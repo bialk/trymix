@@ -9,6 +9,7 @@
 
 #include "QMainWindow"
 #include <QOpenGLWidget>
+#include <QOpenGLFunctions>
 #include <QPainter>
 #include <QDebug>
 #include <QMatrix4x4>
@@ -173,7 +174,7 @@ CameraControl_TreeItem::showModel(DrawCntx* cx)
 
   m_toolsPanel->Draw(cx);
 
-  glClear(GL_DEPTH_BUFFER_BIT);
+  cx->openGLFunctions().glClear(GL_DEPTH_BUFFER_BIT);
   // GLM exposes column-major storage, while this QMatrix4x4 constructor reads
   // the supplied values in row-major order. Transpose after copying so the
   // shader receives the same matrices used by the legacy OpenGL path.
