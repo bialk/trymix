@@ -287,6 +287,7 @@ set(PROJECT_SOURCES
     CommonComponents/ReleaseSelectingMenu.h CommonComponents/ReleaseSelectingMenu.cpp
 
     CommonComponents/drawContext.h CommonComponents/drawContext.cpp
+    CommonComponents/ViewportContext.h
     CommonComponents/MatrixConversions.h
 
     CommonComponents/viewctrl.h CommonComponents/viewctrl.cpp

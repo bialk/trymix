@@ -8,6 +8,7 @@ namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class CentralWidget;
+class ProjectTreeItem;
 class QTabWidget;
 #ifdef TRYMIX_ENABLE_VTK
 class VtkCentralWidget;
@@ -24,6 +25,8 @@ public:
     Ui::MainWindow* UI();
     void refreshViews();
     void showOpenGLView();
+    void restoreViewportFor(ProjectTreeItem* item);
+    void initializeViewportFor(ProjectTreeItem* item);
 #ifdef TRYMIX_ENABLE_VTK
     void showVtkView();
 #endif
@@ -34,5 +37,6 @@ private:
 #ifdef TRYMIX_ENABLE_VTK
     VtkCentralWidget* m_vtkView = nullptr;
 #endif
+    bool m_automaticViewportChange = false;
 };
 #endif // MAINWINDOW_H

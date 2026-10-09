@@ -2,6 +2,7 @@
 #include "qevent.h"
 #include "ui_mainwindow.h"
 #include "CentralWidget.h"
+#include "Projects_TreeItem.h"
 
 #include <QCursor>
 #include <QDebug>
@@ -23,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionQuit, &QAction::triggered, [](bool){ qApp->quit();});
     m_viewTabs = new QTabWidget(this);
     m_openGLView = ui->treeWidget_project->gl();
-    m_viewTabs->addTab(m_openGLView, tr("OpenGL"));
+    m_viewTabs->addTab(m_openGLView, tr("Canvas"));
 #ifdef TRYMIX_ENABLE_VTK
     m_vtkView = new VtkCentralWidget(m_viewTabs);
     m_vtkView->setProjectTree(ui->treeWidget_project);
@@ -31,6 +32,14 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
     setCentralWidget(m_viewTabs);
     connect(m_viewTabs, &QTabWidget::currentChanged, this, [this](int) {
+      if(!m_automaticViewportChange) {
+        if(auto* item = ui->treeWidget_project->activeTreeItem()) {
+        item->setPreferredViewport(
+          m_viewTabs->currentWidget() == m_openGLView
+            ? ProjectTreeItem::Viewport::Canvas
+            : ProjectTreeItem::Viewport::Vtk);
+        }
+      }
       if(m_viewTabs->currentWidget() == m_openGLView)
         m_openGLView->update();
     });
@@ -49,6 +58,61 @@ Ui::MainWindow* MainWindow::UI(){
 void MainWindow::showOpenGLView()
 {
   m_viewTabs->setCurrentWidget(m_openGLView);
+}
+
+void MainWindow::restoreViewportFor(ProjectTreeItem* item)
+{
+  if(!item)
+    return;
+  if(item->preferredViewport() == ProjectTreeItem::Viewport::Canvas) {
+    showOpenGLView();
+    return;
+  }
+#ifdef TRYMIX_ENABLE_VTK
+  if(item->preferredViewport() == ProjectTreeItem::Viewport::Vtk) {
+    showVtkView();
+    return;
+  }
+
+  // Remember the tab that was active when this application was first
+  // selected. If VTK is active, expose Canvas long enough for its first paint
+  // to report whether the hook is implemented. This automatic probe must not
+  // be remembered as a manual user choice.
+  if(item->initialViewport() == ProjectTreeItem::Viewport::Uninitialized) {
+    item->setInitialViewport(
+      m_viewTabs->currentWidget() == m_openGLView
+        ? ProjectTreeItem::Viewport::Canvas
+        : ProjectTreeItem::Viewport::Vtk);
+  }
+  if(m_viewTabs->currentWidget() != m_openGLView) {
+    m_automaticViewportChange = true;
+    showOpenGLView();
+    m_automaticViewportChange = false;
+  }
+#endif
+}
+
+void MainWindow::initializeViewportFor(ProjectTreeItem* item)
+{
+  if(!item || item->preferredViewport() != ProjectTreeItem::Viewport::Uninitialized
+      || !item->viewportImplementationsKnown())
+    return;
+
+  if(item->canvasImplemented() != item->vtkImplemented()) {
+    item->setPreferredViewport(item->canvasImplemented()
+      ? ProjectTreeItem::Viewport::Canvas
+      : ProjectTreeItem::Viewport::Vtk);
+    restoreViewportFor(item);
+    return;
+  }
+
+  item->setPreferredViewport(
+    item->initialViewport() != ProjectTreeItem::Viewport::Uninitialized
+      ? item->initialViewport()
+      : (m_viewTabs->currentWidget() == m_openGLView
+          ? ProjectTreeItem::Viewport::Canvas
+          : ProjectTreeItem::Viewport::Vtk));
+  restoreViewportFor(item);
 }
 
 void MainWindow::refreshViews()

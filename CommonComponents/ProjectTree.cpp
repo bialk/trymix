@@ -103,6 +103,7 @@ ProjectTree::ProjectTree(QWidget *parent)
       m_activeTreeItem->activateProjectTreeItem(mainwnd->UI()->dockWidget_params, false);
     m_activeTreeItem=dynamic_cast<ProjectTreeItem*>(item);
     m_activeTreeItem->activateProjectTreeItem(mainwnd->UI()->dockWidget_params);
+    mainwnd->restoreViewportFor(m_activeTreeItem);
     mainwnd->refreshViews();
   });
 }
@@ -111,14 +112,25 @@ void
 ProjectTree::showModel(DrawCntx* cx)
 {
   if(m_activeTreeItem)
+  {
+    cx->beginDispatch();
     m_activeTreeItem->showModel(cx);
+    m_activeTreeItem->recordCanvasImplementation(cx->isImplemented());
+    if(auto* mainWindow = findParentOfType<MainWindow>(parent()))
+      mainWindow->initializeViewportFor(m_activeTreeItem);
+  }
 }
 
 #ifdef TRYMIX_ENABLE_VTK
-void ProjectTree::showVtkModel(vtkRenderer* renderer)
+void ProjectTree::showVtkModel(VtkDrawCntx* context)
 {
-  if(m_activeTreeItem)
-    m_activeTreeItem->showVtkModel(renderer);
+  if(m_activeTreeItem) {
+    context->beginDispatch();
+    m_activeTreeItem->showVtkModel(context);
+    m_activeTreeItem->recordVtkImplementation(context->isImplemented());
+    if(auto* mainWindow = findParentOfType<MainWindow>(parent()))
+      mainWindow->initializeViewportFor(m_activeTreeItem);
+  }
 }
 #endif
 

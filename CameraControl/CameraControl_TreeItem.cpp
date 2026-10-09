@@ -18,12 +18,18 @@
 
 #ifdef TRYMIX_ENABLE_VTK
 #include <vtkActor.h>
+#include <vtkCamera.h>
 #include <vtkConeSource.h>
 #include <vtkCubeSource.h>
-#include <vtkNew.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
 #include <vtkRenderer.h>
+#include <vtkSphereSource.h>
+
+#include <algorithm>
+#include <array>
+#include <random>
+#include <utility>
 #endif
 
 
@@ -127,41 +133,76 @@ CameraControl_TreeItem::CameraControl_TreeItem()
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());
 
+#ifdef TRYMIX_ENABLE_VTK
+  enum class Shape { Sphere, Cone, Box };
+  std::array shapes{Shape::Sphere, Shape::Sphere, Shape::Cone, Shape::Box};
+  std::mt19937 randomEngine(std::random_device{}());
+  std::shuffle(shapes.begin(), shapes.end(), randomEngine);
+  std::uniform_real_distribution<double> size(0.45, 0.75);
+  std::uniform_real_distribution<double> color(0.20, 0.95);
+
+  constexpr std::array<std::array<double, 3>, 4> positions{{
+    {{-1.0,  1.0, 0.0}}, {{1.0,  1.0, 0.0}},
+    {{-1.0, -1.0, 0.0}}, {{1.0, -1.0, 0.0}}
+  }};
+
+  m_vtkObjects.reserve(shapes.size());
+  for(std::size_t i = 0; i < shapes.size(); ++i) {
+    VtkObject object;
+    const auto& position = positions[i];
+    const double objectSize = size(randomEngine);
+
+    if(shapes[i] == Shape::Sphere) {
+      auto sphere = vtkSmartPointer<vtkSphereSource>::New();
+      sphere->SetCenter(position[0], position[1], position[2]);
+      sphere->SetRadius(objectSize);
+      sphere->SetThetaResolution(48);
+      sphere->SetPhiResolution(32);
+      object.model = sphere;
+    } else if(shapes[i] == Shape::Cone) {
+      auto cone = vtkSmartPointer<vtkConeSource>::New();
+      cone->SetCenter(position[0], position[1], position[2]);
+      cone->SetDirection(0.0, 1.0, 0.0);
+      cone->SetHeight(objectSize * 2.0);
+      cone->SetRadius(objectSize);
+      cone->SetResolution(48);
+      object.model = cone;
+    } else {
+      auto box = vtkSmartPointer<vtkCubeSource>::New();
+      box->SetCenter(position[0], position[1], position[2]);
+      box->SetXLength(objectSize * 1.7);
+      box->SetYLength(objectSize * 1.7);
+      box->SetZLength(objectSize * 1.7);
+      object.model = box;
+    }
+
+    object.mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    object.mapper->SetInputConnection(object.model->GetOutputPort());
+    object.actor = vtkSmartPointer<vtkActor>::New();
+    object.actor->SetMapper(object.mapper);
+    object.actor->GetProperty()->SetColor(
+      color(randomEngine), color(randomEngine), color(randomEngine));
+    m_vtkObjects.push_back(std::move(object));
+  }
+
+  m_vtkCamera = vtkSmartPointer<vtkCamera>::New();
+#endif
 }
 
 CameraControl_TreeItem::~CameraControl_TreeItem(){}
 
 #ifdef TRYMIX_ENABLE_VTK
-void CameraControl_TreeItem::showVtkModel(vtkRenderer* renderer)
+void CameraControl_TreeItem::showVtkModel(VtkDrawCntx* context)
 {
+  vtkRenderer* renderer = context->renderer();
   renderer->SetBackground(0.08, 0.10, 0.14);
-
-  vtkNew<vtkCubeSource> cube;
-  cube->SetCenter(-0.9, 0.0, 0.0);
-  cube->SetXLength(1.1);
-  cube->SetYLength(1.1);
-  cube->SetZLength(1.1);
-
-  vtkNew<vtkPolyDataMapper> cubeMapper;
-  cubeMapper->SetInputConnection(cube->GetOutputPort());
-  vtkNew<vtkActor> cubeActor;
-  cubeActor->SetMapper(cubeMapper);
-  cubeActor->GetProperty()->SetColor(0.20, 0.65, 0.95);
-  renderer->AddActor(cubeActor);
-
-  vtkNew<vtkConeSource> cone;
-  cone->SetCenter(0.9, 0.0, 0.0);
-  cone->SetDirection(0.0, 1.0, 0.0);
-  cone->SetHeight(1.8);
-  cone->SetRadius(0.65);
-  cone->SetResolution(64);
-
-  vtkNew<vtkPolyDataMapper> coneMapper;
-  coneMapper->SetInputConnection(cone->GetOutputPort());
-  vtkNew<vtkActor> coneActor;
-  coneActor->SetMapper(coneMapper);
-  coneActor->GetProperty()->SetColor(0.95, 0.45, 0.18);
-  renderer->AddActor(coneActor);
+  renderer->SetActiveCamera(m_vtkCamera);
+  for(const auto& object : m_vtkObjects)
+    renderer->AddActor(object.actor);
+  if(!m_vtkCameraInitialized) {
+    renderer->ResetCamera();
+    m_vtkCameraInitialized = true;
+  }
 }
 #endif
 

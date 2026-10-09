@@ -32,10 +32,11 @@ void VtkCentralWidget::setProjectTree(ProjectTree* projectTree)
 void VtkCentralWidget::refreshModel()
 {
   m_renderer->RemoveAllViewProps();
-  if(m_projectTree)
-    m_projectTree->showVtkModel(m_renderer);
+  if(m_projectTree) {
+    VtkDrawCntx context(m_renderer);
+    m_projectTree->showVtkModel(&context);
+  }
 
-  m_renderer->ResetCamera();
   m_renderPending = true;
   renderIfVisible();
 }

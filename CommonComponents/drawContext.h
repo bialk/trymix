@@ -2,6 +2,7 @@
 #define editviewobj_h
 
 #include <QMatrix4x4>
+#include "ViewportContext.h"
 
 namespace sV2 { class Serializer; }
 class QOpenGLWidget;
@@ -35,7 +36,7 @@ class TSOCntx{
    // if (TSO_CustomContext* ctx = dynamic_cast<TSO_CustomContext*>(context)) {
 };
 
-class DrawCntx{
+class DrawCntx : public ViewportDispatchContext {
  public:
   DrawCntx(CentralWidget* cw);
   virtual ~DrawCntx();

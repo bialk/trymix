@@ -2,6 +2,7 @@
 #define PROJECTTREE_H
 
 #include "drawContext.h"
+#include "ViewportContext.h"
 
 #include <QTreeWidget>
 
@@ -20,8 +21,9 @@ public:
   ProjectTree(QWidget* parent);
   virtual void showModel(DrawCntx* cx);
 #ifdef TRYMIX_ENABLE_VTK
-  void showVtkModel(vtkRenderer* renderer);
+  void showVtkModel(VtkDrawCntx* context);
 #endif
+  ProjectTreeItem* activeTreeItem() const { return m_activeTreeItem; }
   CentralWidget* gl();
   void addRemoveButton(ProjectTreeItem* item);
   void removeItem(ProjectTreeItem* item);
