@@ -1,7 +1,7 @@
 #ifndef shapefromshade_h
 #define shapefromshade_h
 
-#include "LinSolver.h"
+#include "mathlib/mathutl/LinSolver.h"
 
 #include <array>
 #include <vector>

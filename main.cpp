@@ -10,7 +10,7 @@
 #include <QCommandLineParser>
 #include <QStyleFactory>
 #ifdef SOLVER_MPI
-#include "SFSBuilder/MpiRuntime.h"
+#include "apputil/MpiRuntime.h"
 #endif
 
 // test definitions

@@ -184,7 +184,7 @@ void LinSolverMT::solve() {
   oldToNewIV = ETree_oldToNewVtxPerm(frontETree) ; 
   oldToNew = IV_entries(oldToNewIV) ; 
   newToOldIV = ETree_newToOldVtxPerm(frontETree) ; 
-  newToOld = IV_entries(newToOldIV) ;
+  newToOld = IV_entries(newToOldIV) ;
 
   //28 SPOOLES 2.2 -- Solving Linear Systems April 29, 2002 
 

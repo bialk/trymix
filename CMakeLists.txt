@@ -325,11 +325,11 @@ set(PROJECT_SOURCES
     SFSBuilder/SFSBuilder_TreeItem.h SFSBuilder/SFSBuilder_TreeItem.cpp
     SFSBuilder/SFSBuilder_panel.ui
     SFSBuilder/shapefromshade.cpp SFSBuilder/shapefromshade.h
-    SFSBuilder/LinSolver.h
-    SFSBuilder/LinSolverMT.h SFSBuilder/LinSolverMT.cpp
-    SFSBuilder/LinSolverMPI.h SFSBuilder/LinSolverMPI.cpp
-    SFSBuilder/MpiRuntime.h SFSBuilder/MpiRuntime.cpp
-    SFSBuilder/LinSolverEigen.h SFSBuilder/LinSolverEigen.cpp
+    mathlib/mathutl/LinSolver.h
+    mathlib/mathutl/LinSolverMT.h mathlib/mathutl/LinSolverMT.cpp
+    mathlib/mathutl/LinSolverMPI.h mathlib/mathutl/LinSolverMPI.cpp
+    apputil/MpiRuntime.h apputil/MpiRuntime.cpp
+    mathlib/mathutl/LinSolverEigen.h mathlib/mathutl/LinSolverEigen.cpp
 
     SFSBuilder/imageplane.h SFSBuilder/imageplane.cpp
     CommonComponents/ImageTile.h CommonComponents/ImageTile.cpp

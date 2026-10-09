@@ -8,9 +8,9 @@
 #include <memory>
 #include <stdexcept>
 
-#include "LinSolverEigen.h"
-#include "LinSolverMPI.h"
-#include "LinSolverMT.h"
+#include "mathlib/mathutl/LinSolverEigen.h"
+#include "mathlib/mathutl/LinSolverMPI.h"
+#include "mathlib/mathutl/LinSolverMT.h"
 
 namespace {
 std::unique_ptr<LinSolver> makeSolver(LinSolverKind kind)
