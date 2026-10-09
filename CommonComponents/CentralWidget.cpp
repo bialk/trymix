@@ -3,6 +3,7 @@
 #include "ProjectTree.h"
 #include "EventHandling.h"
 #include "drawContext.h"
+#include "ModernOpenGLRenderer.h"
 
 #include <QPainter>
 #include <QEvent>
@@ -44,10 +45,11 @@ public:
 CentralWidget::CentralWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , ui(new Ui::CentralWidget)
+    , m_modernRenderer(std::make_unique<ModernOpenGLRenderer>())
 {
   QSurfaceFormat legacyFormat;
   legacyFormat.setRenderableType(QSurfaceFormat::OpenGL);
-  legacyFormat.setVersion(2, 1);
+  legacyFormat.setVersion(3, 3);
   legacyFormat.setProfile(QSurfaceFormat::CompatibilityProfile);
   legacyFormat.setDepthBufferSize(24);
   legacyFormat.setStencilBufferSize(8);
@@ -70,14 +72,15 @@ CentralWidget::eventContext(){
   return m_treeEventFilter->m_eventContext3D;
 }
 
-DrawCntx&
-CentralWidget::drawContext(){
-  return m_treeEventFilter->m_drawContext;
+ModernOpenGLRenderer& CentralWidget::modernRenderer()
+{
+  return *m_modernRenderer;
 }
 
 
 void
 CentralWidget::initializeGL(){
+  m_modernRenderer->initialize();
 }
 
 void
@@ -108,5 +111,10 @@ CentralWidget::setProjectTree(ProjectTree *pt){
 
 CentralWidget::~CentralWidget()
 {
+    if(context()) {
+      makeCurrent();
+      m_modernRenderer->destroy();
+      doneCurrent();
+    }
     delete ui;
 }

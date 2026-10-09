@@ -9,7 +9,6 @@
 class Lights;
 class Icon3DLight: public  EditViewObj{  
 public:
-  int glsel_name = -1;
   float *rot;
   Lights *lights = nullptr;
   virtual void  Draw(DrawCntx *cntx);
@@ -46,7 +45,7 @@ class Lights: public EditViewObj{
 
   Ctrl3DRotate mrot;
 
-  int  isfocus(int id);
+  bool focus(EditViewObj* object);
   void focusctrl(int x, int y);
   void lightrstart(int x, int y);
   void lightrcont(int x, int y);

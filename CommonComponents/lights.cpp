@@ -1,32 +1,14 @@
 #include "lights.h"
 #include "apputil/serializerV2.h"
 #include "mathstruct.h"
+#include "ModernOpenGLRenderer.h"
 //#include "apputil/serializer.h"
 
-#include <QApplication>
+#include <QMatrix4x4>
 #include <QOpenGLFunctions>
 
 // control elements definitions
 //=============================================================
-
-// IconD3DG1
-class IconD3DG1{
-public:
-  int state;
-  int list;
-  IconD3DG1():state(0){};
-  void ExecOnce(){
-    if(state) return;
-    state ++;
-    list = glGenLists(1);
-    glNewList(list,GL_COMPILE);
-
-    D3DG1obj().open((qApp->applicationDirPath() + "/torch.3dIco").toStdString().c_str());
-
-    glEndList();
-    return;
-  }
-};
 
 void Icon3DLight::TreeScan(TSOCntx *cntx) {
   if(cntx == &TSOCntx::TSO_Init){
@@ -34,41 +16,19 @@ void Icon3DLight::TreeScan(TSOCntx *cntx) {
 }
 
 void Icon3DLight::Draw(DrawCntx *cntx) { 
-  cntx->trySetGLName(glsel_name);
-
-  static IconD3DG1 torch;
-  torch.ExecOnce();
-
-  glPushAttrib(GL_ENABLE_BIT);
-  glEnable(GL_LIGHTING);
-  glDisable(GL_TEXTURE_2D); 
-  
-  { 
-    GLfloat mat_zero[] = { 0.0, 0.0, 0.0, 0.0 };
-    
-    GLfloat mat_one[] = {1., 1., 1., 1.}; 
-    GLfloat mat_half[] = {0.5, 0.5, 0.5, 1.}; 
-
-    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat_zero);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_zero );
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_zero);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION,  mat_zero);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_zero);
-
-    if(lights->g == this) {
-      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_one); 
-    }else{
-      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_half);
-    }
-  } 
-
   glScalef(30,30,30);
   glMultMatrixf(rot);
-  glRotatef(90,1,0,0);  
-  glPushName(glsel_name);
-  glCallList(torch.list);
-  glPopName();
-  glPopAttrib();
+  glRotatef(90,1,0,0);
+
+  GLfloat projectionValues[16];
+  GLfloat modelViewValues[16];
+  glGetFloatv(GL_PROJECTION_MATRIX, projectionValues);
+  glGetFloatv(GL_MODELVIEW_MATRIX, modelViewValues);
+  const QMatrix4x4 projection = QMatrix4x4(projectionValues).transposed();
+  const QMatrix4x4 modelView = QMatrix4x4(modelViewValues).transposed();
+  const float brightness = lights->g == this ? 1.0F : 0.5F;
+  cntx->modernRenderer().drawLightIcon(
+    projection, modelView, {brightness, brightness, brightness});
 }
 
 
@@ -153,17 +113,17 @@ void Lights::TreeScan(TSOCntx *cntx){
 }
 
 
-int Lights::isfocus(int id){
-  if(id==glic1.glsel_name ){
+bool Lights::focus(EditViewObj* object){
+  if(object == &glic1){
     g=&glic1;
   }
-  else if(id==glic2.glsel_name ){
+  else if(object == &glic2){
     g=&glic2;
   }
   else {
     g=nullptr;
   }
-  return g!=nullptr;
+  return g != nullptr;
 }
 
 void Lights::lightrstart(int x, int y){

@@ -3,6 +3,8 @@
 
 #include <QOpenGLWidget>
 
+#include <memory>
+
 namespace Ui {
 class CentralWidget;
 }
@@ -13,6 +15,7 @@ class EventContext3D;
 class EventHandler3D;
 class QEvent;
 class DrawCntx;
+class ModernOpenGLRenderer;
 
 
 class CentralWidget : public QOpenGLWidget
@@ -31,11 +34,12 @@ public:
 
     EventHandler3D& eventHandler();
     EventContext3D& eventContext();
-    DrawCntx& drawContext();
+    ModernOpenGLRenderer& modernRenderer();
 private:
     Ui::CentralWidget *ui;
     ProjectTree* m_projectTree = nullptr;
     TreeEventFilter* m_treeEventFilter = nullptr;
+    std::unique_ptr<ModernOpenGLRenderer> m_modernRenderer;
 };
 
 #endif // CENTRALWIDGET_H

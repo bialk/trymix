@@ -5,12 +5,15 @@
 #include "CommonComponents/EventHandling.h"
 #include "CommonComponents/CentralWidget.h"
 #include "CommonComponents/mainwindow.h"
-#include "CommonComponents/testScene.h"
+#include "CommonComponents/ModernOpenGLRenderer.h"
 
 #include "QMainWindow"
 #include <QOpenGLWidget>
 #include <QPainter>
 #include <QDebug>
+#include <QMatrix4x4>
+
+#include <glm/gtc/type_ptr.hpp>
 
 #ifdef TRYMIX_ENABLE_VTK
 #include <vtkActor.h>
@@ -33,18 +36,16 @@ public:
 
   ViewCtrl::Opercode Op{ViewCtrl::Opercode::origRotate};
 
-  EventHandler_PositionController(ViewCtrl* vc, Lights* lights)
+  EventHandler_PositionController(ViewCtrl* vc, Lights* lights, ToolPanel* tools)
     :m_vp(vc)
     ,m_lights(lights)
+    ,m_tools(tools)
   {
     addReact("M:L:DOWN") = [this](EventContext3D& cx)
     {
-      //try to see if anything selected on screen
-      auto id = cx.select();
-      if(m_lights->isfocus(id)){
+      if(m_lights->focus(m_tools->pick(cx.x(), cx.y()))){
         m_lights->lightrstart(cx.x(),cx.y());
         cx.pushHandler(&m_mouseDragLight);
-        qDebug() << "Selected name: " << id << Qt::endl;
       }
       else{
         auto dragProcessor = m_vp->startOperation(Op,cx.glx(),cx.gly());
@@ -92,6 +93,7 @@ public:
   }
   std::unique_ptr<EventHandler3D> m_dragHandler;
   EventHandler3D m_mouseDragLight;
+  ToolPanel* m_tools = nullptr;
 };
 }
 
@@ -111,7 +113,8 @@ CameraControl_TreeItem::CameraControl_TreeItem()
   m_toolsPanel->m_viewctrl = m_viewCtrl.get();
 
   m_viewCtrl->TreeScan(&TSOCntx::TSO_LayoutLoad);
-  m_viewCtrlEH.reset(new EventHandler_PositionController(m_viewCtrl.get(),m_lights.get()));
+  m_viewCtrlEH.reset(new EventHandler_PositionController(
+    m_viewCtrl.get(), m_lights.get(), m_toolsPanel.get()));
   m_toolsPanel->TreeScan(&TSOCntx::TSO_Init);
 
 
@@ -123,7 +126,6 @@ CameraControl_TreeItem::CameraControl_TreeItem()
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());
 
-  drawTestScene();
 }
 
 CameraControl_TreeItem::~CameraControl_TreeItem(){}
@@ -194,10 +196,22 @@ CameraControl_TreeItem::showModel(DrawCntx* cx)
   m_lights->Draw(cx);
 
 
-  // draw scene test
-  drawTestScene();
-
   m_toolsPanel->Draw(cx);
+
+  glClear(GL_DEPTH_BUFFER_BIT);
+  // GLM exposes column-major storage, while this QMatrix4x4 constructor reads
+  // the supplied values in row-major order. Transpose after copying so the
+  // shader receives the same matrices used by the legacy OpenGL path.
+  const QMatrix4x4 projection =
+    QMatrix4x4(glm::value_ptr(m_viewCtrl->getProjectionMtrx())).transposed();
+  const QMatrix4x4 view =
+    QMatrix4x4(glm::value_ptr(m_viewCtrl->getModelViewMtrx())).transposed();
+  cx->modernRenderer().setDirectionalLights(
+    {m_lights->rot1[8], m_lights->rot1[9], m_lights->rot1[10]},
+    m_lights->show1 != 0,
+    {m_lights->rot2[8], m_lights->rot2[9], m_lights->rot2[10]},
+    m_lights->show2 != 0);
+  cx->modernRenderer().drawTestScene(projection, view);
 }
 
 void

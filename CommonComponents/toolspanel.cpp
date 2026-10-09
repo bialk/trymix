@@ -1,11 +1,26 @@
 #include "toolspanel.h"
 #include "CommonComponents/drawContext.h"
 #include "CommonComponents/EventHandling.h"
+#include "CommonComponents/ScreenSpacePicking.h"
 
 #include <QOpenGLContext>
 
 void ToolPanel::Add(EditViewObj * ic){
   iconvector.push_back(ic);
+}
+
+EditViewObj* ToolPanel::pick(int mouseX, int mouseY) const
+{
+  if(!show)
+    return nullptr;
+  std::vector<QPointF> centers;
+  centers.reserve(iconvector.size());
+  for(std::size_t index = 0; index < iconvector.size(); ++index)
+    centers.emplace_back(100.0 * (static_cast<qreal>(index) + 0.7), 60.0);
+  const int index = pickClosestScreenPoint(
+    QPointF(static_cast<qreal>(mouseX), static_cast<qreal>(mouseY)),
+    centers, 35.0);
+  return index >= 0 ? iconvector[static_cast<std::size_t>(index)] : nullptr;
 }
 
 void ToolPanel::Draw(DrawCntx *cntx){
@@ -16,19 +31,7 @@ void ToolPanel::Draw(DrawCntx *cntx){
     glPushMatrix();
     glLoadIdentity();
     
-    GLint mode;
-    glGetIntegerv(GL_RENDER_MODE,&mode);  
-    float x,y;
-    switch (mode){
-      case GL_RENDER:
-        glOrtho(-cntx->w()/2,cntx->w()/2,-cntx->h()/2,cntx->h()/2,-300,300);
-        break;
-      case GL_SELECT:
-        x=(cntx->eventContext().x() - cntx->w()/2);
-        y=(cntx->h()/2 - cntx->eventContext().y());
-        glOrtho(-5+x,5+x,-5+y,5+y,-500,500);
-        break;
-    }
+    glOrtho(-cntx->w()/2,cntx->w()/2,-cntx->h()/2,cntx->h()/2,-300,300);
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -51,5 +54,3 @@ void ToolPanel::TreeScan(TSOCntx *cntx){
     show=1;
   }
 }
-
-

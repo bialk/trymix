@@ -5,11 +5,15 @@
 #include <QtConcurrent/QtConcurrentRun>
 #include "apputil/serializerV2.h"
 #include "CommonComponents/glhelper.h"
+#include "CommonComponents/ModernOpenGLRenderer.h"
 #include "shapefromshade.h"
 #include "mathlib/mathutl/mymath.h"
 //#include "mathlib/mathutl/imageandfft.h"
 
+#include <cmath>
 #include <utility>
+#include <QMatrix4x4>
+#include <QVector3D>
 
 ImagePlane::ImagePlane():
   w(0),h(0),
@@ -17,8 +21,7 @@ ImagePlane::ImagePlane():
   image_mode(image_mode_image),
   shape_mode(shape_mode_off),
   edit_mode(edit_mode_off),
-  cache_slot(-1),
-  glsel_lightcur(0)
+  cache_slot(-1)
 {
 //    imagefname[0] = "C:/Users/Alex/D/zero-devel/research/pmetrics/data/bej1x4.ppm";
 //    imagefname[1] = "C:/Users/Alex/D/zero-devel/research/pmetrics/data/bej2x4.ppm";
@@ -76,6 +79,7 @@ void ImagePlane::TreeScan(TSOCntx *cntx){
     w=h=0;
 
     data_attd.clear();
+    surfaceMeshDirty = true;
     lights[0][0]=-1; lights[0][1]=-1; lights[0][2]=0;
     lights[1][0]= 1; lights[1][1]=-1; lights[1][2]=0;
     lights[2][0]= 1; lights[2][1]= 1; lights[2][2]=0;
@@ -178,6 +182,162 @@ void ImagePlane::LoadTxt(int slot){
   
 }
 
+void ImagePlane::DrawModernSurface(DrawCntx* context)
+{
+  if(data_attd.size() != static_cast<std::size_t>(w * h) || w < 2 || h < 2)
+    return;
+
+  if(surfaceMeshDirty) {
+    surfaceMesh.destroy();
+    std::vector<ModernOpenGLVertex> vertices(static_cast<std::size_t>(w * h));
+    std::vector<QVector3D> accumulatedNormals(
+      static_cast<std::size_t>(w * h), QVector3D{});
+    std::vector<unsigned int> indices;
+    indices.reserve(static_cast<std::size_t>((w - 1) * (h - 1) * 6));
+
+    const auto position = [&](int index) {
+      return QVector3D(
+        static_cast<float>(index % w), static_cast<float>(index / w),
+        data_attd[static_cast<std::size_t>(index)]);
+    };
+    const auto appendTriangle = [&](unsigned int first, unsigned int second,
+                                    unsigned int third) {
+      indices.insert(indices.end(), {first, second, third});
+      const QVector3D normal = QVector3D::crossProduct(
+        position(static_cast<int>(second)) - position(static_cast<int>(first)),
+        position(static_cast<int>(third)) - position(static_cast<int>(first)));
+      accumulatedNormals[first] += normal;
+      accumulatedNormals[second] += normal;
+      accumulatedNormals[third] += normal;
+    };
+
+    for(int y = 0; y < h - 1; ++y) {
+      for(int x = 0; x < w - 1; ++x) {
+        const auto bottomLeft = static_cast<unsigned int>(y * w + x);
+        const auto bottomRight = bottomLeft + 1;
+        const auto topLeft = bottomLeft + static_cast<unsigned int>(w);
+        const auto topRight = topLeft + 1;
+        appendTriangle(bottomLeft, bottomRight, topRight);
+        appendTriangle(topRight, topLeft, bottomLeft);
+      }
+    }
+
+    const bool hasImage = img[0].size() >= static_cast<std::size_t>(w * h * 4);
+    for(int index = 0; index < w * h; ++index) {
+      const QVector3D point = position(index);
+      QVector3D normal = accumulatedNormals[static_cast<std::size_t>(index)];
+      if(normal.lengthSquared() > 0.0F)
+        normal.normalize();
+      else
+        normal = {0.0F, 0.0F, 1.0F};
+
+      QVector3D color{0.5F, 0.5F, 0.5F};
+      if(hasImage) {
+        const auto pixel = static_cast<std::size_t>(index * 4);
+        color = {
+          img[0][pixel + 2] / 255.0F,
+          img[0][pixel + 1] / 255.0F,
+          img[0][pixel] / 255.0F};
+      }
+      vertices[static_cast<std::size_t>(index)] = {
+        {point.x(), point.y(), point.z()},
+        {color.x(), color.y(), color.z()},
+        {normal.x(), normal.y(), normal.z()},
+        {0.0F, 0.0F}};
+    }
+
+    if(!surfaceMesh.initialize(
+       vertices.data(), static_cast<int>(vertices.size()),
+       indices.data(), static_cast<int>(indices.size())))
+      return;
+    surfaceMeshDirty = false;
+  }
+
+  GLfloat projectionValues[16];
+  GLfloat modelViewValues[16];
+  glGetFloatv(GL_PROJECTION_MATRIX, projectionValues);
+  glGetFloatv(GL_MODELVIEW_MATRIX, modelViewValues);
+  const QMatrix4x4 projection = QMatrix4x4(projectionValues).transposed();
+  const QMatrix4x4 modelView = QMatrix4x4(modelViewValues).transposed();
+  context->modernRenderer().draw(surfaceMesh, projection, modelView);
+}
+
+void ImagePlane::DrawModernLightControls(DrawCntx* context)
+{
+  std::vector<ModernOpenGLVertex> lineVertices;
+  std::vector<unsigned int> lineIndices;
+  std::vector<ModernOpenGLVertex> pointVertices;
+  std::vector<unsigned int> pointIndices;
+  const auto appendVertex = [](std::vector<ModernOpenGLVertex>& vertices,
+                               std::vector<unsigned int>& indices,
+                               const QVector3D& position,
+                               const QVector3D& color) {
+    indices.push_back(static_cast<unsigned int>(vertices.size()));
+    vertices.push_back({
+      {position.x(), position.y(), position.z()},
+      {color.x(), color.y(), color.z()},
+      {0.0F, 0.0F, 1.0F}, {0.0F, 0.0F}});
+  };
+
+  const QVector3D red{1.0F, 0.0F, 0.0F};
+  const QVector3D yellow{1.0F, 1.0F, 0.0F};
+  const float centerX = w * 0.5F;
+  const float centerY = h * 0.5F;
+  appendVertex(lineVertices, lineIndices, {centerX, centerY - 3.0F, 0.0F}, red);
+  appendVertex(lineVertices, lineIndices, {centerX, centerY + 3.0F, 0.0F}, red);
+  appendVertex(lineVertices, lineIndices, {centerX - 3.0F, centerY, 0.0F}, red);
+  appendVertex(lineVertices, lineIndices, {centerX + 3.0F, centerY, 0.0F}, red);
+
+  int selectedLight = -1;
+  for(int index = 0; index < 4; ++index) {
+    const bool selected = selectedLightIndex == index;
+    if(selected)
+      selectedLight = index;
+    appendVertex(
+      pointVertices, pointIndices,
+      {(w + lights[index][0] * h) * 0.5F,
+       (h + lights[index][1] * h) * 0.5F, 0.0F},
+      selected ? yellow : red);
+  }
+
+  if(selectedLight >= 0) {
+    const float radius = h * 0.5F * std::sqrt(
+      lights[selectedLight][0] * lights[selectedLight][0]
+      + lights[selectedLight][1] * lights[selectedLight][1]);
+    constexpr int circleSegments = 45;
+    for(int segment = 0; segment < circleSegments; ++segment) {
+      const float angle1 = segment * 2.0F * static_cast<float>(M_PI)
+                           / circleSegments;
+      const float angle2 = (segment + 1) * 2.0F * static_cast<float>(M_PI)
+                           / circleSegments;
+      appendVertex(lineVertices, lineIndices,
+                   {centerX + radius * std::sin(angle1),
+                    centerY + radius * std::cos(angle1), 0.0F}, yellow);
+      appendVertex(lineVertices, lineIndices,
+                   {centerX + radius * std::sin(angle2),
+                    centerY + radius * std::cos(angle2), 0.0F}, yellow);
+    }
+  }
+
+  GLfloat projectionValues[16];
+  GLfloat modelViewValues[16];
+  glGetFloatv(GL_PROJECTION_MATRIX, projectionValues);
+  glGetFloatv(GL_MODELVIEW_MATRIX, modelViewValues);
+  const QMatrix4x4 projection = QMatrix4x4(projectionValues).transposed();
+  const QMatrix4x4 modelView = QMatrix4x4(modelViewValues).transposed();
+
+  if(overlayLineMesh.update(
+       lineVertices.data(), static_cast<int>(lineVertices.size()),
+       lineIndices.data(), static_cast<int>(lineIndices.size())))
+    context->modernRenderer().drawLines(
+      overlayLineMesh, projection, modelView, 3.0F);
+  if(overlayPointMesh.update(
+       pointVertices.data(), static_cast<int>(pointVertices.size()),
+       pointIndices.data(), static_cast<int>(pointIndices.size())))
+    context->modernRenderer().drawPoints(
+      overlayPointMesh, projection, modelView, 6.0F);
+}
+
 #if 0
 class TaleTxt{
 public:
@@ -241,140 +401,15 @@ void ImagePlane::Draw(DrawCntx *cntx){
     glEnd ();
     glDisable(GL_TEXTURE_RECTANGLE_ARB);
     */
-    image_tile.Draw();
+    image_tile.Draw(cntx);
     glEnable(GL_LIGHTING);
   }
 
-  glPushName(100);
-  // draw shape
-  if(shape_mode!=shape_mode_off){    
-      if(!shape.id){
-          glNewList(shape(),GL_COMPILE_AND_EXECUTE);
-          if(data_attd.size()==w*h){
-              int i,j;
-              for(i=1;i<h;i++){
-                  glBegin(GL_QUAD_STRIP);
-                  for(j=0;j<w;j++){
-                      float x,y,z;
-                      int ih=i;
+  if(shape_mode != shape_mode_off)
+    DrawModernSurface(cntx);
 
-                      if(j>0){
-                          vnormal2(x,y,z,
-                                   j-1,i-1, data_attd[w*(ih-1)+j-1],
-                                   j,i-1, data_attd[w*(ih-1)+j],
-                                   j,i, data_attd[w*ih+j]
-                                   );
-                          glNormal3f(x,y,z);
-
-
-                          glColor3ubv(&img[0][(w*(ih-1)+j)*3]);
-                          glVertex3f(j,i-1, data_attd[w*(ih-1)+j]);
-
-                          vnormal2(x,y,z,
-                                   j,i-1, data_attd[w*(ih-1)+j],
-                                   j,i, data_attd[w*ih+j],
-                                   j-1,i, data_attd[w*ih+j-1]);
-                          glNormal3f(x,y,z);
-                          glColor3ubv(&img[0][(w*(ih)+j)*3]);
-                          glVertex3f(j,i, data_attd[w*ih+j]);
-                      }
-
-                      if(j<w-1){
-                          vnormal2(x,y,z,
-                                   j,i, data_attd[w*ih+j],
-                                   j,i-1, data_attd[w*(ih-1)+j],
-                                   j+1,i-1, data_attd[w*(ih-1)+j+1]);
-                          glNormal3f(x,y,z);
-                          glColor3ubv(&img[0][(w*(ih-1)+j)*3]);
-                          glVertex3f(j,i-1, data_attd[w*(ih-1)+j]);
-
-                          vnormal2(x,y,z,
-                                   j+1,i, data_attd[w*ih+j+1],
-                                   j,i, data_attd[w*ih+j],
-                                   j,i-1, data_attd[w*(ih-1)+j]);
-                          glNormal3f(x,y,z);
-                          glColor3ubv(&img[0][(w*(ih)+j)*3]);
-                          glVertex3f(j,i, data_attd[w*ih+j]);
-                      }
-
-                  }
-                  glEnd();
-              }
-          }
-          glEndList();
-      }
-      else
-          glCallList(shape());
-  }
-  glPopName();
-
-
-  // drawing light control points
-  if(image_mode!=image_mode_off && edit_mode == edit_mode_on){
-
-      glDisable(GL_LIGHTING);
-      glEnable(GL_POINT_SMOOTH);
-      glPointSize(6);
-
-      glColor3f(1,0,0);
-      glLineWidth(3);
-      glBegin(GL_LINES);
-      glVertex3f(w*0.5f,h*0.5f-3.f,0.f);
-      glVertex3f(w*0.5f,h*0.5f+3.f,0.f);
-      glVertex3f(w*0.5f-3.f,h*0.5f,0.f);
-      glVertex3f(w*0.5f+3.f,h*0.5f,0.f);
-      glEnd();
-
-      int cursel=-1;
-      int i;
-      for(i=0;i<4;i++){
-          if(glsel_lightcur==glsel_light[i]){
-              glColor3f(1,1,0);
-              cursel=i;
-          }
-          else
-              glColor3f(1,0,0);
-
-          glPushName(glsel_light[i]);
-          glBegin(GL_POINTS);
-          glVertex3f(
-              (w+lights[i][0]*h)*0.5f,
-              (h+lights[i][1]*h)*0.5f,
-              0
-              );
-          //glVertex3f(w,h,0);
-          glEnd();
-          glPopName();
-      }
-
-    if(cursel>=0){
-        glColor3f(1,1,0);
-        float dist = h*0.5*sqrt(lights[cursel][0]*lights[cursel][0]+
-                                    lights[cursel][1]*lights[cursel][1]);
-
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glTranslatef(w*0.5,h*0.5,0);
-        glScalef(dist,dist,1);
-        if(!circle.id) {
-            // drawing circle
-            glNewList(circle(),GL_COMPILE_AND_EXECUTE);
-            int i;
-            glBegin(GL_LINE_STRIP);
-            for(i=0;i<46;i++){
-                glVertex3f(sin(i*2*M_PI/45.f),cos(i*2*M_PI/45.f),0.f);
-            }
-            glEnd();
-            glEndList();
-        }
-        else{
-            glCallList(circle());
-        }
-        glPopMatrix();
-    }
-
-    glColor3f(1,1,1);
-  }
+  if(image_mode != image_mode_off && edit_mode == edit_mode_on)
+    DrawModernLightControls(cntx);
 
 };
   
@@ -426,96 +461,5 @@ void ImagePlane::Build(
 void ImagePlane::ApplyBuildResult(DataExchangeBlock data)
 {
   data_attd = std::move(data.data_attd);
-  // reset cached shape display gllist
-  shape.clear();
+  surfaceMeshDirty = true;
 }
-
-
-#ifdef off
-// event handler
-//=================================================
-ImagePlaneEH::ImagePlaneEH(ImagePlane *v):
-state_drag(-1),
-ev(v)
-{}
-
-void ImagePlaneEH::Handle(EventBall *eventball){
-  if(eventball->state(-34)){
-  }
-  else if(eventball->event(Q_ADD)){
-    // event handler removed from the queue
-    ev->edit_mode=ImagePlane::edit_mode_on;
-    eventball->stop();
-    //ev->dv->redraw();
-    return;
-  }
-  else if(eventball->event(Q_DEL)){
-    // event handler removed from the queue
-    ev->edit_mode=ImagePlane::edit_mode_off;
-    eventball->stop();
-    //ev->dv->redraw();
-    return;
-  }
-  else if(eventball->event(M_DRAG) && 
-          eventball->state(state_drag)){
-    float x=eventball->x, y=eventball->y, z=0;
-    //ev->dv->viewctrl->hitscene(x,y,z);
-    float h=ev->h/2;
-    float w=ev->w/2;
-    x-=w; y-=h;    
-    float d = sqrt(x*x+y*y);
-    if(d<h && fabs(z)<0.2f){
-      z = sqrt(h*h - d*d);
-    }
-
-    int slot;
-    if(ev->glsel_lightcur == ev->glsel_light[0]) slot = 0;
-    if(ev->glsel_lightcur == ev->glsel_light[1]) slot = 1;
-    if(ev->glsel_lightcur == ev->glsel_light[2]) slot = 2;
-    if(ev->glsel_lightcur == ev->glsel_light[3]) slot = 3;
-    
-    x = ev->lights[slot][0]=x/h;
-    y = ev->lights[slot][1]=y/h;
-    z = ev->lights[slot][2]=z/h;
-    //printf("x=%f y=%f z=%f\n",x,y,z);
-   // SyncUI();
-    //ev->dv->redraw();
-    eventball->stop();
-  }
-  else if(eventball->event(M_UP) &&
-          eventball->state(state_drag)){
-    eventball->setstate(0);
-    ev->glsel_lightcur=0;
-    //ev->dv->redraw();
-    eventball->stop();
-  }
-  else if(!eventball->state(0)){
-    // move event futher down
-    return;
-  }
-  else if(eventball->event(M_DOWN) && 
-          eventball->keys("") && 
-	  eventball->kmod(0) &&
-          eventball->mbtn(1)){
-
-
-#ifdef off
-    int id =ev->dv->SelectObj(eventball->x,eventball->y);
-    if(id == ev->glsel_light[0] ||
-       id == ev->glsel_light[1] ||
-       id == ev->glsel_light[2] ||
-       id == ev->glsel_light[3]){
-      if(ev->glsel_lightcur != id){
-	eventball->genstate(state_drag);
-	ev->glsel_lightcur=id;
-	ev->curslot=id-ev->glsel_light[0];	
-	ev->dv->redraw();
-	SyncUI();
-	eventball->stop();
-      }
-    }
-#endif //off
-
-  }
-}
-#endif

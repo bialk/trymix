@@ -1,5 +1,6 @@
 #include "drawContext.h"
 #include "CentralWidget.h"
+#include "ModernOpenGLRenderer.h"
 
 // class TSOCntx (TreeScanOperCntx)
 //================================================
@@ -16,11 +17,6 @@ TSOCntx TSOCntx::TSO_ProjectLoad;
 TSOCntx TSOCntx::TSO_ProjectNew;
 
 
-void DrawCntx::trySetGLName(int& glname){
-  if(glname<=0)
-    glname = ++m_glnamecount;
-}
-
 int DrawCntx::w(){
   return m_centralWidget->width();
 }
@@ -29,16 +25,13 @@ int DrawCntx::h(){
   return m_centralWidget->height();
 }
 
-void DrawCntx::setEventContext(EventContext3D* eventContext){
-  m_eventContext = eventContext;
-}
-
-EventContext3D& DrawCntx::eventContext(){
-  return *m_eventContext;
-}
-
 void DrawCntx::update(){
   m_centralWidget->update();
+}
+
+ModernOpenGLRenderer& DrawCntx::modernRenderer()
+{
+  return m_centralWidget->modernRenderer();
 }
 
 QOpenGLWidget* DrawCntx::glWidget(){

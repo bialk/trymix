@@ -18,7 +18,7 @@ class ToolPanel: public EditViewObj{
   void AskForData(sV2::Serializer *s);
 
   void Add(EditViewObj* ic);
+  EditViewObj* pick(int mouseX, int mouseY) const;
 };
 
 #endif 
-

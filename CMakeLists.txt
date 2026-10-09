@@ -281,10 +281,10 @@ set(PROJECT_SOURCES
     CommonComponents/FileHistory.h CommonComponents/FileHistory.cpp
     CommonComponents/FileLauncher.h CommonComponents/FileLauncher.cpp
     CommonComponents/PaletteWidgets.h CommonComponents/PaletteWidgets.cpp
+      CommonComponents/ModernOpenGLMesh.h CommonComponents/ModernOpenGLMesh.cpp
+      CommonComponents/ModernOpenGLRenderer.h CommonComponents/ModernOpenGLRenderer.cpp
     CommonComponents/QScintillaEditor.h CommonComponents/QScintillaEditor.cpp
     CommonComponents/ReleaseSelectingMenu.h CommonComponents/ReleaseSelectingMenu.cpp
-
-    CommonComponents/testScene.cpp CommonComponents/testScene.h
 
     CommonComponents/drawContext.h CommonComponents/drawContext.cpp
 

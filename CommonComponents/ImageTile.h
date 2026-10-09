@@ -4,6 +4,8 @@
 #include <vector>
 #include <QOpenGLExtraFunctions>
 
+class DrawCntx;
+
 class GLTexSetHandle{
  public:
   std::vector<GLuint> texid;
@@ -39,7 +41,7 @@ class ImageTile{
   void clear();
   int empty();
   void LoadBGRA(unsigned char* bgra, int ww, int hh);
-  void Draw();
+  void Draw(DrawCntx* context);
 };
 
 #endif

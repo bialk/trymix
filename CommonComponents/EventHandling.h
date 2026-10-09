@@ -31,7 +31,6 @@ public:
   float glx();
   float gly();
   void update();
-  int select();
 
 private:
 
@@ -41,7 +40,6 @@ private:
   QString m_mouseHistory;
   int m_x, m_y;
   float m_glx, m_gly;
-  int m_selectionId = -1;
 };
 
 class EventHandler3D{

@@ -1,7 +1,10 @@
 #include "ImageTile.h"
+#include "drawContext.h"
+#include "ModernOpenGLRenderer.h"
 //#include <GL/glext.h>
 //#include "eventlog.h"
 #include <QOpenGLExtraFunctions>
+#include <QMatrix4x4>
 #include <string.h>
 #include <algorithm>
 
@@ -87,11 +90,22 @@ void ImageTile::LoadBGRA(unsigned char* bgra, int ww, int hh){
 }
 
 
-void ImageTile::Draw(){
+void ImageTile::Draw(DrawCntx* context){
 
   if(empty()) return;
 
-  glEnable(GL_TEXTURE_2D);//RECTANGLE_ARB);
+  GLint renderMode = GL_RENDER;
+  glGetIntegerv(GL_RENDER_MODE, &renderMode);
+  if(renderMode != GL_RENDER)
+    return;
+
+  GLfloat projectionValues[16];
+  GLfloat modelViewValues[16];
+  glGetFloatv(GL_PROJECTION_MATRIX, projectionValues);
+  glGetFloatv(GL_MODELVIEW_MATRIX, modelViewValues);
+  const QMatrix4x4 projection = QMatrix4x4(projectionValues).transposed();
+  const QMatrix4x4 baseModelView = QMatrix4x4(modelViewValues).transposed();
+
   int i,j;
   for(i=0;i<ntileh;i++){
     for(j=0;j<ntilew;j++){
@@ -116,26 +130,17 @@ void ImageTile::Draw(){
       glEnd ();
       */
 
-      glBindTexture(GL_TEXTURE_2D, texset.texid[ntilew*i+j]);
       float w0=j*tile_size;
       float h0=i*tile_size;
 
-      glColor4f(1,1,1,1);
-      glBegin (GL_QUADS);  
-      glTexCoord2f (0.0, 0.0);
-      glVertex3f (w0, h0, 0.0);
-      glTexCoord2f (tw/tile_size, 0.0);
-      glVertex3f (w0+tw, h0, 0.0);
-      glTexCoord2f (tw/tile_size, th/tile_size);
-      glVertex3f (w0+tw, h0+th, 0.0);
-      glTexCoord2f (0.0, th/tile_size);
-      glVertex3f (w0, h0+th, 0.0);
-      glEnd ();
+      QMatrix4x4 tileModel;
+      tileModel.translate(w0, h0, 0.0F);
+      tileModel.scale(tw, th, 1.0F);
+      context->modernRenderer().drawTexturedQuad(
+        texset.texid[ntilew*i+j], projection, baseModelView * tileModel,
+        {tw / tile_size, th / tile_size});
 
     }  
   }
-  glBindTexture(GL_TEXTURE_2D,0);//RECTANGLE_ARB, 0);
-  glDisable(GL_TEXTURE_2D);//RECTANGLE_ARB);
 }
-
 

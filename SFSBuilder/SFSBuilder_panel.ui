@@ -36,7 +36,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QRadioButton" name="radioButton_image_image">
+       <widget class="QRadioButton" name="radioButton_image_image">
          <property name="text">
           <string>Image</string>
          </property>
@@ -105,6 +105,13 @@
            <string>SPOOLES MPI</string>
           </property>
          </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBox_editLights">
+         <property name="text">
+          <string>Edit light positions</string>
+         </property>
         </widget>
        </item>
       </layout>

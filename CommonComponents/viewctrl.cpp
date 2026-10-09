@@ -121,10 +121,6 @@ glm::mat4 const& ViewCtrl::getProjectionMtrx(){
   return m_P;
 }
 
-glm::mat4 const& ViewCtrl::getSelectionMtrx(){
-  return m_Ps;
-}
-
 glm::mat4 const& ViewCtrl::updateProjectionMtrx(int w, int h){
   m_w = w; m_h = h;
   return updateProjectionMtrx();
@@ -147,27 +143,6 @@ glm::mat4 const& ViewCtrl::updateProjectionMtrx(){
     break;
   }
   return m_P;
-}
-
-glm::mat4 const& ViewCtrl::updateSelectionMtrx(float gx, float gy){
-
-
-  m_Ps = glm::scale(glm::mat4{1.0},{m_w/2,m_h/2,1.})*
-      glm::translate(glm::mat4{1.0}, {-gx,-gy,0.})*m_P;
-
-//use for debugging object selection (instant zoom on every second mouse click)
-#if !NDEBUG && off
-  {
-    bool static useSelectMatrix = false;
-    if(useSelectMatrix)
-      m_P = m_Ps;
-    else
-      updateProjectionMtrx();
-    useSelectMatrix = !useSelectMatrix;
-  }
-#endif
-
-  return m_Ps;
 }
 
 void ViewCtrl::Draw(DrawCntx *cntx){
@@ -193,17 +168,7 @@ void ViewCtrl::Draw(DrawCntx *cntx){
   glMultMatrixf(glm::value_ptr(getModelViewMtrx()));
 
   glMatrixMode(GL_PROJECTION);
-  GLint mode;
-  glGetIntegerv(GL_RENDER_MODE,&mode);
-  switch (mode){
-  case GL_RENDER:
-    glLoadMatrixf(glm::value_ptr(getProjectionMtrx()));
-    break;
-  case GL_SELECT:
-    updateSelectionMtrx(cntx->eventContext().glx(), cntx->eventContext().gly());
-    glLoadMatrixf(glm::value_ptr(getSelectionMtrx()));
-    break;
-  }
+  glLoadMatrixf(glm::value_ptr(getProjectionMtrx()));
 }
 
 
@@ -338,4 +303,3 @@ void ViewCtrl::reset(){
   m_trans = {.0,.0,-700};
   updateModelViewMtrx();
 }
-

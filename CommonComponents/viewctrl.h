@@ -31,9 +31,6 @@ class ViewCtrl: public EditViewObj{
   glm::mat4 const& updateProjectionMtrx(int w, int h);
   glm::mat4 const& updateProjectionMtrx();
 
-  glm::mat4 const& updateSelectionMtrx(float gx=0, float gy=0);
-  glm::mat4 const& getSelectionMtrx();
-
   std::function<void(float x, float y)>  startOperation(ViewCtrl::Opercode opercode, float x, float y);
   void reset();
 
@@ -58,7 +55,6 @@ private:
   float m_rotDistance = -glm::l2Norm(m_trans);
 
   glm::mat4 m_P{1.0};
-  glm::mat4 m_Ps{1.0};
   glm::mat4 m_MV{1.0};
 
   glm::vec3 m_dir1{0.,0,.1};
@@ -71,4 +67,3 @@ private:
 
 
 #endif
-

@@ -3,7 +3,7 @@
 
 #include "CommonComponents/drawContext.h"
 #include "CommonComponents/ImageTile.h"
-#include "CommonComponents/glhelper.h"
+#include "CommonComponents/ModernOpenGLMesh.h"
 #include "shapefromshade.h"
 #include <functional>
 #include <vector>
@@ -25,8 +25,6 @@ class ImagePlane: public EditViewObj{
   //GLTex2D image_tex;
   ImageTile image_tile;
   //GLTex2D albedo_tex; // not implemented yet!
-
-  GLListHandle circle;
 
   ImagePlane();
   ~ImagePlane();
@@ -53,15 +51,18 @@ class ImagePlane: public EditViewObj{
   int shape_mode;
   int edit_mode;
 
-  GLListHandle shape;
+  ModernOpenGLMesh surfaceMesh;
+  ModernOpenGLMesh overlayLineMesh;
+  ModernOpenGLMesh overlayPointMesh;
+  bool surfaceMeshDirty = true;
 
   int  cache_slot;
   void Open(int slot);
   void LoadTxt(int slot);
 
-  GLuint glsel_lightcur;
-  GLuint glsel_light[4];
-  void DrawLightPoints();
+  int selectedLightIndex = -1;
+  void DrawModernSurface(DrawCntx* context);
+  void DrawModernLightControls(DrawCntx* context);
 
   using BuildFinished = std::function<void(DataExchangeBlock)>;
   void Build(

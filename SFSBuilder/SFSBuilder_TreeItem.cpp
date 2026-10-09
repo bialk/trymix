@@ -11,7 +11,8 @@
 #include "CommonComponents/QScintillaEditor.h"
 #include "CommonComponents/ReleaseSelectingMenu.h"
 #include "CommonComponents/mainwindow.h"
-#include "CommonComponents/testScene.h"
+#include "CommonComponents/ModernOpenGLRenderer.h"
+#include "CommonComponents/ScreenSpacePicking.h"
 
 #include <QOpenGLWidget>
 #include <QPainter>
@@ -19,6 +20,7 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -33,8 +35,12 @@
 #include <QStandardItemModel>
 #include <QToolButton>
 #include <QWidgetAction>
+#include <QMatrix4x4>
+#include <QVector4D>
 
 #include <yaml-cpp/yaml.h>
+#include <glm/gtc/type_ptr.hpp>
+#include <cmath>
 #include <filesystem>
 
 
@@ -48,22 +54,38 @@ class EventHandler_PositionController: public EventHandler3D{
 public:
   ViewCtrl* m_vp = nullptr;
   Lights* m_lights = nullptr;
+  ImagePlane* m_imagePlane = nullptr;
+  ToolPanel* m_tools = nullptr;
   
 
   ViewCtrl::Opercode Op{ViewCtrl::Opercode::origRotate};
 
-  EventHandler_PositionController(ViewCtrl* vc, Lights* lights)
+  EventHandler_PositionController(
+      ViewCtrl* vc, Lights* lights, ImagePlane* imagePlane, ToolPanel* tools)
     :m_vp(vc)
     ,m_lights(lights)
+    ,m_imagePlane(imagePlane)
+    ,m_tools(tools)
   {
     addReact("M:L:DOWN") = [this](EventContext3D& cx)
     {
-      //try to see if anything selected on screen
-      auto id = cx.select();
-      if(m_lights->isfocus(id)){
+      if(m_imagePlane->edit_mode == ImagePlane::edit_mode_on
+              && selectImageLightAt(cx.x(), cx.y(), cx.w(), cx.h())) {
+        m_imageLightDragHandler = std::make_unique<EventHandler3D>();
+        m_imageLightDragHandler->addReact("M:MOVE") = [this](EventContext3D& cx) {
+          moveSelectedImageLight(cx.glx(), cx.gly());
+          cx.update();
+        };
+        m_imageLightDragHandler->addReact("M:L:UP") = [this](EventContext3D& cx) {
+          m_imagePlane->selectedLightIndex = -1;
+          cx.popHandler();
+          cx.update();
+        };
+        cx.pushHandler(m_imageLightDragHandler.get());
+      }
+      else if(m_lights->focus(m_tools->pick(cx.x(), cx.y()))){
         m_lights->lightrstart(cx.x(),cx.y());
         cx.pushHandler(&m_mouseDragLight);
-        qDebug() << "Selected name: " << id << Qt::endl;
       }
       else{
         auto dragProcessor = m_vp->startOperation(Op,cx.glx(),cx.gly());
@@ -110,7 +132,96 @@ public:
     };
   }
   std::unique_ptr<EventHandler3D> m_dragHandler;
+  std::unique_ptr<EventHandler3D> m_imageLightDragHandler;
   EventHandler3D m_mouseDragLight;
+
+private:
+  bool selectImageLightAt(int mouseX, int mouseY, int viewportWidth,
+                          int viewportHeight)
+  {
+    if(viewportWidth <= 0 || viewportHeight <= 0)
+      return false;
+
+    const QMatrix4x4 projection =
+      QMatrix4x4(glm::value_ptr(m_vp->getProjectionMtrx())).transposed();
+    const QMatrix4x4 view =
+      QMatrix4x4(glm::value_ptr(m_vp->getModelViewMtrx())).transposed();
+    const QMatrix4x4 modelViewProjection = projection * view;
+
+    constexpr float pickRadius = 12.0F;
+    std::vector<QPointF> screenPoints;
+    screenPoints.reserve(4);
+    for(int index = 0; index < 4; ++index) {
+      const QVector4D clip = modelViewProjection * QVector4D(
+        (m_imagePlane->w + m_imagePlane->lights[index][0]
+                            * m_imagePlane->h) * 0.5F,
+        (m_imagePlane->h + m_imagePlane->lights[index][1]
+                            * m_imagePlane->h) * 0.5F,
+        0.0F, 1.0F);
+      if(clip.w() <= 0.0F) {
+        screenPoints.emplace_back(-1000000.0, -1000000.0);
+        continue;
+      }
+
+      const float screenX = (clip.x() / clip.w() + 1.0F)
+                            * viewportWidth * 0.5F;
+      const float screenY = (1.0F - clip.y() / clip.w())
+                            * viewportHeight * 0.5F;
+      screenPoints.emplace_back(screenX, screenY);
+    }
+    const int closestIndex = pickClosestScreenPoint(
+      QPointF(static_cast<qreal>(mouseX), static_cast<qreal>(mouseY)),
+      screenPoints, pickRadius);
+
+    if(closestIndex < 0)
+      return false;
+    m_imagePlane->selectedLightIndex = closestIndex;
+    m_imagePlane->curslot = closestIndex;
+    return true;
+  }
+
+  void moveSelectedImageLight(float normalizedX, float normalizedY)
+  {
+    const int selected = m_imagePlane->selectedLightIndex;
+    if(selected < 0 || m_imagePlane->h <= 0)
+      return;
+
+    const QMatrix4x4 projection =
+      QMatrix4x4(glm::value_ptr(m_vp->getProjectionMtrx())).transposed();
+    const QMatrix4x4 view =
+      QMatrix4x4(glm::value_ptr(m_vp->getModelViewMtrx())).transposed();
+    bool invertible = false;
+    const QMatrix4x4 inverse = (projection * view).inverted(&invertible);
+    if(!invertible)
+      return;
+
+    QVector4D nearPoint = inverse * QVector4D(normalizedX, normalizedY, -1.0F, 1.0F);
+    QVector4D farPoint = inverse * QVector4D(normalizedX, normalizedY, 1.0F, 1.0F);
+    nearPoint /= nearPoint.w();
+    farPoint /= farPoint.w();
+    const float depthDelta = farPoint.z() - nearPoint.z();
+    if(qFuzzyIsNull(depthDelta))
+      return;
+    const float interpolation = -nearPoint.z() / depthDelta;
+    const QVector4D planePoint = nearPoint + (farPoint - nearPoint) * interpolation;
+
+    float lightX = (2.0F * planePoint.x() - m_imagePlane->w)
+                   / m_imagePlane->h;
+    float lightY = (2.0F * planePoint.y() - m_imagePlane->h)
+                   / m_imagePlane->h;
+    const float radiusSquared = lightX * lightX + lightY * lightY;
+    float lightZ = 0.0F;
+    if(radiusSquared < 1.0F) {
+      lightZ = std::sqrt(1.0F - radiusSquared);
+    } else {
+      const float length = std::sqrt(radiusSquared);
+      lightX /= length;
+      lightY /= length;
+    }
+    m_imagePlane->lights[selected][0] = lightX;
+    m_imagePlane->lights[selected][1] = lightY;
+    m_imagePlane->lights[selected][2] = lightZ;
+  }
 };
 
 }
@@ -136,7 +247,8 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_toolsPanel->m_viewctrl = m_viewCtrl.get();
 
   m_viewCtrl->TreeScan(&TSOCntx::TSO_LayoutLoad);
-  m_viewCtrlEH.reset(new EventHandler_PositionController(m_viewCtrl.get(),m_lights.get()));
+  m_viewCtrlEH.reset(new EventHandler_PositionController(
+    m_viewCtrl.get(), m_lights.get(), m_imagePlane.get(), m_toolsPanel.get()));
 
 
   setData(0,Qt::DisplayRole, name());
@@ -167,8 +279,6 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
       QObject::tr("Configure with TRYMIX_SFS_USE_MPI=ON to enable MPI"));
   }
 #endif
-
-  drawTestScene();
 
   QScintillaEditor::configureYaml(m_panel.configEditor);
   m_panel.configEditor->setText(
@@ -287,6 +397,16 @@ void SFSBuilder_TreeItem::bindActions()
       settings.setValue(
         QString::fromLatin1(solverSettingsKey),
         m_panel.comboBox_solver->currentData().toInt());
+    });
+  QObject::connect(
+    m_panel.checkBox_editLights, &QCheckBox::toggled,
+    m_dockWidget.data(), [this](bool enabled) {
+      m_imagePlane->edit_mode = enabled
+        ? ImagePlane::edit_mode_on : ImagePlane::edit_mode_off;
+      if(!enabled)
+        m_imagePlane->selectedLightIndex = -1;
+      if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))
+        mainWindow->refreshViews();
     });
   m_dockWidget->addAction(m_saveConfigAction);
   m_dockWidget->addAction(m_runModelAction);
@@ -609,11 +729,15 @@ SFSBuilder_TreeItem::showModel(DrawCntx* cx)
 
   m_viewCtrl->Draw(cx);
   m_lights->Draw(cx);
+  cx->modernRenderer().setDirectionalLights(
+    {m_lights->rot1[8], m_lights->rot1[9], m_lights->rot1[10]},
+    m_lights->show1 != 0,
+    {m_lights->rot2[8], m_lights->rot2[9], m_lights->rot2[10]},
+    m_lights->show2 != 0);
 
 
   m_imagePlane->image_mode = ImagePlane::image_mode_image;
   m_imagePlane->shape_mode = ImagePlane::shape_mode_image;
-  m_imagePlane->edit_mode = ImagePlane::edit_mode_off;
   m_imagePlane->Draw(cx);
 
   m_toolsPanel->Draw(cx);
