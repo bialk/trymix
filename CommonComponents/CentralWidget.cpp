@@ -85,6 +85,10 @@ ModernOpenGLRenderer& CentralWidget::modernRenderer()
 
 void
 CentralWidget::initializeGL(){
+  QObject::disconnect(m_contextCleanupConnection);
+  m_contextCleanupConnection = connect(
+    context(), &QOpenGLContext::aboutToBeDestroyed,
+    this, &CentralWidget::cleanupOpenGL, Qt::DirectConnection);
   const QSurfaceFormat actualFormat = context()->format();
   qInfo() << "OpenGL context:"
           << actualFormat.majorVersion() << "."
@@ -144,12 +148,24 @@ CentralWidget::setProjectTree(ProjectTree *pt){
 
 CentralWidget::~CentralWidget()
 {
-    if(context()) {
-      makeCurrent();
-      if(m_openGLDebugLogger)
-        m_openGLDebugLogger->stopLogging();
-      m_modernRenderer->destroy();
-      doneCurrent();
-    }
+    // QOpenGLWidget can destroy its context from its base destructor, after
+    // the CentralWidget part of the object no longer exists. Disconnect the
+    // derived-class callback before reaching that stage.
+    QObject::disconnect(m_contextCleanupConnection);
+    cleanupOpenGL();
     delete ui;
+}
+
+void CentralWidget::cleanupOpenGL()
+{
+  if(!context())
+    return;
+
+  makeCurrent();
+  if(m_openGLDebugLogger) {
+    m_openGLDebugLogger->stopLogging();
+    m_openGLDebugLogger.reset();
+  }
+  m_modernRenderer->destroy();
+  doneCurrent();
 }

@@ -2,6 +2,7 @@
 #define CENTRALWIDGET_H
 
 #include <QOpenGLWidget>
+#include <QMetaObject>
 
 #include <memory>
 
@@ -37,11 +38,14 @@ public:
     EventContext3D& eventContext();
     ModernOpenGLRenderer& modernRenderer();
 private:
+    void cleanupOpenGL();
+
     Ui::CentralWidget *ui;
     ProjectTree* m_projectTree = nullptr;
     TreeEventFilter* m_treeEventFilter = nullptr;
     std::unique_ptr<ModernOpenGLRenderer> m_modernRenderer;
     std::unique_ptr<QOpenGLDebugLogger> m_openGLDebugLogger;
+    QMetaObject::Connection m_contextCleanupConnection;
 };
 
 #endif // CENTRALWIDGET_H

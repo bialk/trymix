@@ -16,8 +16,11 @@ bool ModernOpenGLMesh::initialize(
     const ModernOpenGLVertex* vertices, int vertexCount,
     const unsigned int* indices, int indexCount)
 {
-  if(m_initialized)
+  if(isInitialized())
     return true;
+
+  if(m_initialized)
+    destroy();
 
   auto* context = QOpenGLContext::currentContext();
   if(!context || !vertices || vertexCount <= 0 || !indices || indexCount <= 0) {
@@ -74,8 +77,10 @@ bool ModernOpenGLMesh::update(
     const ModernOpenGLVertex* vertices, int vertexCount,
     const unsigned int* indices, int indexCount)
 {
-  if(!m_initialized)
+  if(!isInitialized()) {
+    m_initialized = false;
     return initialize(vertices, vertexCount, indices, indexCount);
+  }
   if(!QOpenGLContext::currentContext() || !vertices || vertexCount <= 0
       || !indices || indexCount <= 0)
     return false;
@@ -103,7 +108,8 @@ void ModernOpenGLMesh::destroy()
 
 bool ModernOpenGLMesh::isInitialized() const
 {
-  return m_initialized;
+  return m_initialized && m_vao.isCreated()
+    && m_vertexBuffer.isCreated() && m_indexBuffer.isCreated();
 }
 
 void ModernOpenGLMesh::bind()

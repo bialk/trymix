@@ -20,6 +20,11 @@ bool GLTexSetHandle::owningContextIsCurrent() const
         || current->shareGroup() == m_context->shareGroup());
 }
 
+bool GLTexSetHandle::isValidForCurrentContext() const
+{
+  return !texid.empty() && owningContextIsCurrent();
+}
+
 void GLTexSetHandle::clear()
 {
   if(texid.empty())
@@ -63,6 +68,9 @@ void ImageTile::clear(){
 }
 int ImageTile::empty(){
   return texset.texid.empty();
+}
+bool ImageTile::isValidForCurrentContext() const{
+  return texset.isValidForCurrentContext();
 }
 
 void ImageTile::LoadBGRA(const unsigned char* bgra, int ww, int hh){

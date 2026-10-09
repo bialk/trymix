@@ -170,7 +170,7 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
   if(data_attd.size() != static_cast<std::size_t>(w * h) || w < 2 || h < 2)
     return;
 
-  if(surfaceMeshDirty) {
+  if(surfaceMeshDirty || !surfaceMesh.isInitialized()) {
     surfaceMesh.destroy();
     std::vector<ModernOpenGLVertex> vertices(static_cast<std::size_t>(w * h));
     std::vector<QVector3D> accumulatedNormals(
@@ -327,7 +327,7 @@ void ImagePlane::Draw(DrawCntx *cntx){
   // draw image
   if(image_mode!=image_mode_off){
 
-    if(cache_slot != curslot){
+    if(cache_slot != curslot || !image_tile.isValidForCurrentContext()){
       cache_slot = curslot;
       LoadTxt(curslot);
     }

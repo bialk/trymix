@@ -19,6 +19,7 @@ class GLTexSetHandle{
 
   void clear();
   bool resize(unsigned int size);
+  bool isValidForCurrentContext() const;
 
  private:
   bool owningContextIsCurrent() const;
@@ -37,6 +38,7 @@ class ImageTile{
 
   void clear();
   int empty();
+  bool isValidForCurrentContext() const;
   void LoadBGRA(const unsigned char* bgra, int ww, int hh);
   void Draw(DrawCntx* context);
 };
