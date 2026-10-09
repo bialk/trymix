@@ -161,21 +161,6 @@ void ImagePlane::LoadTxt(int slot){
     return;    
   }
 
-  /*
-  glBindTexture(GL_TEXTURE_RECTANGLE_ARB, image_tex());
-     
-  // set texture parameters 
-  glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, 
-		  GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-  glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, 
-		  GL_TEXTURE_MAG_FILTER, GL_NEAREST); 
-  glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, 
-		  GL_TEXTURE_WRAP_S, GL_CLAMP); 
-  glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, 
-		  GL_TEXTURE_WRAP_T, GL_CLAMP); 
-  // load rectangle texture
-  glTexImage2D(GL_TEXTURE_RECTANGLE_ARB,0,GL_RGBA, w, h, 0, GL_BGRA,GL_UNSIGNED_BYTE,(GLvoid*)&img[slot][0] );
-  */
   image_tile.LoadBGRA(&img[slot][0], w, h);
   
 }

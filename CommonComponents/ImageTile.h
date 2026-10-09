@@ -3,44 +3,41 @@
 
 #include <vector>
 #include <QOpenGLExtraFunctions>
+#include <QPointer>
 
 class DrawCntx;
+class QOpenGLContext;
 
 class GLTexSetHandle{
  public:
   std::vector<GLuint> texid;
 
-  ~GLTexSetHandle(){
-    clear();
-  }
-  void clear(){
-    if(!texid.empty()){
-      glDeleteTextures((GLsizei)texid.size(),texid.data());
-      texid.clear();
-    }
-  }
-  void resize(unsigned int i){
-    if(texid.size()!=i){
-      clear();
-      texid.resize(i);
-      glGenTextures((GLsizei)texid.size(),texid.data());
-    }
-  }
+  GLTexSetHandle() = default;
+  ~GLTexSetHandle();
+  GLTexSetHandle(const GLTexSetHandle&) = delete;
+  GLTexSetHandle& operator=(const GLTexSetHandle&) = delete;
+
+  void clear();
+  bool resize(unsigned int size);
+
+ private:
+  bool owningContextIsCurrent() const;
+  QPointer<QOpenGLContext> m_context;
 };
 
 
 class ImageTile{
  public:
 
-  int tile_size;
-  int w,h;
-  int ntilew,ntileh;
+  int tile_size{0};
+  int w{0},h{0};
+  int ntilew{0},ntileh{0};
   
   GLTexSetHandle texset;
 
   void clear();
   int empty();
-  void LoadBGRA(unsigned char* bgra, int ww, int hh);
+  void LoadBGRA(const unsigned char* bgra, int ww, int hh);
   void Draw(DrawCntx* context);
 };
 

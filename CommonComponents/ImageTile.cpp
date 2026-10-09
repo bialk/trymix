@@ -1,92 +1,120 @@
 #include "ImageTile.h"
 #include "drawContext.h"
 #include "ModernOpenGLRenderer.h"
-//#include <GL/glext.h>
-//#include "eventlog.h"
 #include <QOpenGLExtraFunctions>
+#include <QOpenGLContext>
+#include <QDebug>
 #include <QMatrix4x4>
-#include <string.h>
 #include <algorithm>
 
-inline int align_up(int x, int a){
-   int r = x%a;
-   return r?(x + a-r):x;
+GLTexSetHandle::~GLTexSetHandle()
+{
+  clear();
+}
+
+bool GLTexSetHandle::owningContextIsCurrent() const
+{
+  QOpenGLContext* current = QOpenGLContext::currentContext();
+  return current && m_context
+    && (current == m_context
+        || current->shareGroup() == m_context->shareGroup());
+}
+
+void GLTexSetHandle::clear()
+{
+  if(texid.empty())
+    return;
+
+  if(owningContextIsCurrent()) {
+    QOpenGLContext::currentContext()->functions()->glDeleteTextures(
+      static_cast<GLsizei>(texid.size()), texid.data());
+  }
+  // If the owning context is not current, issuing glDeleteTextures would be
+  // unsafe. Dropping the names is still correct: their storage is reclaimed
+  // when the owning context (or its share group) is destroyed.
+  texid.clear();
+  m_context.clear();
+}
+
+bool GLTexSetHandle::resize(unsigned int size)
+{
+  if(texid.size() == size && owningContextIsCurrent())
+    return true;
+
+  clear();
+  QOpenGLContext* current = QOpenGLContext::currentContext();
+  if(!current) {
+    qWarning() << "Cannot create image textures without a current OpenGL context";
+    return false;
+  }
+
+  m_context = current;
+  texid.resize(size);
+  current->functions()->glGenTextures(
+    static_cast<GLsizei>(texid.size()), texid.data());
+  return true;
 }
 
 void ImageTile::clear(){
   texset.clear();
+  tile_size = 0;
+  w = h = 0;
+  ntilew = ntileh = 0;
 }
 int ImageTile::empty(){
   return texset.texid.empty();
 }
 
-void ImageTile::LoadBGRA(unsigned char* bgra, int ww, int hh){  
+void ImageTile::LoadBGRA(const unsigned char* bgra, int ww, int hh){
+  clear();
+  if(!bgra || ww <= 0 || hh <= 0)
+    return;
 
-  w=ww; h=hh;
-
-  glGetError();
-  //glGetIntegerv(GL_MAX_RECTANGLE_TEXTURE_SIZE_ARB, &tile_size);
-  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &tile_size);
-  GLuint err = glGetError();
-  if(err!=GL_NO_ERROR) {
-//    err_printf(("GL_TEXTURE_RECTANGLE_ARB is not supported"
-//		" for this Graphics Card"));
-    clear(); 
-    return; 
+  GLint maximumTextureSize = 0;
+  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
+  if(maximumTextureSize <= 0) {
+    qWarning() << "Unable to determine the maximum OpenGL texture size";
+    return;
   }
 
-  //printf("maximum texture size=%i\n",tile_size);
-  tile_size=std::min<int>(tile_size,256);
-  ntilew = align_up(w,tile_size)/tile_size;
-  ntileh = align_up(h,tile_size)/tile_size;
+  w = ww;
+  h = hh;
+  tile_size = maximumTextureSize;
+  ntilew = (w + tile_size - 1) / tile_size;
+  ntileh = (h + tile_size - 1) / tile_size;
+  if(!texset.resize(static_cast<unsigned int>(ntilew * ntileh))) {
+    clear();
+    return;
+  }
 
-  texset.resize(ntilew*ntileh);
-  //printf("texw=%i\n",ntilew);
-  //printf("ntileh=%i\n",ntileh);
-  
-  std::vector<unsigned char> buf(tile_size*w*4);
+  GLint previousRowLength = 0;
+  GLint previousAlignment = 0;
+  glGetIntegerv(GL_UNPACK_ROW_LENGTH, &previousRowLength);
+  glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, w);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-  glPixelStorei(GL_UNPACK_ROW_LENGTH,w);
+  for(int row = 0; row < ntileh; ++row) {
+    for(int column = 0; column < ntilew; ++column) {
+      const int x = column * tile_size;
+      const int y = row * tile_size;
+      const int tileWidth = std::min(tile_size, w - x);
+      const int tileHeight = std::min(tile_size, h - y);
+      const auto* tilePixels = bgra + 4LL * (y * static_cast<long long>(w) + x);
 
-  int i,j;
-  for(i=0;i<ntileh;i++)
-    for(j=0;j<ntilew;j++){
-      int tw=std::min<int>(tile_size,w-j*tile_size);
-      int th=std::min<int>(tile_size,h-i*tile_size);
-      
-      /*
-      glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texset.texid[ntilew*i+j]);
-      glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, 
-		      GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-      glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, 
-		      GL_TEXTURE_MAG_FILTER, GL_NEAREST); 
-      glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, 
-		      GL_TEXTURE_WRAP_S, GL_CLAMP); 
-      glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, 
-		      GL_TEXTURE_WRAP_T, GL_CLAMP); 
-      glTexImage2D(GL_TEXTURE_RECTANGLE_ARB,0,GL_RGBA, tw, th, 0, GL_BGRA,
-		   GL_UNSIGNED_BYTE,
-		   (GLvoid*)(bgra+(i*tile_size*w+j*tile_size)*4));
-      */
-      int k=w*h-(i*tile_size*w+j*tile_size);
-      memcpy(&buf[0],bgra+(i*tile_size*w+j*tile_size)*4,std::min<int>(k,w*th)*4);
-
-      glBindTexture(GL_TEXTURE_2D, texset.texid[ntilew*i+j]);
-      glTexParameteri(GL_TEXTURE_2D, 
-		      GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-      glTexParameteri(GL_TEXTURE_2D, 
-		      GL_TEXTURE_MAG_FILTER, GL_NEAREST); 
-      glTexParameteri(GL_TEXTURE_2D, 
-		      GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, 
-		      GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tile_size, tile_size, 0, GL_BGRA,
-		   GL_UNSIGNED_BYTE,
-		   (GLvoid*)(&buf[0]));
+      glBindTexture(GL_TEXTURE_2D, texset.texid[ntilew * row + column]);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tileWidth, tileHeight, 0,
+                   GL_BGRA, GL_UNSIGNED_BYTE, tilePixels);
     }
+  }
 
-  glBindTexture(GL_TEXTURE_2D,0);//RECTANGLE_ARB, 0);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH,0);      
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, previousRowLength);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment);
 }
 
 
@@ -111,7 +139,7 @@ void ImageTile::Draw(DrawCntx* context){
       tileModel.scale(tw, th, 1.0F);
       context->modernRenderer().drawTexturedQuad(
         texset.texid[ntilew*i+j], projection, baseModelView * tileModel,
-        {tw / tile_size, th / tile_size});
+        {1.0F, 1.0F});
 
     }  
   }
