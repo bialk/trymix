@@ -11,8 +11,10 @@ class Icon3DLight: public  EditViewObj{
 public:
   float *rot;
   Lights *lights = nullptr;
-  virtual void  Draw(DrawCntx *cntx);
-  void  TreeScan(TSOCntx *cntx);
+  void Draw(DrawCntx* cntx) override;
+  void DrawWithMatrices(DrawCntx* cntx, const QMatrix4x4& projection,
+                        const QMatrix4x4& modelView) override;
+  void TreeScan(TSOCntx* cntx) override;
 };
 
 #ifdef off

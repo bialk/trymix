@@ -1,14 +1,11 @@
 #include "imageplane.h"
 #include <FreeImage.h>
 #include <QFutureWatcher>
-#include <QOpenGLFunctions>
+#include <QDebug>
 #include <QtConcurrent/QtConcurrentRun>
 #include "apputil/serializerV2.h"
-#include "CommonComponents/glhelper.h"
 #include "CommonComponents/ModernOpenGLRenderer.h"
 #include "shapefromshade.h"
-#include "mathlib/mathutl/mymath.h"
-//#include "mathlib/mathutl/imageandfft.h"
 
 #include <cmath>
 #include <utility>
@@ -101,7 +98,7 @@ void ImagePlane::Open(int slot){
 
   struct stat st;
   if(stat(imagefname[slot].c_str(),&st) ) {
-    err_printf(("image file \"%s\"  not found",imagefname[slot].c_str()));
+    qWarning() << "Image file not found:" << imagefname[slot].c_str();
     return;
   }
 
@@ -110,7 +107,7 @@ void ImagePlane::Open(int slot){
   FREE_IMAGE_FORMAT formato = FreeImage_GetFileType(imagefname[slot].c_str(),0);
   
   if(formato == FIF_UNKNOWN) {
-    err_printf(("image format unknown"));
+    qWarning() << "Image format is unknown:" << imagefname[slot].c_str();
     return;
   }
 
@@ -118,12 +115,13 @@ void ImagePlane::Open(int slot){
   FIBITMAP* imagen = FreeImage_Load(formato, imagefname[slot].c_str());
   FIBITMAP* temp = imagen;
   if(!imagen){
-    err_printf(("image reading error"));
+    qWarning() << "Could not read image:" << imagefname[slot].c_str();
     return;
   }
   imagen = FreeImage_ConvertTo32Bits(imagen);
-  if(!temp) {
-    err_printf(("image reading error"));
+  if(!imagen) {
+    qWarning() << "Could not convert image:" << imagefname[slot].c_str();
+    FreeImage_Unload(temp);
     return;
   }
   FreeImage_Unload(temp);
@@ -132,7 +130,7 @@ void ImagePlane::Open(int slot){
   h = FreeImage_GetHeight(imagen);
 
   if(w*h>2048*2048*20) {
-    err_printf(("image reading error - too big image size (%ix%i)",w,h));
+    qWarning() << "Image is too large:" << w << 'x' << h;
     return;
   }
   if(0) { // debug code
@@ -159,7 +157,7 @@ void ImagePlane::Open(int slot){
 void ImagePlane::LoadTxt(int slot){  
   if(img[slot].empty()) return;
   if( img[slot].size()!=w*h*4 ) {
-    err_printf(("texture loading error"));
+    qWarning() << "Texture data size does not match image dimensions";
     return;    
   }
 
@@ -253,13 +251,8 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
     surfaceMeshDirty = false;
   }
 
-  GLfloat projectionValues[16];
-  GLfloat modelViewValues[16];
-  glGetFloatv(GL_PROJECTION_MATRIX, projectionValues);
-  glGetFloatv(GL_MODELVIEW_MATRIX, modelViewValues);
-  const QMatrix4x4 projection = QMatrix4x4(projectionValues).transposed();
-  const QMatrix4x4 modelView = QMatrix4x4(modelViewValues).transposed();
-  context->modernRenderer().draw(surfaceMesh, projection, modelView);
+  context->modernRenderer().draw(
+    surfaceMesh, context->projectionMatrix(), context->modelViewMatrix());
 }
 
 void ImagePlane::DrawModernLightControls(DrawCntx* context)
@@ -319,23 +312,18 @@ void ImagePlane::DrawModernLightControls(DrawCntx* context)
     }
   }
 
-  GLfloat projectionValues[16];
-  GLfloat modelViewValues[16];
-  glGetFloatv(GL_PROJECTION_MATRIX, projectionValues);
-  glGetFloatv(GL_MODELVIEW_MATRIX, modelViewValues);
-  const QMatrix4x4 projection = QMatrix4x4(projectionValues).transposed();
-  const QMatrix4x4 modelView = QMatrix4x4(modelViewValues).transposed();
-
   if(overlayLineMesh.update(
        lineVertices.data(), static_cast<int>(lineVertices.size()),
        lineIndices.data(), static_cast<int>(lineIndices.size())))
     context->modernRenderer().drawLines(
-      overlayLineMesh, projection, modelView, 3.0F);
+      overlayLineMesh, context->projectionMatrix(),
+      context->modelViewMatrix(), 3.0F);
   if(overlayPointMesh.update(
        pointVertices.data(), static_cast<int>(pointVertices.size()),
        pointIndices.data(), static_cast<int>(pointIndices.size())))
     context->modernRenderer().drawPoints(
-      overlayPointMesh, projection, modelView, 6.0F);
+      overlayPointMesh, context->projectionMatrix(),
+      context->modelViewMatrix(), 6.0F);
 }
 
 #if 0
@@ -351,29 +339,6 @@ void ImagePlane::Draw(DrawCntx *cntx){
 
   if(w==0 || h==0) return;
 
-  // setup reflective surfaces
-  {
-    GLfloat no_mat[] = { 0.0, 0.0, 0.0, 0.0 };
-    
-    GLfloat mat_emission[] = {1., 1., 1., 1.0}; 
-    GLfloat mat_emissionhalf[] = {0.5, 0.5, 0.5, 1.0}; 
-
-    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, no_mat); 
-    glMaterialfv(GL_BACK,  GL_DIFFUSE, no_mat); 
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, no_mat );
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, no_mat); 
-    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION,  no_mat); 
-    glDisable(GL_COLOR_MATERIAL);
-    if(0/*texture_on*/){
-      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_emission); 
-    }else{  
-      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_emissionhalf);      
-      //glColorMaterial(GL_FRONT_AND_BACK,GL_DIFFUSE);
-      //glEnable(GL_COLOR_MATERIAL);
-      //glColor3f(0.5,0.5,0.5);
-    }
-  }
-
   // draw image
   if(image_mode!=image_mode_off){
 
@@ -382,27 +347,7 @@ void ImagePlane::Draw(DrawCntx *cntx){
       LoadTxt(curslot);
     }
 
-    glDisable(GL_LIGHTING);
-    /*
-    glEnable(GL_TEXTURE_RECTANGLE_ARB);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, image_tex());
-
-    glColor4f(1,1,1,1);
-    glBegin (GL_QUADS);  
-    glTexCoord2f (0.0, 0.0);
-    glVertex3f (0.0, 0.0, 0.0);
-    glTexCoord2f (w, 0.0);
-    glVertex3f (w, 0.0, 0.0);
-    glTexCoord2f (w, h);
-    glVertex3f (w, h, 0.0);
-    glTexCoord2f (0.0, h);
-    glVertex3f (0.0, h, 0.0);
-    glEnd ();
-    glDisable(GL_TEXTURE_RECTANGLE_ARB);
-    */
     image_tile.Draw(cntx);
-    glEnable(GL_LIGHTING);
   }
 
   if(shape_mode != shape_mode_off)

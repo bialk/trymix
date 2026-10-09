@@ -3,7 +3,7 @@
 #include "CommonComponents/EventHandling.h"
 #include "CommonComponents/ScreenSpacePicking.h"
 
-#include <QOpenGLContext>
+#include <QMatrix4x4>
 
 void ToolPanel::Add(EditViewObj * ic){
   iconvector.push_back(ic);
@@ -25,25 +25,16 @@ EditViewObj* ToolPanel::pick(int mouseX, int mouseY) const
 
 void ToolPanel::Draw(DrawCntx *cntx){
   if (!show) return;
-  unsigned int i;
-  for( i=0; i<iconvector.size();i++){
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    
-    glOrtho(-cntx->w()/2,cntx->w()/2,-cntx->h()/2,cntx->h()/2,-300,300);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glTranslatef((-cntx->w()/2+100*(i+0.7)),(cntx->h()/2-60),200);
-
-    iconvector[i]->Draw(cntx);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
+  QMatrix4x4 projection;
+  projection.ortho(-cntx->w() * 0.5F, cntx->w() * 0.5F,
+                   -cntx->h() * 0.5F, cntx->h() * 0.5F,
+                   -300.0F, 300.0F);
+  for(std::size_t index = 0; index < iconvector.size(); ++index) {
+    QMatrix4x4 modelView;
+    modelView.translate(-cntx->w() * 0.5F
+                          + 100.0F * (static_cast<float>(index) + 0.7F),
+                        cntx->h() * 0.5F - 60.0F, 200.0F);
+    iconvector[index]->DrawWithMatrices(cntx, projection, modelView);
   }
 }
 

@@ -287,6 +287,7 @@ set(PROJECT_SOURCES
     CommonComponents/ReleaseSelectingMenu.h CommonComponents/ReleaseSelectingMenu.cpp
 
     CommonComponents/drawContext.h CommonComponents/drawContext.cpp
+    CommonComponents/MatrixConversions.h
 
     CommonComponents/viewctrl.h CommonComponents/viewctrl.cpp
 
@@ -331,7 +332,6 @@ set(PROJECT_SOURCES
 
     SFSBuilder/imageplane.h SFSBuilder/imageplane.cpp
     CommonComponents/ImageTile.h CommonComponents/ImageTile.cpp
-    CommonComponents/glhelper.h CommonComponents/glhelper.cpp
 
     CommonComponents/lights.h CommonComponents/lights.cpp
     CommonComponents/toolspanel.h CommonComponents/toolspanel.cpp

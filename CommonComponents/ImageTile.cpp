@@ -77,9 +77,9 @@ void ImageTile::LoadBGRA(unsigned char* bgra, int ww, int hh){
       glTexParameteri(GL_TEXTURE_2D, 
 		      GL_TEXTURE_MAG_FILTER, GL_NEAREST); 
       glTexParameteri(GL_TEXTURE_2D, 
-		      GL_TEXTURE_WRAP_S, GL_CLAMP); 
+		      GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, 
-		      GL_TEXTURE_WRAP_T, GL_CLAMP); 
+		      GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
       glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tile_size, tile_size, 0, GL_BGRA,
 		   GL_UNSIGNED_BYTE,
 		   (GLvoid*)(&buf[0]));
@@ -94,41 +94,14 @@ void ImageTile::Draw(DrawCntx* context){
 
   if(empty()) return;
 
-  GLint renderMode = GL_RENDER;
-  glGetIntegerv(GL_RENDER_MODE, &renderMode);
-  if(renderMode != GL_RENDER)
-    return;
-
-  GLfloat projectionValues[16];
-  GLfloat modelViewValues[16];
-  glGetFloatv(GL_PROJECTION_MATRIX, projectionValues);
-  glGetFloatv(GL_MODELVIEW_MATRIX, modelViewValues);
-  const QMatrix4x4 projection = QMatrix4x4(projectionValues).transposed();
-  const QMatrix4x4 baseModelView = QMatrix4x4(modelViewValues).transposed();
+  const QMatrix4x4& projection = context->projectionMatrix();
+  const QMatrix4x4& baseModelView = context->modelViewMatrix();
 
   int i,j;
   for(i=0;i<ntileh;i++){
     for(j=0;j<ntilew;j++){
       float tw=std::min(tile_size,w-j*tile_size);
       float th=std::min(tile_size,h-i*tile_size);
-
-      /*	  
-      glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texset.texid[ntilew*i+j]);
-      float w0=j*tile_size;
-      float h0=i*tile_size;
-
-      glColor4f(1,1,1,1);
-      glBegin (GL_QUADS);  
-      glTexCoord2f (0.0, 0.0);
-      glVertex3f (w0, h0, 0.0);
-      glTexCoord2f (tw, 0.0);
-      glVertex3f (w0+tw, h0, 0.0);
-      glTexCoord2f (tw, th);
-      glVertex3f (w0+tw, h0+th, 0.0);
-      glTexCoord2f (0.0, th);
-      glVertex3f (w0, h0+th, 0.0);
-      glEnd ();
-      */
 
       float w0=j*tile_size;
       float h0=i*tile_size;
@@ -143,4 +116,3 @@ void ImageTile::Draw(DrawCntx* context){
     }  
   }
 }
-

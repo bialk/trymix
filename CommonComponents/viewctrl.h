@@ -39,9 +39,6 @@ class ViewCtrl: public EditViewObj{
 private:
   int m_prjtype;    // 1 - orthogonal, 2 - perspecive
   
-  void fplay();
-  int play_method;
-
   float m_w,m_h;
   float m_nearPlane = 10.f;  //near plane
   float m_farPlane =  6000.f;  //far plane

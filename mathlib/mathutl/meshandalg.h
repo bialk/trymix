@@ -680,7 +680,11 @@ public:
   WaveFront():ft1(buf),ft2(buf+100000){}
 
   virtual void draw(int i1,int i2, int i3){
-    /*
+#if 0
+    // Legacy rendering reference: this callback emitted the wave-front
+    // triangle directly through OpenGL immediate mode. A modern migration
+    // should instead append these positions and the face normal to a mesh
+    // buffer, then submit that buffer through ModernOpenGLRenderer.
     Surf::TVtx vtx1 = surf->vtx[i1];
     Surf::TVtx vtx2 = surf->vtx[i2];
     Surf::TVtx vtx3 = surf->vtx[i3];
@@ -694,7 +698,11 @@ public:
     glVertex3f(vtx1.p.x,vtx1.p.y,vtx1.p.z);
     glVertex3f(vtx2.p.x,vtx2.p.y,vtx2.p.z);
     glVertex3f(vtx3.p.x,vtx3.p.y,vtx3.p.z);
-    */
+#else
+    (void)i1;
+    (void)i2;
+    (void)i3;
+#endif
   }
 
   void move(){
@@ -849,20 +857,33 @@ public:
   }
 
   virtual void scan(int x, int y, float zb, float ze, int inside){
-    /*
-      glBegin(GL_QUADS);
-      if(inside){
+#if 0
+    // Legacy rendering reference: each occupied scan interval was drawn as
+    // the front and back faces of a voxel-sized box. A modern implementation
+    // should generate vertices/indices here and render the resulting batch.
+    glBegin(GL_QUADS);
+    if(inside){
       drawBnd(x-0.5,y-0.5,zb,
-      x+0.5,y+0.5,ze);
-      }
-      glEnd();
-    */
+              x+0.5,y+0.5,ze);
+    }
+    glEnd();
+#else
+    (void)x;
+    (void)y;
+    (void)zb;
+    (void)ze;
+    (void)inside;
+#endif
   }
 
-  /*
-    void drawBnd( float x1, float y1, float z1, float x2, float y2, float z2){
+#if 0
+  // Helper used by the legacy scan() implementation above. Only the Z faces
+  // were emitted; the initial -X normal appears to have been an unfinished
+  // side-face implementation and is preserved verbatim for migration study.
+  void drawBnd(float x1, float y1, float z1,
+               float x2, float y2, float z2){
     glNormal3f(-1,0,0);
-    
+
     glNormal3f(0,0,-1);
     glVertex3f(x1,y1,z1);
     glVertex3f(x1,y2,z1);
@@ -874,8 +895,8 @@ public:
     glVertex3f(x1,y2,z2);
     glVertex3f(x2,y2,z2);
     glVertex3f(x2,y1,z2);
-    }
-  */
+  }
+#endif
 };
 
 class MapTxtrCoord{

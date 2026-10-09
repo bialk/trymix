@@ -2,10 +2,10 @@
 #include "apputil/serializerV2.h"
 
 #include "EventHandling.h"
+#include "MatrixConversions.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -14,67 +14,6 @@
 #include <math.h>
 
 #include <QOpenGLFunctions>
-namespace {
-class GLAnimator{
-public:
-  virtual void Init()=0;
-  virtual int Step()=0;  
-} *glanimator=0;
-
-class Rotation360a: public GLAnimator{
-  int play;
-  virtual void Init(){ play=100; };
-  virtual int Step(){
-    if( play > 0 ) {    
-      glRotatef(360.0*(101-play)/100,0,1,0);
-      play--;
-    }
-    return play;
-  };  
-} rot360a;
-
-class Rotation360b: public GLAnimator{
-  int play;
-  virtual void Init(){ play=100; };
-  virtual int Step(){
-    if( play > 0 ) {    
-      glRotatef(360.0*(101-play)/100,0,1,0.5);
-      play--;
-    }
-    return play;
-  };  
-} rot360b;
-
-class LeftRight: public GLAnimator{
-  int play;
-  virtual void Init(){ play=100; };
-  virtual int Step(){
-    int i;
-    if(play>50) i=play-50;
-    else i=50-play;
-    glRotatef(45.0*(i-25)/50,0,1,0);
-    play-=2;
-    return play;
-  };  
-} leftright;
-} //end of namespace
-
-int play_method;
-static class GLAnimator *animators[]={&rot360a,&rot360b,&leftright};
-
-//========================  UI control routines  ===========================
-
-void ViewCtrl::fplay(){
-  if(glanimator!=0) { 
-    glanimator=0;
-  }
-  else { 
-    glanimator=animators[play_method]; 
-    glanimator->Init();
-  }
-}
-
-
 ViewCtrl::~ViewCtrl()
 {
 }
@@ -82,7 +21,6 @@ ViewCtrl::~ViewCtrl()
 ViewCtrl::ViewCtrl()
   :m_background(0)
   ,m_prjtype(0)
-  ,play_method(0)
   ,m_scale(1)
 {
   // initialize model view matrix as identity matrix 
@@ -153,22 +91,12 @@ void ViewCtrl::Draw(DrawCntx *cntx){
   else
     glClearColor(1.0, 1.0, 1.0, 0.0);  
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_ACCUM_BUFFER_BIT |
-          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );  
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+          GL_STENCIL_BUFFER_BIT);
 
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-
-  if(glanimator && (glanimator->Step()>0)) {
-    cntx->update();
-  }else{
-    glanimator=0;
-  }
-
-  glMultMatrixf(glm::value_ptr(getModelViewMtrx()));
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadMatrixf(glm::value_ptr(getProjectionMtrx()));
+  cntx->setViewMatrices(
+    toQMatrix4x4(getProjectionMtrx()),
+    toQMatrix4x4(getModelViewMtrx()));
 }
 
 

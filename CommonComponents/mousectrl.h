@@ -12,7 +12,6 @@ public:
   // parameters of project transform 
   // and viewport transform
   int wndw,wndh;
-  float mi[16]; //inverse projection matrix
   float* m; //projection matrix
 
   // mouse coord at the start operation

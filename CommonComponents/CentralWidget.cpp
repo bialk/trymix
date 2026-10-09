@@ -11,6 +11,8 @@
 #include <QDebug>
 #include <QObject>
 #include <QOpenGLFunctions>
+#include <QOpenGLContext>
+#include <QOpenGLDebugLogger>
 #include <QSurfaceFormat>
 
 #include <vector>
@@ -47,13 +49,16 @@ CentralWidget::CentralWidget(QWidget *parent)
     , ui(new Ui::CentralWidget)
     , m_modernRenderer(std::make_unique<ModernOpenGLRenderer>())
 {
-  QSurfaceFormat legacyFormat;
-  legacyFormat.setRenderableType(QSurfaceFormat::OpenGL);
-  legacyFormat.setVersion(3, 3);
-  legacyFormat.setProfile(QSurfaceFormat::CompatibilityProfile);
-  legacyFormat.setDepthBufferSize(24);
-  legacyFormat.setStencilBufferSize(8);
-  setFormat(legacyFormat);
+  QSurfaceFormat coreFormat;
+  coreFormat.setRenderableType(QSurfaceFormat::OpenGL);
+  coreFormat.setVersion(3, 3);
+  coreFormat.setProfile(QSurfaceFormat::CoreProfile);
+  coreFormat.setDepthBufferSize(24);
+  coreFormat.setStencilBufferSize(8);
+#ifndef NDEBUG
+  coreFormat.setOption(QSurfaceFormat::DebugContext);
+#endif
+  setFormat(coreFormat);
 
   ui->setupUi(this);
   setMouseTracking(true);
@@ -80,6 +85,34 @@ ModernOpenGLRenderer& CentralWidget::modernRenderer()
 
 void
 CentralWidget::initializeGL(){
+  const QSurfaceFormat actualFormat = context()->format();
+  qInfo() << "OpenGL context:"
+          << actualFormat.majorVersion() << "."
+          << actualFormat.minorVersion()
+          << (actualFormat.profile() == QSurfaceFormat::CoreProfile
+                ? "core profile" : "non-core profile");
+  if(actualFormat.profile() != QSurfaceFormat::CoreProfile
+      || actualFormat.version() < qMakePair(3, 3)) {
+    qWarning() << "OpenGL 3.3 Core Profile was requested but not provided";
+  }
+#ifndef NDEBUG
+  m_openGLDebugLogger = std::make_unique<QOpenGLDebugLogger>(this);
+  if(m_openGLDebugLogger->initialize()) {
+    connect(m_openGLDebugLogger.get(), &QOpenGLDebugLogger::messageLogged,
+            this, [](const QOpenGLDebugMessage& message) {
+      qWarning().noquote() << "OpenGL:" << message.message();
+    });
+    m_openGLDebugLogger->disableMessages(
+      QOpenGLDebugMessage::AnySource,
+      QOpenGLDebugMessage::AnyType,
+      QOpenGLDebugMessage::NotificationSeverity);
+    m_openGLDebugLogger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+    qInfo() << "OpenGL debug logger enabled";
+  } else {
+    qWarning() << "OpenGL debug context/logger is unavailable";
+    m_openGLDebugLogger.reset();
+  }
+#endif
   m_modernRenderer->initialize();
 }
 
@@ -113,6 +146,8 @@ CentralWidget::~CentralWidget()
 {
     if(context()) {
       makeCurrent();
+      if(m_openGLDebugLogger)
+        m_openGLDebugLogger->stopLogging();
       m_modernRenderer->destroy();
       doneCurrent();
     }

@@ -167,31 +167,6 @@ void CameraControl_TreeItem::showVtkModel(vtkRenderer* renderer)
 void
 CameraControl_TreeItem::showModel(DrawCntx* cx)
 {
-  glClearDepth(1.0);
-  if(m_viewCtrl->m_background==0)
-    glClearColor(.0, .0, .0, 0.0);
-  else
-    glClearColor(1.0, 1.0, 1.0, 0.0);
-
-  glClear(GL_COLOR_BUFFER_BIT | GL_ACCUM_BUFFER_BIT |
-          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
-
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_NORMALIZE); //need to support lights
-  glDepthFunc(GL_LEQUAL);
-
-  glDisable(GL_CLIP_PLANE0);
-  glDisable(GL_CLIP_PLANE1);
-  glDisable(GL_CLIP_PLANE2);
-  glDisable(GL_CLIP_PLANE3);
-  glDisable(GL_CLIP_PLANE4);
-  glDisable(GL_CLIP_PLANE5);
-
-  // Default Settings
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-  glDisable(GL_TEXTURE_2D);
-
   m_viewCtrl->Draw(cx);
   m_lights->Draw(cx);
 
@@ -202,16 +177,8 @@ CameraControl_TreeItem::showModel(DrawCntx* cx)
   // GLM exposes column-major storage, while this QMatrix4x4 constructor reads
   // the supplied values in row-major order. Transpose after copying so the
   // shader receives the same matrices used by the legacy OpenGL path.
-  const QMatrix4x4 projection =
-    QMatrix4x4(glm::value_ptr(m_viewCtrl->getProjectionMtrx())).transposed();
-  const QMatrix4x4 view =
-    QMatrix4x4(glm::value_ptr(m_viewCtrl->getModelViewMtrx())).transposed();
-  cx->modernRenderer().setDirectionalLights(
-    {m_lights->rot1[8], m_lights->rot1[9], m_lights->rot1[10]},
-    m_lights->show1 != 0,
-    {m_lights->rot2[8], m_lights->rot2[9], m_lights->rot2[10]},
-    m_lights->show2 != 0);
-  cx->modernRenderer().drawTestScene(projection, view);
+  cx->modernRenderer().drawTestScene(
+    cx->projectionMatrix(), cx->modelViewMatrix());
 }
 
 void

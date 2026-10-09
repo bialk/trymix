@@ -1,11 +1,9 @@
 #include "lights.h"
 #include "apputil/serializerV2.h"
-#include "mathstruct.h"
 #include "ModernOpenGLRenderer.h"
 //#include "apputil/serializer.h"
 
 #include <QMatrix4x4>
-#include <QOpenGLFunctions>
 
 // control elements definitions
 //=============================================================
@@ -15,20 +13,25 @@ void Icon3DLight::TreeScan(TSOCntx *cntx) {
   }
 }
 
-void Icon3DLight::Draw(DrawCntx *cntx) { 
-  glScalef(30,30,30);
-  glMultMatrixf(rot);
-  glRotatef(90,1,0,0);
-
-  GLfloat projectionValues[16];
-  GLfloat modelViewValues[16];
-  glGetFloatv(GL_PROJECTION_MATRIX, projectionValues);
-  glGetFloatv(GL_MODELVIEW_MATRIX, modelViewValues);
-  const QMatrix4x4 projection = QMatrix4x4(projectionValues).transposed();
-  const QMatrix4x4 modelView = QMatrix4x4(modelViewValues).transposed();
+void Icon3DLight::Draw(DrawCntx* cntx)
+{
   const float brightness = lights->g == this ? 1.0F : 0.5F;
   cntx->modernRenderer().drawLightIcon(
-    projection, modelView, {brightness, brightness, brightness});
+    cntx->projectionMatrix(), cntx->modelViewMatrix(),
+    {brightness, brightness, brightness});
+}
+
+void Icon3DLight::DrawWithMatrices(
+    DrawCntx* cntx, const QMatrix4x4& projection,
+    const QMatrix4x4& modelView)
+{
+  QMatrix4x4 iconModelView = modelView;
+  iconModelView.scale(30.0F);
+  iconModelView *= QMatrix4x4(rot).transposed();
+  iconModelView.rotate(90.0F, 1.0F, 0.0F, 0.0F);
+  const float brightness = lights->g == this ? 1.0F : 0.5F;
+  cntx->modernRenderer().drawLightIcon(
+    projection, iconModelView, {brightness, brightness, brightness});
 }
 
 
@@ -56,45 +59,9 @@ Lights::Lights(){
 }
 
 void Lights::Draw(DrawCntx *cntx){
-  //light source 1  
-  
-  glEnable(GL_LIGHTING);
-
-  glMatrixMode(GL_MODELVIEW);
-
-  //GLfloat mat_shininess[] = { 50.0 }; 
-  //glClearColor (0.0, 0.0, 0.0, 0.0); 
-
-  //glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess); 
-  GLfloat light_position[] = {0, 0, 1, 0.0 }; 
-  GLfloat light_diffuse[] =  {1.0f, 1.0f, 1.0f, 1.0f};
-  GLfloat light_ambient[] = { 0.2, 0.2, 0.2, 1. }; 
-  GLfloat light_specular[] = { 1., 1., 1., 1.0 }; 
-
-  //glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient);
-  //glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse);
-  //glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
-
-  glPushMatrix();
-  glShadeModel (GL_SMOOTH); 
-  //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-
-  glLoadMatrixf(rot1);
-  glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-  glLightfv(GL_LIGHT0, GL_POSITION, light_position); 
-  glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-  glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-  show1?glEnable(GL_LIGHT0):glDisable(GL_LIGHT0);
-
-  glLoadMatrixf(rot2);
-  glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse);
-  glLightfv(GL_LIGHT1, GL_POSITION, light_position); 
-  glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular);
-  glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient);
-  show2?glEnable(GL_LIGHT1):glDisable(GL_LIGHT1);
-  glPopMatrix(); 
-  //end of lite source
+  cntx->modernRenderer().setDirectionalLights(
+    {rot1[8], rot1[9], rot1[10]}, show1 != 0,
+    {rot2[8], rot2[9], rot2[10]}, show2 != 0);
 }
 
 

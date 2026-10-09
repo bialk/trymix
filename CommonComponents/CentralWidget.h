@@ -16,6 +16,7 @@ class EventHandler3D;
 class QEvent;
 class DrawCntx;
 class ModernOpenGLRenderer;
+class QOpenGLDebugLogger;
 
 
 class CentralWidget : public QOpenGLWidget
@@ -40,6 +41,7 @@ private:
     ProjectTree* m_projectTree = nullptr;
     TreeEventFilter* m_treeEventFilter = nullptr;
     std::unique_ptr<ModernOpenGLRenderer> m_modernRenderer;
+    std::unique_ptr<QOpenGLDebugLogger> m_openGLDebugLogger;
 };
 
 #endif // CENTRALWIDGET_H

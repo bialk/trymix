@@ -1,9 +1,3 @@
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
-#include <QOpenGLFunctions>
-
 //#include "eventlog.h"
 #include "mathstruct.h"
 
@@ -46,6 +40,9 @@ void D3DG1obj::open(const char* filename){
 }
 
 void D3DG1obj::triangle(int i1, int i2, int i3, int c){   
+#if 0
+  // Legacy immediate-mode OpenGL renderer. Kept as a reference for projects
+  // that still need to port D3DG1obj rendering to their own renderer.
   glBegin(GL_TRIANGLES);
   Ptn &vtx1 = vtx[i1];  Ptn &vtx2 = vtx[i2]; Ptn &vtx3 = vtx[i3];
   float x,y,z;
@@ -59,12 +56,15 @@ void D3DG1obj::triangle(int i1, int i2, int i3, int c){
   glVertex3f(vtx2.x,vtx2.y,vtx2.z);
   glVertex3f(vtx3.x,vtx3.y,vtx3.z);    
   glEnd();
+#else
+  (void)i1;
+  (void)i2;
+  (void)i3;
+  (void)c;
+#endif
 }
 
 void D3DG1obj::quadriple(int i1, int i2, int i3, int i4, int c){
-  // this two lines for future
-  //glBegin(GL_QUADS);
-  //glEnd();
   triangle(i1,i2,i3,c);
   triangle(i3,i4,i1,c);
 }

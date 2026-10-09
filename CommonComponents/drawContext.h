@@ -1,6 +1,8 @@
 #ifndef editviewobj_h
 #define editviewobj_h
 
+#include <QMatrix4x4>
+
 namespace sV2 { class Serializer; }
 class QOpenGLWidget;
 class CentralWidget;
@@ -41,10 +43,16 @@ class DrawCntx{
   int w();
   int h();
   void update();
+  void setViewMatrices(const QMatrix4x4& projection,
+                       const QMatrix4x4& modelView);
+  const QMatrix4x4& projectionMatrix() const;
+  const QMatrix4x4& modelViewMatrix() const;
   ModernOpenGLRenderer& modernRenderer();
 
 private:  
   CentralWidget* m_centralWidget{nullptr};
+  QMatrix4x4 m_projection;
+  QMatrix4x4 m_modelView;
 };
 
 class EditViewObj{
@@ -52,6 +60,12 @@ class EditViewObj{
   virtual ~EditViewObj(){};
 
   virtual void Draw(DrawCntx *cntx) = 0;
+  virtual void DrawWithMatrices(DrawCntx* cntx,
+                                const QMatrix4x4& projection,
+                                const QMatrix4x4& modelView)
+  {
+    Draw(cntx);
+  }
   virtual void TreeScan(TSOCntx *){};
   virtual void AskForData(sV2::Serializer *s){};
 

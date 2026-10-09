@@ -29,6 +29,23 @@ void DrawCntx::update(){
   m_centralWidget->update();
 }
 
+void DrawCntx::setViewMatrices(
+    const QMatrix4x4& projection, const QMatrix4x4& modelView)
+{
+  m_projection = projection;
+  m_modelView = modelView;
+}
+
+const QMatrix4x4& DrawCntx::projectionMatrix() const
+{
+  return m_projection;
+}
+
+const QMatrix4x4& DrawCntx::modelViewMatrix() const
+{
+  return m_modelView;
+}
+
 ModernOpenGLRenderer& DrawCntx::modernRenderer()
 {
   return m_centralWidget->modernRenderer();

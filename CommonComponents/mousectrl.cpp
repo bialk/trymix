@@ -1,9 +1,8 @@
 #include "mousectrl.h"
 
-#include "glhelper.h"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 
@@ -28,7 +27,6 @@ void MouseMoveAndShift::StartRotate(int x, int y){
 }
 
 void MouseMoveAndShift::StopMOper(){
-  //glGetFloatv(GL_MODELVIEW_MATRIX,InitialModelMatrix);
 
 
   //inverse model-view matrix calculation
@@ -52,22 +50,18 @@ int MouseMoveAndShift::ContinueMOper(int x, int y){
   float cy0 = 2.*float(wndh-sy0-wndh/2)/wndh;
   float cz0 = 0;
 
-  Ptn p = {cx, cy, cz};
-  Ptn p0 = {cx0, cy0, cz0};  
+  glm::vec3 p{cx, cy, cz};
+  glm::vec3 p0{cx0, cy0, cz0};
   switch(oper){
-    double w,w0;
   case 1:
-	  memcpy(mi,m,sizeof(mi));
-	  glInvMat(mi);
-	  w =  1.0/(mi[3]*p.x + mi[7]*p.y +
-		  mi[11]*p.z + mi[15]);
-	  w0 =  1.0/(mi[3]*p0.x + mi[7]*p0.y +
-		  mi[11]*p0.z + mi[15]);
-	  p = p*w;
-	  p0 = p0*w0;
-		p = glMulMat(mi,p,w);
-		p0 = glMulMat(mi,p0,w0);
-	  p=p-p0;
+    {
+      const glm::mat4 inverse = glm::inverse(glm::make_mat4(m));
+      glm::vec4 point = inverse * glm::vec4(p.x, p.y, p.z, 1.0F);
+      glm::vec4 start = inverse * glm::vec4(p0.x, p0.y, p0.z, 1.0F);
+      point /= point.w;
+      start /= start.w;
+      p = glm::vec3(point - start);
+    }
     shift_x = p.x;
     shift_y = p.y;
     shift_z = p.z;
@@ -121,4 +115,3 @@ void Ctrl3DRotate::drag(int x, int y, float *mout){
            glm::make_mat4(m)),
          sizeof(float)*4*4);
 }
-

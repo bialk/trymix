@@ -216,8 +216,8 @@ PolygonTests_TreeItem::activateProjectTreeItem(QDockWidget* dock, bool activate)
 void
 PolygonTests_TreeItem::showModel(DrawCntx* cx){
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_ACCUM_BUFFER_BIT |
-          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+          GL_STENCIL_BUFFER_BIT);
 
   QPainter p(cx->glWidget());
   auto h = cx->glWidget()->height(); auto w = cx->glWidget()->width();
