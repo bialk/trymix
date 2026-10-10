@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <utility>
 #include <QMatrix4x4>
 #include <QVector3D>
@@ -62,10 +63,8 @@ void ImagePlane::TreeScan(TSOCntx *cntx){
   if(cntx==&TSOCntx::TSO_Init){
   }
   else if(cntx==&TSOCntx::TSO_ProjectNew){
-    img[0].clear();
-    img[1].clear();
-    img[2].clear();
-    img[3].clear();
+    for(auto& image : images)
+      image.clear();
     curslot = -1;
     cache_slot = -1;
     imagefname[0].clear();
@@ -98,7 +97,8 @@ void ImagePlane::Open(int slot){
     return;
   if(cache_slot==slot)  cache_slot = -1;
   
-  img[slot].clear();
+  auto& image = images[slot];
+  image.clear();
 
   struct stat st;
   if(stat(imagefname[slot].c_str(),&st) ) {
@@ -116,35 +116,43 @@ void ImagePlane::Open(int slot){
   }
 
   //Image Loading
-  FIBITMAP* imagen = FreeImage_Load(formato, imagefname[slot].c_str());
-  FIBITMAP* temp = imagen;
-  if(!imagen){
+  using FreeImageBitmap = std::unique_ptr<FIBITMAP, decltype(&FreeImage_Unload)>;
+  FreeImageBitmap source(
+    FreeImage_Load(formato, imagefname[slot].c_str()), FreeImage_Unload);
+  if(!source){
     qWarning() << "Could not read image:" << imagefname[slot].c_str();
     return;
   }
-  imagen = FreeImage_ConvertTo32Bits(imagen);
-  if(!imagen) {
+  FreeImageBitmap bitmap(
+    FreeImage_ConvertTo32Bits(source.get()), FreeImage_Unload);
+  if(!bitmap) {
     qWarning() << "Could not convert image:" << imagefname[slot].c_str();
-    FreeImage_Unload(temp);
     return;
   }
-  FreeImage_Unload(temp);
-	
-  w = FreeImage_GetWidth(imagen);
-  h = FreeImage_GetHeight(imagen);
 
-  if(w*h>2048*2048*20) {
-    qWarning() << "Image is too large:" << w << 'x' << h;
+  const auto imageWidth = static_cast<std::size_t>(FreeImage_GetWidth(bitmap.get()));
+  const auto imageHeight = static_cast<std::size_t>(FreeImage_GetHeight(bitmap.get()));
+  constexpr std::size_t maximumPixelCount = 2048ULL * 2048ULL * 20ULL;
+  if(imageWidth == 0 || imageHeight == 0
+      || imageWidth > maximumPixelCount / imageHeight) {
+    qWarning() << "Invalid image dimensions:" << imageWidth << 'x' << imageHeight;
     return;
   }
-  if(0) { // debug code
-    printf("load image (%ix%i) for slot %i\n", w, h, slot);
-  }  
-	
-
-  img[slot].resize(4*w*h);
-  GLubyte* img_ptr = &img[slot][0];
-  char* pixeles = (char*)FreeImage_GetBits(imagen);
+  const std::size_t pixelCount = imageWidth * imageHeight;
+  if(pixelCount > maximumPixelCount) {
+    qWarning() << "Image is too large:" << imageWidth << 'x' << imageHeight;
+    return;
+  }
+  image.width = static_cast<int>(imageWidth);
+  image.height = static_cast<int>(imageHeight);
+  image.pixels.resize(4 * pixelCount);
+  GLubyte* img_ptr = image.pixels.data();
+  const BYTE* pixels = FreeImage_GetBits(bitmap.get());
+  if(!pixels) {
+    qWarning() << "Image contains no pixel data:" << imagefname[slot].c_str();
+    image.clear();
+    return;
+  }
   //FreeImage loads in BGR format, so you need to swap some bytes(Or use GL_BGR).
   /*	
   for(int j= 0; j<w*h; j++){
@@ -154,19 +162,22 @@ void ImagePlane::Open(int slot){
     textura[j*4+3]= pixeles[j*4+3];
   }
   */
-  memcpy(img_ptr,pixeles,4*w*h);
-  FreeImage_Unload(imagen);
+  memcpy(img_ptr, pixels, image.pixels.size());
+  w = image.width;
+  h = image.height;
 }
 	
 void ImagePlane::LoadTxt(int slot){  
   if(slot < 0 || slot >= 4) return;
-  if(img[slot].empty()) return;
-  if( img[slot].size()!=w*h*4 ) {
+  const auto& image = images[slot];
+  if(image.empty()) return;
+  if(image.pixels.size()
+      != static_cast<std::size_t>(image.width * image.height * 4)) {
     qWarning() << "Texture data size does not match image dimensions";
     return;    
   }
 
-  image_tile.LoadBGRA(&img[slot][0], w, h);
+  image_tile.LoadBGRA(image.pixels.data(), image.width, image.height);
   
 }
 
@@ -175,6 +186,10 @@ void ImagePlane::SelectImageSlot(int slot)
   if(slot < -1 || slot >= 4 || curslot == slot)
     return;
   curslot = slot;
+  if(slot >= 0 && !images[slot].empty()) {
+    w = images[slot].width;
+    h = images[slot].height;
+  }
   surfaceMeshDirty = true;
 }
 
@@ -199,10 +214,14 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
     std::vector<unsigned int> indices;
     indices.reserve(static_cast<std::size_t>((w - 1) * (h - 1) * 6));
 
+    const float* const surfaceData = data_attd.data();
+    auto* const vertexData = vertices.data();
+    auto* const normalData = accumulatedNormals.data();
+
     const auto position = [&](int index) {
       return QVector3D(
         static_cast<float>(index % w), static_cast<float>(index / w),
-        data_attd[static_cast<std::size_t>(index)]);
+        surfaceData[index]);
     };
     const auto appendTriangle = [&](unsigned int first, unsigned int second,
                                     unsigned int third) {
@@ -210,9 +229,9 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
       const QVector3D normal = QVector3D::crossProduct(
         position(static_cast<int>(second)) - position(static_cast<int>(first)),
         position(static_cast<int>(third)) - position(static_cast<int>(first)));
-      accumulatedNormals[first] += normal;
-      accumulatedNormals[second] += normal;
-      accumulatedNormals[third] += normal;
+      normalData[first] += normal;
+      normalData[second] += normal;
+      normalData[third] += normal;
     };
 
     for(int y = 0; y < h - 1; ++y) {
@@ -227,12 +246,17 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
     }
 
     const bool useImage = shape_mode == shape_mode_image && curslot >= 0
-      && img[curslot].size() >= static_cast<std::size_t>(w * h * 4);
+      && images[curslot].width == w && images[curslot].height == h
+      && images[curslot].pixels.size()
+           >= static_cast<std::size_t>(w * h * 4);
     const bool useAlbedo = shape_mode == shape_mode_albedo
       && albedo.size() >= static_cast<std::size_t>(w * h * 3);
+    const unsigned char* const imagePixels = useImage
+      ? images[curslot].pixels.data() : nullptr;
+    const float* const albedoPixels = useAlbedo ? albedo.data() : nullptr;
     for(int index = 0; index < w * h; ++index) {
       const QVector3D point = position(index);
-      QVector3D normal = accumulatedNormals[static_cast<std::size_t>(index)];
+      QVector3D normal = normalData[index];
       if(normal.lengthSquared() > 0.0F)
         normal.normalize();
       else
@@ -242,17 +266,17 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
       if(useImage) {
         const auto pixel = static_cast<std::size_t>(index * 4);
         color = {
-          img[curslot][pixel + 2] / 255.0F,
-          img[curslot][pixel + 1] / 255.0F,
-          img[curslot][pixel] / 255.0F};
+          imagePixels[pixel + 2] / 255.0F,
+          imagePixels[pixel + 1] / 255.0F,
+          imagePixels[pixel] / 255.0F};
       } else if(useAlbedo) {
         const auto pixel = static_cast<std::size_t>(index * 3);
         color = {
-          std::clamp(albedo[pixel], 0.0F, 1.0F),
-          std::clamp(albedo[pixel + 1], 0.0F, 1.0F),
-          std::clamp(albedo[pixel + 2], 0.0F, 1.0F)};
+          std::clamp(albedoPixels[pixel], 0.0F, 1.0F),
+          std::clamp(albedoPixels[pixel + 1], 0.0F, 1.0F),
+          std::clamp(albedoPixels[pixel + 2], 0.0F, 1.0F)};
       }
-      vertices[static_cast<std::size_t>(index)] = {
+      vertexData[index] = {
         {point.x(), point.y(), point.z()},
         {color.x(), color.y(), color.z()},
         {normal.x(), normal.y(), normal.z()},
@@ -383,24 +407,24 @@ void ImagePlane::Build(
   // preparing data for ShapeFromShade
   DataExchangeBlock data(w, h);
 
-  int i;
-  for(i=0;i<w*h;++i){
-    data.image[0][i*3+0]=float(img[0][i*4+2])/255.f;
-    data.image[0][i*3+1]=float(img[0][i*4+1])/255.f;
-    data.image[0][i*3+2]=float(img[0][i*4+0])/255.f;
+  std::array<const unsigned char*, 4> sourcePixels;
+  std::array<float*, 4> destinationPixels;
+  for(int slot = 0; slot < 4; ++slot) {
+    sourcePixels[slot] = images[slot].pixels.data();
+    destinationPixels[slot] = data.image[slot].data();
+  }
 
-    data.image[1][i*3+0]=float(img[1][i*4+2])/255.f;
-    data.image[1][i*3+1]=float(img[1][i*4+1])/255.f;
-    data.image[1][i*3+2]=float(img[1][i*4+0])/255.f;
-
-    data.image[2][i*3+0]=float(img[2][i*4+2])/255.f;
-    data.image[2][i*3+1]=float(img[2][i*4+1])/255.f;
-    data.image[2][i*3+2]=float(img[2][i*4+0])/255.f;
-
-    data.image[3][i*3+0]=float(img[3][i*4+2])/255.f;
-    data.image[3][i*3+1]=float(img[3][i*4+1])/255.f;
-    data.image[3][i*3+2]=float(img[3][i*4+0])/255.f;
-
+  const int pixelCount = w * h;
+  for(int i = 0; i < pixelCount; ++i) {
+    const auto sourceOffset = static_cast<std::size_t>(i) * 4;
+    const auto destinationOffset = static_cast<std::size_t>(i) * 3;
+    for(int slot = 0; slot < 4; ++slot) {
+      const auto* const source = sourcePixels[slot] + sourceOffset;
+      auto* const destination = destinationPixels[slot] + destinationOffset;
+      destination[0] = static_cast<float>(source[2]) / 255.0F;
+      destination[1] = static_cast<float>(source[1]) / 255.0F;
+      destination[2] = static_cast<float>(source[0]) / 255.0F;
+    }
   }
   auto* watcher = new QFutureWatcher<DataExchangeBlock>(callbackContext);
   QObject::connect(

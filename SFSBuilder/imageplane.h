@@ -5,6 +5,7 @@
 #include "CommonComponents/ImageTile.h"
 #include "CommonComponents/ModernOpenGLMesh.h"
 #include "shapefromshade.h"
+#include <array>
 #include <functional>
 #include <vector>
 
@@ -14,11 +15,24 @@ class QObject;
 class ImagePlane: public EditViewObj{
  public:
 
+  struct ImageData {
+    int width = 0;
+    int height = 0;
+    std::vector<unsigned char> pixels;
+
+    bool empty() const { return pixels.empty(); }
+    void clear() {
+      width = 0;
+      height = 0;
+      pixels.clear();
+    }
+  };
+
   // input data 
   int w,h;
   int curslot;
   std::string imagefname[4];
-  std::vector<unsigned char> img[4];
+  std::array<ImageData, 4> images;
   std::vector<float> albedo;
   std::vector<float> data_attd;
   float lights[4][3];

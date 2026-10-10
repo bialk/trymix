@@ -29,13 +29,17 @@ public:
   float cx,cy,cz;
 
   BoundFinder *bf;
-  SpherePointsGenerator():nalf(0),dist(0),cx(0),cy(0),cz(0),bf(0){};
+  SpherePointsGenerator()
+    :nalf(0),dalf(0),dist(0),cx(0),cy(0),cz(0),bf(0){};
   ~SpherePointsGenerator(){Destroy();};
+  SpherePointsGenerator(const SpherePointsGenerator&) = delete;
+  SpherePointsGenerator& operator=(const SpherePointsGenerator&) = delete;
   virtual void point(float x,float y, float z){};
   
   void Destroy(void){
-    delete nalf; nalf=0; 
-    delete dist; dist=0;
+    delete[] nalf; nalf=0;
+    delete[] dalf; dalf=0;
+    delete[] dist; dist=0;
   }
   int Init(float delta){
     d=delta;

@@ -665,9 +665,9 @@ void SFSBuilder_TreeItem::selectImageSlot(int slot)
   if (slot < -1 || slot >= static_cast<int>(m_slotActions.size()))
     return;
 
-  if(slot >= 0 && m_imagePlane->img[slot].empty()) {
+  if(slot >= 0 && m_imagePlane->images[slot].empty()) {
     m_imagePlane->Open(slot);
-    if(m_imagePlane->img[slot].empty())
+    if(m_imagePlane->images[slot].empty())
       slot = -1;
   }
 
@@ -739,7 +739,7 @@ bool SFSBuilder_TreeItem::loadConfiguredImages(
     }
 
     if(forceReload) {
-      for(auto& image : m_imagePlane->img)
+      for(auto& image : m_imagePlane->images)
         image.clear();
       m_imagePlane->cache_slot = -1;
       m_imagePlane->image_tile.clear();
@@ -748,7 +748,7 @@ bool SFSBuilder_TreeItem::loadConfiguredImages(
     for(int index = 0; index < 4; ++index) {
       if(m_imagePlane->imagefname[index] != configuredPaths[index]) {
         m_imagePlane->imagefname[index] = configuredPaths[index];
-        m_imagePlane->img[index].clear();
+        m_imagePlane->images[index].clear();
         if(m_imagePlane->cache_slot == index) {
           m_imagePlane->cache_slot = -1;
           m_imagePlane->image_tile.clear();
@@ -765,12 +765,12 @@ bool SFSBuilder_TreeItem::loadConfiguredImages(
 
     if(loadAll) {
       for(int index = 0; index < slot; ++index) {
-        if(m_imagePlane->img[index].empty())
+        if(m_imagePlane->images[index].empty())
           m_imagePlane->Open(index);
       }
     } else if(slot > 0) {
       selectImageSlot(0);
-      const bool firstImageLoaded = !m_imagePlane->img[0].empty();
+      const bool firstImageLoaded = !m_imagePlane->images[0].empty();
       return firstImageLoaded;
     } else {
       selectImageSlot(-1);
@@ -779,11 +779,20 @@ bool SFSBuilder_TreeItem::loadConfiguredImages(
 
     if(slot != 4)
       return false;
-    const auto expectedSize = static_cast<std::size_t>(
-      m_imagePlane->w * m_imagePlane->h * 4);
-    return std::all_of(
-      std::begin(m_imagePlane->img), std::end(m_imagePlane->img),
-      [expectedSize](const auto& image) { return image.size() == expectedSize; });
+    const auto& firstImage = m_imagePlane->images.front();
+    const bool compatibleImages = !firstImage.empty()
+      && std::all_of(
+        m_imagePlane->images.begin(), m_imagePlane->images.end(),
+        [&firstImage](const auto& image) {
+          return !image.empty()
+            && image.width == firstImage.width
+            && image.height == firstImage.height;
+        });
+    if(compatibleImages) {
+      m_imagePlane->w = firstImage.width;
+      m_imagePlane->h = firstImage.height;
+    }
+    return compatibleImages;
   }
   catch(const std::exception& error) {
     selectImageSlot(-1);

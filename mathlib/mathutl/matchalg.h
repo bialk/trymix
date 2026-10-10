@@ -57,8 +57,8 @@ class Match{
       }
     }
 
-    delete dG;
-    delete wG;
+    delete[] dG;
+    delete[] wG;
   }
 };
 
@@ -143,8 +143,8 @@ class Match2{
     }
 
 
-    delete dG;
-    delete wG;
+    delete[] dG;
+    delete[] wG;
   }
 };
 
@@ -174,14 +174,14 @@ class Match03{
 
     wG[0] = 0; dG[0]=0;
     for(j = 1; j<lenr; j++) {
-      wG[j] = wG[j-1] + Dist(i-1,j-1,0);
+      wG[j] = wG[j-1] + Dist(-1,j-1,0);
       dG[j] = 0;
     }
 
     // forward
     for(i = 1; i<lenl; i++){
       //std::cout << "i:" << i << std::endl;
-      wG[lenr]=wG[0] + Dist(i-1,j-1,2);
+      wG[lenr]=wG[0] + Dist(i-1,-1,2);
       dG[i*lenr]=2;
       for(j = 1; j<lenr; j++){
 	wG[lenr+j] = wG[j-1] + Dist(i-1,j-1,1); dG[i*lenr+j]=1;
@@ -206,8 +206,8 @@ class Match03{
       }
     }
 
-    delete dG;
-    delete wG;
+    delete[] dG;
+    delete[] wG;
   }
 };
 
@@ -352,5 +352,4 @@ class DynOpt3{
 
 
 #endif
-
 
