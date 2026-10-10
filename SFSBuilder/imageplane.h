@@ -7,6 +7,7 @@
 #include "shapefromshade.h"
 #include <array>
 #include <functional>
+#include <memory>
 #include <vector>
 
 namespace sV2 { class Serializer; }
@@ -18,13 +19,13 @@ class ImagePlane: public EditViewObj{
   struct ImageData {
     int width = 0;
     int height = 0;
-    std::vector<unsigned char> pixels;
+    std::shared_ptr<const std::vector<unsigned char>> pixels;
 
-    bool empty() const { return pixels.empty(); }
+    bool empty() const { return !pixels || pixels->empty(); }
     void clear() {
       width = 0;
       height = 0;
-      pixels.clear();
+      pixels.reset();
     }
   };
 

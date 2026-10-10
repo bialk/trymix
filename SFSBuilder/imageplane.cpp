@@ -144,10 +144,7 @@ void ImagePlane::Open(int slot){
     qWarning() << "Image is too large:" << imageWidth << 'x' << imageHeight;
     return;
   }
-  image.width = static_cast<int>(imageWidth);
-  image.height = static_cast<int>(imageHeight);
-  image.pixels.resize(4 * pixelCount);
-  GLubyte* img_ptr = image.pixels.data();
+  auto loadedPixels = std::make_shared<std::vector<unsigned char>>(4 * pixelCount);
   const BYTE* pixels = FreeImage_GetBits(bitmap.get());
   if(!pixels) {
     qWarning() << "Image contains no pixel data:" << imagefname[slot].c_str();
@@ -163,7 +160,10 @@ void ImagePlane::Open(int slot){
     textura[j*4+3]= pixeles[j*4+3];
   }
   */
-  memcpy(img_ptr, pixels, image.pixels.size());
+  memcpy(loadedPixels->data(), pixels, loadedPixels->size());
+  image.width = static_cast<int>(imageWidth);
+  image.height = static_cast<int>(imageHeight);
+  image.pixels = std::move(loadedPixels);
   w = image.width;
   h = image.height;
 }
@@ -172,13 +172,13 @@ void ImagePlane::LoadTxt(int slot){
   if(slot < 0 || slot >= 4) return;
   const auto& image = images[slot];
   if(image.empty()) return;
-  if(image.pixels.size()
+  if(image.pixels->size()
       != static_cast<std::size_t>(image.width * image.height * 4)) {
     qWarning() << "Texture data size does not match image dimensions";
     return;    
   }
 
-  image_tile.LoadBGRA(image.pixels.data(), image.width, image.height);
+  image_tile.LoadBGRA(image.pixels->data(), image.width, image.height);
   
 }
 
@@ -247,13 +247,14 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
     }
 
     const bool useImage = shape_mode == shape_mode_image && curslot >= 0
+      && !images[curslot].empty()
       && images[curslot].width == w && images[curslot].height == h
-      && images[curslot].pixels.size()
+      && images[curslot].pixels->size()
            >= static_cast<std::size_t>(w * h * 4);
     const bool useAlbedo = shape_mode == shape_mode_albedo
       && albedo.size() >= static_cast<std::size_t>(w * h * 3);
     const unsigned char* const imagePixels = useImage
-      ? images[curslot].pixels.data() : nullptr;
+      ? images[curslot].pixels->data() : nullptr;
     const float* const albedoPixels = useAlbedo ? albedo.data() : nullptr;
     for(int index = 0; index < w * h; ++index) {
       const QVector3D point = position(index);
@@ -427,7 +428,7 @@ void ImagePlane::Build(
       std::array<const unsigned char*, 4> sourcePixels;
       std::array<float*, 4> destinationPixels;
       for(int slot = 0; slot < 4; ++slot) {
-        sourcePixels[slot] = sourceImages[slot].pixels.data();
+        sourcePixels[slot] = sourceImages[slot].pixels->data();
         destinationPixels[slot] = data.image[slot].data();
       }
 
