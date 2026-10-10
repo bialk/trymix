@@ -832,7 +832,7 @@ void SFSBuilder_TreeItem::runModel()
       m_syncModelAction->setEnabled(true);
       m_runModelAction->setEnabled(true);
 
-      if(result.status != ImagePlane::BuildStatus::Succeeded || !result.data) {
+      if(result.status != ImagePlane::BuildStatus::Succeeded || !result.output) {
         QMessageBox::critical(
           m_dockWidget.data(), QObject::tr("SFS Calculation Failed"),
           result.error.isEmpty()
@@ -841,7 +841,7 @@ void SFSBuilder_TreeItem::runModel()
         return;
       }
 
-      m_imagePlane->ApplyBuildResult(std::move(*result.data));
+      m_imagePlane->ApplyBuildResult(std::move(*result.output));
       selectImageSlot(-1);
       m_panel.radioButton_image_image->setChecked(true);
       if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))

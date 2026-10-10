@@ -415,7 +415,8 @@ void ImagePlane::Build(
     [watcher, completed = std::move(completed)]() mutable {
       BuildResult result;
       try {
-        result = watcher->result();
+        auto future = watcher->future();
+        result = future.takeResult();
       }
       catch(const std::exception& error) {
         result.error = QString::fromUtf8(error.what());
@@ -460,7 +461,8 @@ void ImagePlane::Build(
         result.preparationMilliseconds = timer.restart();
         sfs.build(data);
         result.solverMilliseconds = timer.elapsed();
-        result.data.emplace(std::move(data));
+        result.output.emplace(BuildOutput{
+          std::move(data.albedo), std::move(data.data_attd)});
         result.status = BuildStatus::Succeeded;
         qInfo() << "SFS timing: image preparation"
                 << result.preparationMilliseconds << "ms, solver"
@@ -477,9 +479,9 @@ void ImagePlane::Build(
     }));
 }
 
-void ImagePlane::ApplyBuildResult(DataExchangeBlock data)
+void ImagePlane::ApplyBuildResult(BuildOutput output)
 {
-  albedo = std::move(data.albedo);
-  data_attd = std::move(data.data_attd);
+  albedo = std::move(output.albedo);
+  data_attd = std::move(output.surfaceDepth);
   surfaceMeshDirty = true;
 }

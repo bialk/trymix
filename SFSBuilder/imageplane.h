@@ -85,9 +85,13 @@ class ImagePlane: public EditViewObj{
   void DrawModernLightControls(DrawCntx* context);
 
   enum class BuildStatus { Succeeded, Failed };
+  struct BuildOutput {
+    std::vector<float> albedo;
+    std::vector<float> surfaceDepth;
+  };
   struct BuildResult {
     BuildStatus status = BuildStatus::Failed;
-    std::optional<DataExchangeBlock> data;
+    std::optional<BuildOutput> output;
     QString error;
     qint64 preparationMilliseconds = 0;
     qint64 solverMilliseconds = 0;
@@ -96,7 +100,7 @@ class ImagePlane: public EditViewObj{
   void Build(
     QObject* callbackContext, LinSolverKind solverKind,
     BuildCompleted completed);
-  void ApplyBuildResult(DataExchangeBlock data);
+  void ApplyBuildResult(BuildOutput output);
 };
 
 #endif
