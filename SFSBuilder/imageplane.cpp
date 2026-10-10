@@ -1,5 +1,6 @@
 #include "imageplane.h"
 #include <FreeImage.h>
+#include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QDebug>
 #include <QtConcurrent/QtConcurrentRun>
@@ -403,29 +404,9 @@ void ImagePlane::Build(
   ShapeFromShade sfs(solverKind);
   memcpy(sfs.s,lights,sizeof(sfs.s));
   memcpy(sfs.s_alb,lights,sizeof(sfs.s));
-
-  // preparing data for ShapeFromShade
-  DataExchangeBlock data(w, h);
-
-  std::array<const unsigned char*, 4> sourcePixels;
-  std::array<float*, 4> destinationPixels;
-  for(int slot = 0; slot < 4; ++slot) {
-    sourcePixels[slot] = images[slot].pixels.data();
-    destinationPixels[slot] = data.image[slot].data();
-  }
-
-  const int pixelCount = w * h;
-  for(int i = 0; i < pixelCount; ++i) {
-    const auto sourceOffset = static_cast<std::size_t>(i) * 4;
-    const auto destinationOffset = static_cast<std::size_t>(i) * 3;
-    for(int slot = 0; slot < 4; ++slot) {
-      const auto* const source = sourcePixels[slot] + sourceOffset;
-      auto* const destination = destinationPixels[slot] + destinationOffset;
-      destination[0] = static_cast<float>(source[2]) / 255.0F;
-      destination[1] = static_cast<float>(source[1]) / 255.0F;
-      destination[2] = static_cast<float>(source[0]) / 255.0F;
-    }
-  }
+  const int buildWidth = w;
+  const int buildHeight = h;
+  auto sourceImages = images;
   auto* watcher = new QFutureWatcher<DataExchangeBlock>(callbackContext);
   QObject::connect(
     watcher, &QFutureWatcher<DataExchangeBlock>::finished, callbackContext,
@@ -436,8 +417,39 @@ void ImagePlane::Build(
     });
 
   watcher->setFuture(QtConcurrent::run(
-    [sfs = std::move(sfs), data = std::move(data)]() mutable {
+    [sfs = std::move(sfs), sourceImages = std::move(sourceImages),
+     buildWidth, buildHeight]() mutable {
+      QElapsedTimer timer;
+      timer.start();
+      // Allocation and pixel conversion are intentionally part of the worker:
+      // for 4K inputs they are large enough to stall the UI thread.
+      DataExchangeBlock data(buildWidth, buildHeight);
+      std::array<const unsigned char*, 4> sourcePixels;
+      std::array<float*, 4> destinationPixels;
+      for(int slot = 0; slot < 4; ++slot) {
+        sourcePixels[slot] = sourceImages[slot].pixels.data();
+        destinationPixels[slot] = data.image[slot].data();
+      }
+
+      const int pixelCount = buildWidth * buildHeight;
+      for(int i = 0; i < pixelCount; ++i) {
+        const auto sourceOffset = static_cast<std::size_t>(i) * 4;
+        const auto destinationOffset = static_cast<std::size_t>(i) * 3;
+        for(int slot = 0; slot < 4; ++slot) {
+          const auto* const source = sourcePixels[slot] + sourceOffset;
+          auto* const destination = destinationPixels[slot] + destinationOffset;
+          destination[0] = static_cast<float>(source[2]) / 255.0F;
+          destination[1] = static_cast<float>(source[1]) / 255.0F;
+          destination[2] = static_cast<float>(source[0]) / 255.0F;
+        }
+      }
+
+      const auto preparationMilliseconds = timer.restart();
       sfs.build(data);
+      qInfo() << "SFS timing: image preparation"
+              << preparationMilliseconds << "ms, solver"
+              << timer.elapsed() << "ms, dimensions"
+              << buildWidth << 'x' << buildHeight;
       return data;
     }));
 }
