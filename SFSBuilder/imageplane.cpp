@@ -7,6 +7,7 @@
 #include "CommonComponents/ModernOpenGLRenderer.h"
 #include "shapefromshade.h"
 
+#include <algorithm>
 #include <cmath>
 #include <utility>
 #include <QMatrix4x4>
@@ -14,7 +15,7 @@
 
 ImagePlane::ImagePlane():
   w(0),h(0),
-  curslot(0),
+  curslot(-1),
   image_mode(image_mode_image),
   shape_mode(shape_mode_off),
   edit_mode(edit_mode_off),
@@ -65,7 +66,7 @@ void ImagePlane::TreeScan(TSOCntx *cntx){
     img[1].clear();
     img[2].clear();
     img[3].clear();
-    curslot = 0;
+    curslot = -1;
     cache_slot = -1;
     imagefname[0].clear();
     imagefname[1].clear();
@@ -76,6 +77,7 @@ void ImagePlane::TreeScan(TSOCntx *cntx){
     w=h=0;
 
     data_attd.clear();
+    albedo.clear();
     surfaceMeshDirty = true;
     lights[0][0]=-1; lights[0][1]=-1; lights[0][2]=0;
     lights[1][0]= 1; lights[1][1]=-1; lights[1][2]=0;
@@ -92,6 +94,8 @@ void ImagePlane::TreeScan(TSOCntx *cntx){
 
 
 void ImagePlane::Open(int slot){
+  if(slot < 0 || slot >= 4)
+    return;
   if(cache_slot==slot)  cache_slot = -1;
   
   img[slot].clear();
@@ -155,6 +159,7 @@ void ImagePlane::Open(int slot){
 }
 	
 void ImagePlane::LoadTxt(int slot){  
+  if(slot < 0 || slot >= 4) return;
   if(img[slot].empty()) return;
   if( img[slot].size()!=w*h*4 ) {
     qWarning() << "Texture data size does not match image dimensions";
@@ -163,6 +168,22 @@ void ImagePlane::LoadTxt(int slot){
 
   image_tile.LoadBGRA(&img[slot][0], w, h);
   
+}
+
+void ImagePlane::SelectImageSlot(int slot)
+{
+  if(slot < -1 || slot >= 4 || curslot == slot)
+    return;
+  curslot = slot;
+  surfaceMeshDirty = true;
+}
+
+void ImagePlane::SetShapeMode(int mode)
+{
+  if(shape_mode == mode)
+    return;
+  shape_mode = mode;
+  surfaceMeshDirty = true;
 }
 
 void ImagePlane::DrawModernSurface(DrawCntx* context)
@@ -205,7 +226,10 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
       }
     }
 
-    const bool hasImage = img[0].size() >= static_cast<std::size_t>(w * h * 4);
+    const bool useImage = shape_mode == shape_mode_image && curslot >= 0
+      && img[curslot].size() >= static_cast<std::size_t>(w * h * 4);
+    const bool useAlbedo = shape_mode == shape_mode_albedo
+      && albedo.size() >= static_cast<std::size_t>(w * h * 3);
     for(int index = 0; index < w * h; ++index) {
       const QVector3D point = position(index);
       QVector3D normal = accumulatedNormals[static_cast<std::size_t>(index)];
@@ -215,12 +239,18 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
         normal = {0.0F, 0.0F, 1.0F};
 
       QVector3D color{0.5F, 0.5F, 0.5F};
-      if(hasImage) {
+      if(useImage) {
         const auto pixel = static_cast<std::size_t>(index * 4);
         color = {
-          img[0][pixel + 2] / 255.0F,
-          img[0][pixel + 1] / 255.0F,
-          img[0][pixel] / 255.0F};
+          img[curslot][pixel + 2] / 255.0F,
+          img[curslot][pixel + 1] / 255.0F,
+          img[curslot][pixel] / 255.0F};
+      } else if(useAlbedo) {
+        const auto pixel = static_cast<std::size_t>(index * 3);
+        color = {
+          std::clamp(albedo[pixel], 0.0F, 1.0F),
+          std::clamp(albedo[pixel + 1], 0.0F, 1.0F),
+          std::clamp(albedo[pixel + 2], 0.0F, 1.0F)};
       }
       vertices[static_cast<std::size_t>(index)] = {
         {point.x(), point.y(), point.z()},
@@ -325,7 +355,7 @@ void ImagePlane::Draw(DrawCntx *cntx){
   if(w==0 || h==0) return;
 
   // draw image
-  if(image_mode!=image_mode_off){
+  if(image_mode != image_mode_off && curslot >= 0){
 
     if(cache_slot != curslot || !image_tile.isValidForCurrentContext()){
       cache_slot = curslot;
@@ -390,6 +420,7 @@ void ImagePlane::Build(
 
 void ImagePlane::ApplyBuildResult(DataExchangeBlock data)
 {
+  albedo = std::move(data.albedo);
   data_attd = std::move(data.data_attd);
   surfaceMeshDirty = true;
 }

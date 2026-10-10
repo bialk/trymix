@@ -40,8 +40,10 @@
 #include <QVector4D>
 
 #include <yaml-cpp/yaml.h>
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <stdexcept>
 
 
 namespace {
@@ -174,7 +176,6 @@ private:
     if(closestIndex < 0)
       return false;
     m_imagePlane->selectedLightIndex = closestIndex;
-    m_imagePlane->curslot = closestIndex;
     return true;
   }
 
@@ -254,6 +255,8 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
 
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());
+  m_panel.radioButton_image_off->setChecked(true);
+  m_imagePlane->SetShapeMode(ImagePlane::shape_mode_off);
   applyPalettePopupStyle(m_panel.comboBox_solver);
   m_panel.comboBox_solver->setItemData(
     0, static_cast<int>(LinSolverKind::MT));
@@ -301,6 +304,11 @@ void SFSBuilder_TreeItem::createActions()
 {
   auto* slotActionGroup = new QActionGroup(m_dockWidget.data());
   slotActionGroup->setExclusive(true);
+  m_noImageSlotAction = new QAction(
+    QObject::tr("No Image"), m_dockWidget.data());
+  m_noImageSlotAction->setCheckable(true);
+  m_noImageSlotAction->setData(-1);
+  slotActionGroup->addAction(m_noImageSlotAction);
   for (int slot = 0; slot < static_cast<int>(m_slotActions.size()); ++slot) {
     auto* action = new QAction(
       QObject::tr("Image Slot %1").arg(slot + 1), m_dockWidget.data());
@@ -309,7 +317,7 @@ void SFSBuilder_TreeItem::createActions()
     slotActionGroup->addAction(action);
     m_slotActions[slot] = action;
   }
-  m_slotActions[0]->setChecked(true);
+  m_noImageSlotAction->setChecked(true);
   QObject::connect(
     slotActionGroup, &QActionGroup::triggered, m_dockWidget.data(),
     [this](QAction* action) { selectImageSlot(action->data().toInt()); });
@@ -320,6 +328,8 @@ void SFSBuilder_TreeItem::createActions()
     QObject::tr("Save Configuration"), m_dockWidget.data());
   m_saveConfigAsAction = new QAction(
     QObject::tr("Save Configuration As"), m_dockWidget.data());
+  m_syncModelAction = new QAction(
+    QObject::tr("Apply YAML Configuration"), m_dockWidget.data());
   m_runModelAction = new QAction(QObject::tr("Run Model"), m_dockWidget.data());
   m_openConfigInVSCodeAction = new QAction(
     QObject::tr("Open Configuration in VS Code"), m_dockWidget.data());
@@ -339,6 +349,9 @@ void SFSBuilder_TreeItem::createActions()
   QObject::connect(
     m_saveConfigAsAction, &QAction::triggered, m_dockWidget.data(),
     [this]() { saveConfigAs(); });
+  QObject::connect(
+    m_syncModelAction, &QAction::triggered, m_dockWidget.data(),
+    [this]() { syncModelConfiguration(); });
   QObject::connect(
     m_runModelAction, &QAction::triggered, m_dockWidget.data(),
     [this]() { runModel(); });
@@ -373,13 +386,33 @@ void SFSBuilder_TreeItem::bindActions()
     slotButtons[slot]->setCheckable(true);
     bindButton(slotButtons[slot], m_slotActions[slot]);
   }
-  slotButtons[0]->setChecked(true);
+  m_panel.toolButton_slotNone->setCheckable(true);
+  bindButton(m_panel.toolButton_slotNone, m_noImageSlotAction);
+  selectImageSlot(m_imagePlane->curslot);
+
+  const auto updateSurfaceMode = [this](bool checked) {
+    if(!checked)
+      return;
+    updateDisplayModes();
+    if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))
+      mainWindow->refreshViews();
+  };
+  QObject::connect(
+    m_panel.radioButton_image_off, &QRadioButton::toggled,
+    m_dockWidget.data(), updateSurfaceMode);
+  QObject::connect(
+    m_panel.radioButton_image_albedo, &QRadioButton::toggled,
+    m_dockWidget.data(), updateSurfaceMode);
+  QObject::connect(
+    m_panel.radioButton_image_image, &QRadioButton::toggled,
+    m_dockWidget.data(), updateSurfaceMode);
 
   bindButton(m_panel.toolButton_ConfigLoad, m_loadConfigAction);
   m_panel.toolButton_ConfigLoad->setMenu(m_recentConfigsMenu);
   m_panel.toolButton_ConfigLoad->setPopupMode(QToolButton::DelayedPopup);
   bindButton(m_panel.toolButton_ConfigSave, m_saveConfigAction);
   bindButton(m_panel.toolButton_2, m_saveConfigAsAction);
+  bindButton(m_panel.toolButton_SyncModel, m_syncModelAction);
   bindButton(m_panel.toolButton_RunModel, m_runModelAction);
   bindButton(
     m_panel.toolButton_OpenConfigInVSCode, m_openConfigInVSCodeAction);
@@ -440,6 +473,7 @@ bool SFSBuilder_TreeItem::loadConfigFrom(
   m_panel.configEditor->setCursorPosition(0, 0);
   m_configFileHistory.rememberFile(filePath);
   updateConfigFileLabel();
+  loadConfiguredImages(showErrors);
   return true;
 }
 
@@ -628,8 +662,14 @@ bool SFSBuilder_TreeItem::saveConfigTo(const QString& filePath)
 
 void SFSBuilder_TreeItem::selectImageSlot(int slot)
 {
-  if (slot < 0 || slot >= static_cast<int>(m_slotActions.size()))
+  if (slot < -1 || slot >= static_cast<int>(m_slotActions.size()))
     return;
+
+  if(slot >= 0 && m_imagePlane->img[slot].empty()) {
+    m_imagePlane->Open(slot);
+    if(m_imagePlane->img[slot].empty())
+      slot = -1;
+  }
 
   const std::array slotButtons{
     m_panel.toolButton_slot1,
@@ -639,46 +679,140 @@ void SFSBuilder_TreeItem::selectImageSlot(int slot)
   };
   for (int index = 0; index < static_cast<int>(slotButtons.size()); ++index)
     slotButtons[index]->setChecked(index == slot);
+  m_panel.toolButton_slotNone->setChecked(slot == -1);
+  if(m_noImageSlotAction)
+    m_noImageSlotAction->setChecked(slot == -1);
+  for(int index = 0; index < static_cast<int>(m_slotActions.size()); ++index) {
+    if(m_slotActions[index])
+      m_slotActions[index]->setChecked(index == slot);
+  }
 
-  m_imagePlane->curslot = slot;
+  m_imagePlane->SelectImageSlot(slot);
+  updateDisplayModes();
   if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))
     mainWindow->refreshViews();
 }
 
-void SFSBuilder_TreeItem::runModel()
+void SFSBuilder_TreeItem::updateDisplayModes()
+{
+  if(m_panel.radioButton_image_albedo->isChecked()) {
+    m_imagePlane->SetShapeMode(ImagePlane::shape_mode_albedo);
+    m_imagePlane->image_mode = ImagePlane::image_mode_off;
+  } else if(m_panel.radioButton_image_image->isChecked()) {
+    m_imagePlane->SetShapeMode(ImagePlane::shape_mode_image);
+    m_imagePlane->image_mode = ImagePlane::image_mode_off;
+  } else {
+    m_imagePlane->SetShapeMode(ImagePlane::shape_mode_off);
+    m_imagePlane->image_mode = m_imagePlane->curslot >= 0
+      ? ImagePlane::image_mode_image : ImagePlane::image_mode_off;
+  }
+}
+
+bool SFSBuilder_TreeItem::loadConfiguredImages(
+  bool showErrors, bool loadAll, bool forceReload)
 {
   const QByteArray yamlText = m_panel.configEditor->text().toUtf8();
   try {
-    const YAML::Node document = YAML::Load(
-      std::string(yamlText.constData(), static_cast<std::size_t>(yamlText.size())));
+    const YAML::Node document = YAML::Load(std::string(
+      yamlText.constData(), static_cast<std::size_t>(yamlText.size())));
     const YAML::Node config = document["SFSModelConfig"];
+    if(!config || !config["workdir"] || !config["images"])
+      throw std::runtime_error("SFSModelConfig requires workdir and images");
+
     const auto workdir = config["workdir"].as<std::string>();
     const YAML::Node images = config["images"];
-    auto idx = 0;
-    for( auto i: images ) {
-      const auto imageShortName =  i.begin()->first.as<std::string>();
+    std::array<std::string, 4> configuredPaths;
+    std::array<std::array<float, 3>, 4> configuredLights{};
+    int slot = 0;
+    for(const auto& image : images) {
+      if(slot >= 4)
+        break;
+      const auto imageShortName = image.begin()->first.as<std::string>();
       const auto imageFile = std::filesystem::path(workdir) / imageShortName;
-      const std::vector<float> lightPos = i.begin()->second.as<std::vector<float>>();
-      if(lightPos.size() == 3) {
-        m_imagePlane->imagefname[idx] = imageFile.generic_string();
-        m_imagePlane->lights[idx][0] = lightPos[0];
-        m_imagePlane->lights[idx][1] = lightPos[1];
-        m_imagePlane->lights[idx][2] = lightPos[2];
-      } else {
-        qWarning() << "Invalid light position for image" << QString::fromStdString(imageShortName) << "- expected 3 values, got" << lightPos.size();
-        return;
-      }
-      // Here you can use imageFile and lightPos as needed
-      qDebug() << "Parsed image:" << QString::fromStdString(imageShortName) << "at path:" << QString::fromStdString(imageFile.generic_string())
-              << "with light position:" << lightPos[0] << lightPos[1] << lightPos[2];
-      idx++;
+      const auto lightPos = image.begin()->second.as<std::vector<float>>();
+      if(lightPos.size() != 3)
+        throw std::runtime_error("each image light position requires 3 values");
+      configuredPaths[slot] = imageFile.generic_string();
+      for(int component = 0; component < 3; ++component)
+        configuredLights[slot][component] = lightPos[component];
+      ++slot;
     }
-  }
-  catch (const YAML::Exception& error) {
-    qWarning() << "Failed to parse SFS model YAML:" << error.what();
-  }
 
-  m_imagePlane->TreeScan(&TSOCntx::TSO_ProjectLoad);
+    if(forceReload) {
+      for(auto& image : m_imagePlane->img)
+        image.clear();
+      m_imagePlane->cache_slot = -1;
+      m_imagePlane->image_tile.clear();
+    }
+
+    for(int index = 0; index < 4; ++index) {
+      if(m_imagePlane->imagefname[index] != configuredPaths[index]) {
+        m_imagePlane->imagefname[index] = configuredPaths[index];
+        m_imagePlane->img[index].clear();
+        if(m_imagePlane->cache_slot == index) {
+          m_imagePlane->cache_slot = -1;
+          m_imagePlane->image_tile.clear();
+        }
+      }
+      for(int component = 0; component < 3; ++component)
+        m_imagePlane->lights[index][component] =
+          configuredLights[index][component];
+    }
+
+    m_imagePlane->albedo.clear();
+    m_imagePlane->data_attd.clear();
+    m_imagePlane->surfaceMeshDirty = true;
+
+    if(loadAll) {
+      for(int index = 0; index < slot; ++index) {
+        if(m_imagePlane->img[index].empty())
+          m_imagePlane->Open(index);
+      }
+    } else if(slot > 0) {
+      selectImageSlot(0);
+      const bool firstImageLoaded = !m_imagePlane->img[0].empty();
+      return firstImageLoaded;
+    } else {
+      selectImageSlot(-1);
+      return false;
+    }
+
+    if(slot != 4)
+      return false;
+    const auto expectedSize = static_cast<std::size_t>(
+      m_imagePlane->w * m_imagePlane->h * 4);
+    return std::all_of(
+      std::begin(m_imagePlane->img), std::end(m_imagePlane->img),
+      [expectedSize](const auto& image) { return image.size() == expectedSize; });
+  }
+  catch(const std::exception& error) {
+    selectImageSlot(-1);
+    if(showErrors) {
+      QMessageBox::warning(
+        m_dockWidget.data(), QObject::tr("Load SFS Images"),
+        QObject::tr("Could not load configured images:\n%1")
+          .arg(QString::fromUtf8(error.what())));
+    } else {
+      qWarning() << "Could not load configured SFS images:" << error.what();
+    }
+    return false;
+  }
+}
+
+void SFSBuilder_TreeItem::syncModelConfiguration()
+{
+  loadConfiguredImages(true, false, true);
+}
+
+void SFSBuilder_TreeItem::runModel()
+{
+  if(!loadConfiguredImages(true, true, true)) {
+    QMessageBox::warning(
+      m_dockWidget.data(), QObject::tr("Run SFS Model"),
+      QObject::tr("Four successfully loaded images of the same size are required."));
+    return;
+  }
+  m_syncModelAction->setEnabled(false);
   m_runModelAction->setEnabled(false);
   const auto solverKind = static_cast<LinSolverKind>(
     m_panel.comboBox_solver->currentData().toInt());
@@ -687,7 +821,10 @@ void SFSBuilder_TreeItem::runModel()
     solverKind,
     [this](DataExchangeBlock data) {
       m_imagePlane->ApplyBuildResult(std::move(data));
+      m_syncModelAction->setEnabled(true);
       m_runModelAction->setEnabled(true);
+      selectImageSlot(-1);
+      m_panel.radioButton_image_image->setChecked(true);
       if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))
         mainWindow->refreshViews();
     });
@@ -701,8 +838,6 @@ SFSBuilder_TreeItem::showModel(DrawCntx* cx)
   m_viewCtrl->Draw(cx);
   m_lights->Draw(cx);
 
-  m_imagePlane->image_mode = ImagePlane::image_mode_image;
-  m_imagePlane->shape_mode = ImagePlane::shape_mode_image;
   m_imagePlane->Draw(cx);
 
   m_toolsPanel->Draw(cx);

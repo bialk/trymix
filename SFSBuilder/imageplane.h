@@ -19,6 +19,7 @@ class ImagePlane: public EditViewObj{
   int curslot;
   std::string imagefname[4];
   std::vector<unsigned char> img[4];
+  std::vector<float> albedo;
   std::vector<float> data_attd;
   float lights[4][3];
 
@@ -59,6 +60,8 @@ class ImagePlane: public EditViewObj{
   int  cache_slot;
   void Open(int slot);
   void LoadTxt(int slot);
+  void SelectImageSlot(int slot);
+  void SetShapeMode(int mode);
 
   int selectedLightIndex = -1;
   void DrawModernSurface(DrawCntx* context);

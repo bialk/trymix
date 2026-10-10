@@ -18,9 +18,9 @@
     <item>
      <widget class="QGroupBox" name="groupBox">
       <property name="title">
-       <string>Image</string>
+       <string>Surface</string>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
+      <layout class="QHBoxLayout" name="horizontalLayout_imageMode">
        <item>
         <widget class="QRadioButton" name="radioButton_image_off">
          <property name="text">
@@ -48,9 +48,16 @@
     <item>
      <widget class="QGroupBox" name="groupBox_2">
       <property name="title">
-       <string>Imgage Slots</string>
+       <string>Image Slots</string>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QToolButton" name="toolButton_slotNone">
+         <property name="text">
+          <string>None</string>
+         </property>
+        </widget>
+       </item>
        <item>
         <widget class="QToolButton" name="toolButton_slot1">
          <property name="text">
@@ -166,6 +173,19 @@
        </widget>
       </item>
       <item>
+       <widget class="QToolButton" name="toolButton_SyncModel">
+        <property name="toolTip">
+         <string>Apply YAML configuration</string>
+        </property>
+        <property name="text">
+         <string>Sync</string>
+        </property>
+        <property name="icon">
+         <iconset theme="QIcon::ThemeIcon::ViewRefresh"/>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QToolButton" name="toolButton_RunModel">
         <property name="cursor">
          <cursorShape>ArrowCursor</cursorShape>
@@ -180,7 +200,7 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset theme="QIcon::ThemeIcon::SyncSynchronizing"/>
+         <iconset theme="QIcon::ThemeIcon::MediaPlaybackStart"/>
         </property>
        </widget>
       </item>

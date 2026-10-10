@@ -40,16 +40,22 @@ private:
   void saveConfig();
   void saveConfigAs();
   bool saveConfigTo(const QString& filePath);
+  bool loadConfiguredImages(
+    bool showErrors, bool loadAll = false, bool forceReload = false);
   void selectImageSlot(int slot);
+  void updateDisplayModes();
+  void syncModelConfiguration();
   void runModel();
 
   QScopedPointer<QDockWidget> m_dockWidget;
   Ui::SFSBuilder_panel m_panel;
   FileHistory m_configFileHistory;
   std::array<QAction*, 4> m_slotActions{};
+  QAction* m_noImageSlotAction = nullptr;
   QAction* m_loadConfigAction = nullptr;
   QAction* m_saveConfigAction = nullptr;
   QAction* m_saveConfigAsAction = nullptr;
+  QAction* m_syncModelAction = nullptr;
   QAction* m_runModelAction = nullptr;
   QAction* m_openConfigInVSCodeAction = nullptr;
   QAction* m_showConfigInExplorerAction = nullptr;
