@@ -435,36 +435,21 @@ void ImagePlane::Build(
       QElapsedTimer timer;
       timer.start();
       try {
-        // Allocation and pixel conversion are intentionally part of the worker:
-        // for 4K inputs they are large enough to stall the UI thread.
+        // Large output allocations are intentionally part of the worker so
+        // 4K inputs do not stall the UI thread.
         DataExchangeBlock data(buildWidth, buildHeight);
         std::array<const unsigned char*, 4> sourcePixels;
-        std::array<float*, 4> destinationPixels;
         for(int slot = 0; slot < 4; ++slot) {
           sourcePixels[slot] = sourceImages[slot].pixels->data();
-          destinationPixels[slot] = data.image[slot].data();
-        }
-
-        const int pixelCount = buildWidth * buildHeight;
-        for(int i = 0; i < pixelCount; ++i) {
-          const auto sourceOffset = static_cast<std::size_t>(i) * 4;
-          const auto destinationOffset = static_cast<std::size_t>(i) * 3;
-          for(int slot = 0; slot < 4; ++slot) {
-            const auto* const source = sourcePixels[slot] + sourceOffset;
-            auto* const destination = destinationPixels[slot] + destinationOffset;
-            destination[0] = static_cast<float>(source[2]) / 255.0F;
-            destination[1] = static_cast<float>(source[1]) / 255.0F;
-            destination[2] = static_cast<float>(source[0]) / 255.0F;
-          }
         }
 
         result.preparationMilliseconds = timer.restart();
-        sfs.build(data);
+        sfs.build(data, sourcePixels);
         result.solverMilliseconds = timer.elapsed();
         result.output.emplace(BuildOutput{
           std::move(data.albedo), std::move(data.data_attd)});
         result.status = BuildStatus::Succeeded;
-        qInfo() << "SFS timing: image preparation"
+        qInfo() << "SFS timing: output allocation"
                 << result.preparationMilliseconds << "ms, solver"
                 << result.solverMilliseconds << "ms, dimensions"
                 << buildWidth << 'x' << buildHeight;

@@ -11,7 +11,6 @@ struct DataExchangeBlock {
 
   int w;
   int h;
-  std::array<std::vector<float>, 4> image;
   std::vector<float> albedo;
   std::vector<float> data_norm;
   std::vector<float> data_attd;
@@ -24,7 +23,9 @@ public:
   float s[4][3]; // four sources of illumination
   float s_alb[4][3]; // four sources of illumination for albedo
 
-  void build(DataExchangeBlock& data);
+  void build(
+    DataExchangeBlock& data,
+    const std::array<const unsigned char*, 4>& bgraImages);
 
 private:
   LinSolverKind solverKind_;

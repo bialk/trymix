@@ -36,8 +36,6 @@ DataExchangeBlock::DataExchangeBlock(int width, int height)
      data_norm(width * height * 3),
      data_attd(width * height)
 {
-   for (auto& imageData : image)
-      imageData.resize(width * height * 3);
 }
 
 ShapeFromShade::ShapeFromShade(LinSolverKind solverKind)
@@ -45,16 +43,12 @@ ShapeFromShade::ShapeFromShade(LinSolverKind solverKind)
 {
 }
 
-void ShapeFromShade::build(DataExchangeBlock& data)
+void ShapeFromShade::build(
+   DataExchangeBlock& data,
+   const std::array<const unsigned char*, 4>& bgraImages)
 {
    const int w = data.w;
    const int h = data.h;
-   float* image[4] = {
-      data.image[0].data(),
-      data.image[1].data(),
-      data.image[2].data(),
-      data.image[3].data()
-   };
    float* albedo = data.albedo.data();
    float* data_norm = data.data_norm.data();
    float* data_attd = data.data_attd.data();
@@ -74,17 +68,18 @@ void ShapeFromShade::build(DataExchangeBlock& data)
 
             int iy2 = iy; // h-iy-1; // image may be vertically fliped
             // reading image pixels
-            float *i1 = &image[0][(w * iy2 + ix) * 3];
-            float *i2 = &image[1][(w * iy2 + ix) * 3];
-            float *i3 = &image[2][(w * iy2 + ix) * 3];
-            float *i4 = &image[3][(w * iy2 + ix) * 3];
-
             float *albd = &albedo[(w * iy2 + ix) * 3];
-
-            float ilm[] = {i1[0], i1[1], i1[2],
-                           i2[0], i2[1], i2[2],
-                           i3[0], i3[1], i3[2],
-                           i4[0], i4[1], i4[2]};
+            const auto sourceOffset = static_cast<std::size_t>(
+               w * iy2 + ix) * 4;
+            float ilm[12];
+            for(int slot = 0; slot < 4; ++slot)
+            {
+               const auto* source = bgraImages[slot] + sourceOffset;
+               auto* destination = ilm + slot * 3;
+               destination[0] = static_cast<float>(source[2]) / 255.0F;
+               destination[1] = static_cast<float>(source[1]) / 255.0F;
+               destination[2] = static_cast<float>(source[0]) / 255.0F;
+            }
 
             float norm[3];
 
