@@ -828,10 +828,20 @@ void SFSBuilder_TreeItem::runModel()
   m_imagePlane->Build(
     m_dockWidget.data(),
     solverKind,
-    [this](DataExchangeBlock data) {
-      m_imagePlane->ApplyBuildResult(std::move(data));
+    [this](ImagePlane::BuildResult result) {
       m_syncModelAction->setEnabled(true);
       m_runModelAction->setEnabled(true);
+
+      if(result.status != ImagePlane::BuildStatus::Succeeded || !result.data) {
+        QMessageBox::critical(
+          m_dockWidget.data(), QObject::tr("SFS Calculation Failed"),
+          result.error.isEmpty()
+            ? QObject::tr("The SFS calculation did not produce a result.")
+            : result.error);
+        return;
+      }
+
+      m_imagePlane->ApplyBuildResult(std::move(*result.data));
       selectImageSlot(-1);
       m_panel.radioButton_image_image->setChecked(true);
       if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))

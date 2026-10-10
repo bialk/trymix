@@ -5,9 +5,11 @@
 #include "CommonComponents/ImageTile.h"
 #include "CommonComponents/ModernOpenGLMesh.h"
 #include "shapefromshade.h"
+#include <QString>
 #include <array>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace sV2 { class Serializer; }
@@ -82,9 +84,18 @@ class ImagePlane: public EditViewObj{
   void DrawModernSurface(DrawCntx* context);
   void DrawModernLightControls(DrawCntx* context);
 
-  using BuildFinished = std::function<void(DataExchangeBlock)>;
+  enum class BuildStatus { Succeeded, Failed };
+  struct BuildResult {
+    BuildStatus status = BuildStatus::Failed;
+    std::optional<DataExchangeBlock> data;
+    QString error;
+    qint64 preparationMilliseconds = 0;
+    qint64 solverMilliseconds = 0;
+  };
+  using BuildCompleted = std::function<void(BuildResult)>;
   void Build(
-    QObject* callbackContext, LinSolverKind solverKind, BuildFinished finished);
+    QObject* callbackContext, LinSolverKind solverKind,
+    BuildCompleted completed);
   void ApplyBuildResult(DataExchangeBlock data);
 };
 
