@@ -1,6 +1,9 @@
 #include "LinSolverEigenCG.h"
 
 #include <Eigen/IterativeLinearSolvers>
+#include <QDebug>
+
+#include <limits>
 #include <stdexcept>
 #include <string>
 
@@ -59,10 +62,28 @@ void LinSolverEigenCG::solve()
     throw std::runtime_error("Eigen CG preconditioner construction failed");
 
   solution_ = solver.solve(rightHandSide);
+  const double rightHandSideNorm = rightHandSide.norm();
+  const double residualNorm = (matrix * solution_ - rightHandSide).norm();
+  const double relativeResidual = rightHandSideNorm > std::numeric_limits<double>::min()
+    ? residualNorm / rightHandSideNorm
+    : residualNorm;
+
+  if(solver.info() == Eigen::NoConvergence) {
+    qWarning() << "Eigen CG did not converge: iterations" << solver.iterations()
+               << "estimated error" << solver.error()
+               << "true relative residual" << relativeResidual
+               << "-- using the approximate solution";
+    return;
+  }
+
   if(solver.info() != Eigen::Success) {
     throw std::runtime_error(
-      "Eigen CG failed to converge after "
-      + std::to_string(solver.iterations()) + " iterations; estimated error "
-      + std::to_string(solver.error()));
+      "Eigen CG solve failed after " + std::to_string(solver.iterations())
+      + " iterations; estimated error " + std::to_string(solver.error())
+      + "; true relative residual " + std::to_string(relativeResidual));
   }
+
+  qInfo() << "Eigen CG: iterations" << solver.iterations()
+          << "estimated error" << solver.error()
+          << "true relative residual" << relativeResidual;
 }
