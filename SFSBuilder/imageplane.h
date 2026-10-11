@@ -99,7 +99,7 @@ class ImagePlane: public EditViewObj{
   };
   using BuildCompleted = std::function<void(BuildResult)>;
   void Build(
-    QObject* callbackContext, LinSolverKind solverKind,
+    QObject* callbackContext, LinSolverKind solverKind, int openClDeviceIndex,
     BuildCompleted completed);
   void ApplyBuildResult(BuildOutput output);
 };

@@ -30,6 +30,8 @@ class ViewCtrl: public EditViewObj{
   glm::mat4 const& getProjectionMtrx();
   glm::mat4 const& updateProjectionMtrx(int w, int h);
   glm::mat4 const& updateProjectionMtrx();
+  void setSceneExtent(float extent);
+  void resetAndFit(float sceneWidth, float sceneHeight);
 
   std::function<void(float x, float y)>  startOperation(ViewCtrl::Opercode opercode, float x, float y);
   void reset();
@@ -42,6 +44,7 @@ private:
   float m_w,m_h;
   float m_nearPlane = 10.f;  //near plane
   float m_farPlane =  6000.f;  //far plane
+  float m_sceneExtent = 0.f; // active scene diagonal used to adapt the far plane
 
   bool m_prevOperIsCamRotation = false;
 

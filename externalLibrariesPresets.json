@@ -29,6 +29,14 @@
           "type": "PATH",
           "value": "C:/Users/Alex/D/zero-devel/eigen3/eigen-3.4.0_install/share/eigen3/cmake"
         },
+        "amgcl_DIR": {
+          "type": "PATH",
+          "value": "C:/Users/Alex/D/zero-devel/amgcl-install/install/share/amgcl/cmake"
+        },
+        "VexCL_DIR": {
+          "type": "PATH",
+          "value": "C:/Users/Alex/D/zero-devel/vexcl-install/install/share/vexcl/cmake"
+        },
         "nlohmann_json_DIR": {
           "type": "PATH",
           "value": "C:/Users/Alex/D/zero-devel/nlohmann_json_install/share/cmake/nlohmann_json"

@@ -141,7 +141,7 @@ set_property(TARGET yaml-cpp::yaml-cpp PROPERTY
 
 find_package(OpenCL 3.0 REQUIRED)
 set(TRYMIX_OPENCL_TARGET OpenCL::OpenCL)
-add_compile_definitions(OpenCL_FOUND CL_TARGET_OPENCL_VERSION=300)
+add_compile_definitions(OpenCL_FOUND)
 
 
 ##################### CGAL ######################
@@ -214,6 +214,8 @@ endif(WIN32)
 ####################### Eigen ##################
 
 find_package(Eigen3 3.4 REQUIRED NO_MODULE)
+find_package(amgcl REQUIRED CONFIG)
+find_package(VexCL REQUIRED CONFIG)
 
 ################# pthread #########################
 
@@ -281,6 +283,7 @@ set(PROJECT_SOURCES
     CommonComponents/FileHistory.h CommonComponents/FileHistory.cpp
     CommonComponents/FileLauncher.h CommonComponents/FileLauncher.cpp
     CommonComponents/PaletteWidgets.h CommonComponents/PaletteWidgets.cpp
+    CommonComponents/OpenClDeviceComboBox.h CommonComponents/OpenClDeviceComboBox.cpp
       CommonComponents/ModernOpenGLMesh.h CommonComponents/ModernOpenGLMesh.cpp
       CommonComponents/ModernOpenGLRenderer.h CommonComponents/ModernOpenGLRenderer.cpp
     CommonComponents/QScintillaEditor.h CommonComponents/QScintillaEditor.cpp
@@ -303,6 +306,7 @@ set(PROJECT_SOURCES
     apputil/parallelWithBarrier.h
     apputil/fillChessBoard.h
     apputil/fillChessBoard.cpp
+    apputil/OpenClDevices.h
 
     apputil/ProcessWithBiPipes.h
     apputil/ProcessWithBiPipes.cpp
@@ -331,6 +335,7 @@ set(PROJECT_SOURCES
     apputil/MpiRuntime.h apputil/MpiRuntime.cpp
     mathlib/mathutl/LinSolverEigen.h mathlib/mathutl/LinSolverEigen.cpp
     mathlib/mathutl/LinSolverEigenCG.h mathlib/mathutl/LinSolverEigenCG.cpp
+    mathlib/mathutl/LinSolverAmgclCG.h
 
     SFSBuilder/imageplane.h SFSBuilder/imageplane.cpp
     CommonComponents/ImageTile.h CommonComponents/ImageTile.cpp
@@ -398,13 +403,66 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
+# Keep the AMGCL adapter in an internal static library rather than compiling
+# it directly into trymix. This confines AMGCL/VexCL's template-heavy headers,
+# private compile definitions, and backend-specific OpenMP options to one target
+# instead of applying them to every source file in the main executable. The
+# resulting library is linked into trymix and is not a separately deployed DLL.
+add_library(trymix_opencl_util STATIC
+    apputil/OpenClDevices.cpp
+    apputil/OpenClDevices.h
+)
+target_include_directories(trymix_opencl_util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(trymix_opencl_util PRIVATE CL_TARGET_OPENCL_VERSION=300)
+target_link_libraries(trymix_opencl_util PUBLIC ${TRYMIX_OPENCL_TARGET})
+
+add_library(trymix_amgcl_solver STATIC
+    mathlib/mathutl/LinSolverAmgclCG.cpp
+    mathlib/mathutl/LinSolverAmgclCG.h
+)
+get_target_property(TRYMIX_AMGCL_INCLUDE_DIRS
+    amgcl::amgcl INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(trymix_amgcl_solver PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${TRYMIX_AMGCL_INCLUDE_DIRS}
+)
+target_compile_definitions(trymix_amgcl_solver PRIVATE
+    AMGCL_NO_BOOST
+    NOMINMAX
+)
+target_compile_options(trymix_amgcl_solver PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
+    $<$<CXX_COMPILER_ID:MSVC>:/openmp>
+    $<$<CXX_COMPILER_ID:Clang>:/clang:-fopenmp>
+)
+target_link_libraries(trymix_amgcl_solver PRIVATE
+    Eigen3::Eigen
+    VexCL::OpenCL
+    trymix_opencl_util
+    ${QtVer}::Core
+)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    get_filename_component(TRYMIX_COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_library(TRYMIX_OPENMP_RUNTIME NAMES libomp omp
+        HINTS "${TRYMIX_COMPILER_DIR}/../lib"
+        REQUIRED)
+    find_file(TRYMIX_OPENMP_RUNTIME_DLL NAMES libomp.dll
+        HINTS "${TRYMIX_COMPILER_DIR}"
+        REQUIRED)
+    target_link_libraries(trymix_amgcl_solver PUBLIC ${TRYMIX_OPENMP_RUNTIME})
+    list(APPEND FOR_COPY_TO_BINARY_DIR ${TRYMIX_OPENMP_RUNTIME_DLL})
+endif()
+
 target_include_directories(trymix PRIVATE
     ${SPOOLES_INCLUDE_DIR}
     ${FREEIMAGE_INCLUDE_DIR}
-    ${pthread_INCLUDE_DIR}
+    # ${pthread_INCLUDE_DIR}
 )
 
-target_compile_definitions(trymix PRIVATE $<$<PLATFORM_ID:Windows>:_TIMESPEC_DEFINED>)
+target_compile_definitions(trymix PRIVATE
+  CL_TARGET_OPENCL_VERSION=300
+  $<$<PLATFORM_ID:Windows>:_TIMESPEC_DEFINED>
+)
 if(TRYMIX_SFS_USE_MPI)
   target_compile_definitions(trymix PRIVATE SOLVER_MPI)
 endif()
@@ -460,7 +518,9 @@ target_link_libraries(trymix PRIVATE
     OpenGL::GL    
     glm::glm
     ${TRYMIX_OPENCL_TARGET}
+    trymix_opencl_util
     Eigen3::Eigen
+    trymix_amgcl_solver
     nlohmann_json::nlohmann_json
     yaml-cpp::yaml-cpp
     QScintilla::QScintilla

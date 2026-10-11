@@ -11,11 +11,12 @@
 
 #include "mathlib/mathutl/LinSolverEigen.h"
 #include "mathlib/mathutl/LinSolverEigenCG.h"
+#include "mathlib/mathutl/LinSolverAmgclCG.h"
 #include "mathlib/mathutl/LinSolverMPI.h"
 #include "mathlib/mathutl/LinSolverMT.h"
 
 namespace {
-std::unique_ptr<LinSolver> makeSolver(LinSolverKind kind)
+std::unique_ptr<LinSolver> makeSolver(LinSolverKind kind, int openClDeviceIndex)
 {
    switch (kind) {
    case LinSolverKind::MT:
@@ -26,6 +27,14 @@ std::unique_ptr<LinSolver> makeSolver(LinSolverKind kind)
       return std::make_unique<LinSolverMPI>();
    case LinSolverKind::EigenCG:
       return std::make_unique<LinSolverEigenCG>();
+   case LinSolverKind::AmgclCG:
+      return std::make_unique<LinSolverAmgclCG>(AmgclBackend::CpuOpenMP);
+   case LinSolverKind::AmgclOpenClCG:
+      return std::make_unique<LinSolverAmgclCG>(
+        AmgclBackend::OpenCL, openClDeviceIndex);
+   case LinSolverKind::AmgclOpenClCGFloat:
+      return std::make_unique<LinSolverAmgclCG>(
+        AmgclBackend::OpenCL, openClDeviceIndex, AmgclPrecision::Float);
    }
    throw std::invalid_argument("Unknown linear solver kind");
 }
@@ -42,8 +51,8 @@ DataExchangeBlock::DataExchangeBlock(int width, int height)
 {
 }
 
-ShapeFromShade::ShapeFromShade(LinSolverKind solverKind)
-   : solverKind_(solverKind)
+ShapeFromShade::ShapeFromShade(LinSolverKind solverKind, int openClDeviceIndex)
+   : solverKind_(solverKind), openClDeviceIndex_(openClDeviceIndex)
 {
 }
 
@@ -118,7 +127,7 @@ ShapeFromShadeStatistics ShapeFromShade::build(
    // assembling matrices A & B
 
    phaseStart = Clock::now();
-   auto lsvr = makeSolver(solverKind_);
+   auto lsvr = makeSolver(solverKind_, openClDeviceIndex_);
    int sizem = h * w;
    lsvr->MtrxA(sizem, sizem, sizem * 3);
    lsvr->MtrxB();

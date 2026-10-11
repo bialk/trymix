@@ -1,5 +1,6 @@
 #include "GaussBlurEngine.h"
 #include "BoxBlur.h"
+#include "apputil/OpenClDevices.h"
 
 
 #include <vector>
@@ -217,7 +218,6 @@ namespace BlurTests{
 class GaussBlurEngine::GaussBlurAccelerator{
 
 private:
-  std::vector<cl::Platform> all_platforms;
   cl::Context context;
   cl::Program program;
   cl::Kernel boxBlurH_4;
@@ -231,41 +231,20 @@ public:
 
   GaussBlurAccelerator()
   {
-    cl::Platform::get(&all_platforms);
-    if(all_platforms.size()==0){
-      errors << "No platforms found. Check OpenCL installation!" << std::endl;
+    const auto devices = apputil::enumerateOpenClDevices({true, false});
+    if(devices.empty()) {
+      errors << "No available OpenCL GPU found. Check OpenCL installation!"
+             << std::endl;
       return;
     }
-
-    // searching for platforms - selecting the best one
-    cl::Platform plat;
-    for (auto &p : all_platforms) {
-      std::string p_ver = p.getInfo<CL_PLATFORM_VERSION>();
-      std::string p_name = p.getInfo<CL_PLATFORM_NAME>();
-      if (p_ver.find("OpenCL 2.") != std::string::npos ||
-          p_ver.find("OpenCL 3.") != std::string::npos) {
-        // Note: an OpenCL 3.x platform may not support all required features!
-        plat = p;
-        // we prefer NVIDIA GPU over others
-        if(p_name.find("NVIDIA") != std::string::npos)
-          break;
-      }
-    }
-
-    if(plat() == 0) {
-        errors << "No OpenCL 2.0 or newer platform found.\n";
-        return;
-    }
-
-    cl::Platform default_platform = cl::Platform::setDefault(plat);
-    if (default_platform != plat) {
-        errors << "Error setting default platform.\n";
-        return;
-    }
-
-    info << "Using platform: "<< default_platform.getInfo<CL_PLATFORM_NAME>()<< std::endl;
-
-    context = cl::Context::getDefault();
+    const auto& selected = devices.front();
+    const cl::Device selectedDevice(selected.device, true);
+    const cl_context_properties contextProperties[] = {
+      CL_CONTEXT_PLATFORM,
+      reinterpret_cast<cl_context_properties>(selected.platform),
+      0};
+    context = cl::Context(selectedDevice, contextProperties);
+    info << "Using OpenCL device: " << selected.description() << std::endl;
 
     //Next we need to create the program which we want to execute on our device:
     cl::Program::Sources sources;
@@ -273,7 +252,7 @@ public:
     //Next we need our kernel sources to build. We also check for the errors at building:
     sources.push_back({kernel_boxBlurH_4});
     sources.push_back({kernel_boxBlurT_4});
-    program = cl::Program(sources);
+    program = cl::Program(context, sources);
 
     // building kernels
     try{
@@ -293,7 +272,7 @@ public:
     boxBlurT_4 = cl::Kernel(program, "boxBlurT_4");
 
     //create queue to which we will push commands for the device.
-    queue = cl::CommandQueue(context, cl::Device::getDefault());
+    queue = cl::CommandQueue(context, selectedDevice);
   }
 
   void doBlur(float* scl, size_t w, size_t h, size_t r)

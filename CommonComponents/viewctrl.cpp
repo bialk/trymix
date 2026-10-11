@@ -10,6 +10,8 @@
 #include <glm/geometric.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <math.h>
 
@@ -81,6 +83,46 @@ glm::mat4 const& ViewCtrl::updateProjectionMtrx(){
     break;
   }
   return m_P;
+}
+
+void ViewCtrl::setSceneExtent(float extent)
+{
+  extent = std::max(extent, 0.0F);
+  if(std::abs(extent - m_sceneExtent) < 1.0F)
+    return;
+
+  m_sceneExtent = extent;
+  // Keep the near plane away from zero for useful depth-buffer precision.
+  // Four scene diagonals leave room for camera translation and rotation.
+  m_farPlane = std::max(6000.0F, m_sceneExtent * 4.0F);
+  updateProjectionMtrx();
+}
+
+void ViewCtrl::resetAndFit(float sceneWidth, float sceneHeight)
+{
+  if(sceneWidth <= 0.0F || sceneHeight <= 0.0F || m_w <= 0.0F || m_h <= 0.0F)
+    return;
+
+  m_fovY = glm::radians(35.0F);
+  const float aspect = m_w / m_h;
+  const float tangentY = std::tan(m_fovY * 0.5F);
+  const float verticalDistance = sceneHeight * 0.5F / tangentY;
+  const float horizontalDistance = sceneWidth * 0.5F / (tangentY * aspect);
+  const float distance = std::max(verticalDistance, horizontalDistance) * 1.05F;
+
+  m_scale = 1.0F;
+  m_rot = {1.0F, 0.0F, 0.0F, 0.0F};
+  m_trans = {-sceneWidth * 0.5F, -sceneHeight * 0.5F, -distance};
+  m_rotDistance = -distance;
+  m_prevOperIsCamRotation = false;
+  m_dir1 = m_dir2 = {0.0F, 0.0F, 1.0F};
+  m_s1 = m_s2 = m_trans;
+
+  const float sceneExtent = std::hypot(sceneWidth, sceneHeight);
+  m_sceneExtent = sceneExtent;
+  m_farPlane = std::max(6000.0F, distance + sceneExtent * 2.0F);
+  updateModelViewMtrx();
+  updateProjectionMtrx();
 }
 
 void ViewCtrl::Draw(DrawCntx *cntx){

@@ -50,6 +50,7 @@ namespace {
 
 constexpr auto settingsGroup = "SFSBuilder";
 constexpr auto solverSettingsKey = "solver";
+constexpr auto openClDeviceSettingsKey = "openClDevice";
 
 class EventHandler_PositionController: public EventHandler3D{
 
@@ -258,6 +259,7 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_panel.radioButton_image_off->setChecked(true);
   m_imagePlane->SetShapeMode(ImagePlane::shape_mode_off);
   applyPalettePopupStyle(m_panel.comboBox_solver);
+  applyPalettePopupStyle(m_panel.comboBox_openClDevice);
   m_panel.comboBox_solver->setItemData(
     0, static_cast<int>(LinSolverKind::MT));
   m_panel.comboBox_solver->setItemData(
@@ -265,18 +267,26 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_panel.comboBox_solver->setItemData(
     2, static_cast<int>(LinSolverKind::EigenCG));
   m_panel.comboBox_solver->setItemData(
-    3, static_cast<int>(LinSolverKind::MPI));
+    3, static_cast<int>(LinSolverKind::AmgclCG));
+  m_panel.comboBox_solver->setItemData(
+    4, static_cast<int>(LinSolverKind::AmgclOpenClCG));
+  m_panel.comboBox_solver->setItemData(
+    5, static_cast<int>(LinSolverKind::AmgclOpenClCGFloat));
+  m_panel.comboBox_solver->setItemData(
+    6, static_cast<int>(LinSolverKind::MPI));
 
 #if defined(SOLVER_MPI)
-  m_panel.comboBox_solver->setCurrentIndex(3);
+  m_panel.comboBox_solver->setCurrentIndex(6);
 #else
   m_panel.comboBox_solver->setCurrentIndex(0);
 #endif
+
+  updateOpenClDeviceVisibility();
 #if !defined(SOLVER_MPI)
   if (auto* model = qobject_cast<QStandardItemModel*>(
         m_panel.comboBox_solver->model())) {
-    model->item(3)->setEnabled(false);
-    model->item(3)->setToolTip(
+    model->item(6)->setEnabled(false);
+    model->item(6)->setToolTip(
       QObject::tr("Configure with TRYMIX_SFS_USE_MPI=ON to enable MPI"));
   }
 #endif
@@ -333,6 +343,8 @@ void SFSBuilder_TreeItem::createActions()
   m_syncModelAction = new QAction(
     QObject::tr("Apply YAML Configuration"), m_dockWidget.data());
   m_runModelAction = new QAction(QObject::tr("Run Model"), m_dockWidget.data());
+  m_resetViewAction = new QAction(
+    QObject::tr("Reset and Fit View"), m_dockWidget.data());
   m_openConfigInVSCodeAction = new QAction(
     QObject::tr("Open Configuration in VS Code"), m_dockWidget.data());
   m_showConfigInExplorerAction = new QAction(
@@ -357,6 +369,9 @@ void SFSBuilder_TreeItem::createActions()
   QObject::connect(
     m_runModelAction, &QAction::triggered, m_dockWidget.data(),
     [this]() { runModel(); });
+  QObject::connect(
+    m_resetViewAction, &QAction::triggered, m_dockWidget.data(),
+    [this]() { resetView(); });
   QObject::connect(
     m_openConfigInVSCodeAction, &QAction::triggered, m_dockWidget.data(),
     [this]() { openConfigInVSCode(); });
@@ -416,6 +431,7 @@ void SFSBuilder_TreeItem::bindActions()
   bindButton(m_panel.toolButton_2, m_saveConfigAsAction);
   bindButton(m_panel.toolButton_SyncModel, m_syncModelAction);
   bindButton(m_panel.toolButton_RunModel, m_runModelAction);
+  bindButton(m_panel.toolButton_ResetView, m_resetViewAction);
   bindButton(
     m_panel.toolButton_OpenConfigInVSCode, m_openConfigInVSCodeAction);
   bindButton(
@@ -428,6 +444,20 @@ void SFSBuilder_TreeItem::bindActions()
       settings.setValue(
         QString::fromLatin1(solverSettingsKey),
         m_panel.comboBox_solver->currentData().toInt());
+    });
+  QObject::connect(
+    m_panel.comboBox_solver, &QComboBox::currentIndexChanged,
+    m_dockWidget.data(), [this](int) {
+      updateOpenClDeviceVisibility();
+    });
+  QObject::connect(
+    m_panel.comboBox_openClDevice, &QComboBox::currentIndexChanged,
+    m_dockWidget.data(), [this](int) {
+      QSettings settings;
+      settings.beginGroup(QString::fromLatin1(settingsGroup));
+      settings.setValue(
+        QString::fromLatin1(openClDeviceSettingsKey),
+        m_panel.comboBox_openClDevice->selectedDeviceIndex());
     });
   QObject::connect(
     m_panel.checkBox_editLights, &QCheckBox::toggled,
@@ -499,6 +529,32 @@ void SFSBuilder_TreeItem::restoreState()
     m_panel.comboBox_solver->setCurrentIndex(
       m_panel.comboBox_solver->findData(static_cast<int>(LinSolverKind::MT)));
   }
+  const int storedOpenClDevice = settings.value(
+    QString::fromLatin1(openClDeviceSettingsKey), 0).toInt();
+  const int storedOpenClIndex =
+    m_panel.comboBox_openClDevice->findData(storedOpenClDevice);
+  if(storedOpenClIndex >= 0)
+    m_panel.comboBox_openClDevice->setCurrentIndex(storedOpenClIndex);
+  updateOpenClDeviceVisibility();
+}
+
+void SFSBuilder_TreeItem::updateOpenClDeviceVisibility()
+{
+  const int solverKind = m_panel.comboBox_solver->currentData().toInt();
+  const bool isOpenCl =
+    solverKind == static_cast<int>(LinSolverKind::AmgclOpenClCG)
+    || solverKind == static_cast<int>(LinSolverKind::AmgclOpenClCGFloat);
+  m_panel.label_openClDevice->setVisible(isOpenCl);
+  m_panel.comboBox_openClDevice->setVisible(isOpenCl);
+}
+
+void SFSBuilder_TreeItem::resetView()
+{
+  m_viewCtrl->resetAndFit(
+    static_cast<float>(m_imagePlane->w),
+    static_cast<float>(m_imagePlane->h));
+  if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))
+    mainWindow->refreshViews();
 }
 
 void SFSBuilder_TreeItem::updateConfigFileLabel()
@@ -830,6 +886,7 @@ void SFSBuilder_TreeItem::runModel()
   m_imagePlane->Build(
     m_dockWidget.data(),
     solverKind,
+    m_panel.comboBox_openClDevice->selectedDeviceIndex(),
     [this](ImagePlane::BuildResult result) {
       m_syncModelAction->setEnabled(true);
       m_runModelAction->setEnabled(true);
@@ -856,6 +913,9 @@ SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}
 void
 SFSBuilder_TreeItem::showModel(DrawCntx* cx)
 {
+  m_viewCtrl->setSceneExtent(std::hypot(
+    static_cast<float>(m_imagePlane->w),
+    static_cast<float>(m_imagePlane->h)));
   m_viewCtrl->Draw(cx);
   m_lights->Draw(cx);
 

@@ -114,15 +114,57 @@
          </item>
          <item>
           <property name="text">
+           <string>AMGCL CG (CPU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>AMGCL CG (OpenCL experimental)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>AMGCL CG (OpenCL FP32 experimental)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>SPOOLES MPI</string>
           </property>
          </item>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_openClDevice">
+        <item>
+         <widget class="QLabel" name="label_openClDevice">
+          <property name="text">
+           <string>OpenCL device</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="OpenClDeviceComboBox" name="comboBox_openClDevice"/>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBox_editLights">
+         <property name="text">
+          <string>Edit light positions</string>
+         </property>
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="checkBox_editLights">
+        <widget class="QToolButton" name="toolButton_ResetView">
+         <property name="toolTip">
+          <string>Reset rotation, center image, and fit it to the viewport</string>
+         </property>
          <property name="text">
-          <string>Edit light positions</string>
+          <string>Fit</string>
+         </property>
+         <property name="icon">
+          <iconset theme="QIcon::ThemeIcon::ZoomFitBest"/>
          </property>
         </widget>
        </item>
@@ -273,6 +315,11 @@
   </widget>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>OpenClDeviceComboBox</class>
+   <extends>QComboBox</extends>
+   <header>CommonComponents/OpenClDeviceComboBox.h</header>
+  </customwidget>
   <customwidget>
    <class>ElidedPathLabel</class>
    <extends>QLabel</extends>

@@ -26,7 +26,8 @@ struct DataExchangeBlock {
 
 class ShapeFromShade{
 public:
-  explicit ShapeFromShade(LinSolverKind solverKind = LinSolverKind::MT);
+  explicit ShapeFromShade(
+    LinSolverKind solverKind = LinSolverKind::MT, int openClDeviceIndex = 0);
 
   float s[4][3]; // four sources of illumination
   float s_alb[4][3]; // four sources of illumination for albedo
@@ -37,6 +38,7 @@ public:
 
 private:
   LinSolverKind solverKind_;
+  int openClDeviceIndex_ = 0;
 };
 
 #endif

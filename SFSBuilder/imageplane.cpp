@@ -404,9 +404,9 @@ void ImagePlane::Draw(DrawCntx *cntx){
   
 
 void ImagePlane::Build(
-  QObject* callbackContext, LinSolverKind solverKind,
+  QObject* callbackContext, LinSolverKind solverKind, int openClDeviceIndex,
   BuildCompleted completed){
-  ShapeFromShade sfs(solverKind);
+  ShapeFromShade sfs(solverKind, openClDeviceIndex);
   memcpy(sfs.s,lights,sizeof(sfs.s));
   memcpy(sfs.s_alb,lights,sizeof(sfs.s));
   const int buildWidth = w;
@@ -471,6 +471,9 @@ void ImagePlane::Build(
         case LinSolverKind::EigenLDLT: solverName = "Eigen_LDLT"; break;
         case LinSolverKind::MPI: solverName = "SPOOLES_MPI"; break;
         case LinSolverKind::EigenCG: solverName = "Eigen_CG"; break;
+        case LinSolverKind::AmgclCG: solverName = "AMGCL_CG"; break;
+        case LinSolverKind::AmgclOpenClCG: solverName = "AMGCL_OpenCL_CG"; break;
+        case LinSolverKind::AmgclOpenClCGFloat: solverName = "AMGCL_OpenCL_FP32_CG"; break;
         }
         QFile timingFile(
           QCoreApplication::applicationDirPath() + "/sfs-timings.log");

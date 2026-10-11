@@ -31,6 +31,8 @@ private:
   void createActions();
   void bindActions();
   void restoreState();
+  void updateOpenClDeviceVisibility();
+  void resetView();
   void updateConfigFileLabel();
   void openConfigInVSCode();
   void showConfigInFileExplorer();
@@ -57,6 +59,7 @@ private:
   QAction* m_saveConfigAsAction = nullptr;
   QAction* m_syncModelAction = nullptr;
   QAction* m_runModelAction = nullptr;
+  QAction* m_resetViewAction = nullptr;
   QAction* m_openConfigInVSCodeAction = nullptr;
   QAction* m_showConfigInExplorerAction = nullptr;
   QMenu* m_recentConfigsMenu = nullptr;

@@ -5,7 +5,10 @@ enum class LinSolverKind {
   MT,
   EigenLDLT,
   MPI,
-  EigenCG
+  EigenCG,
+  AmgclCG,
+  AmgclOpenClCG,
+  AmgclOpenClCGFloat
 };
 
 class LinSolver {
