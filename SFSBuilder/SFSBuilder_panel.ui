@@ -104,7 +104,12 @@
          </item>
          <item>
           <property name="text">
-           <string>Eigen</string>
+           <string>Eigen LDLT</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Eigen CG (experimental)</string>
           </property>
          </item>
          <item>

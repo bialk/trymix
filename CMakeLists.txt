@@ -330,6 +330,7 @@ set(PROJECT_SOURCES
     mathlib/mathutl/LinSolverMPI.h mathlib/mathutl/LinSolverMPI.cpp
     apputil/MpiRuntime.h apputil/MpiRuntime.cpp
     mathlib/mathutl/LinSolverEigen.h mathlib/mathutl/LinSolverEigen.cpp
+    mathlib/mathutl/LinSolverEigenCG.h mathlib/mathutl/LinSolverEigenCG.cpp
 
     SFSBuilder/imageplane.h SFSBuilder/imageplane.cpp
     CommonComponents/ImageTile.h CommonComponents/ImageTile.cpp

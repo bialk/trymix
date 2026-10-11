@@ -261,20 +261,22 @@ SFSBuilder_TreeItem::SFSBuilder_TreeItem()
   m_panel.comboBox_solver->setItemData(
     0, static_cast<int>(LinSolverKind::MT));
   m_panel.comboBox_solver->setItemData(
-    1, static_cast<int>(LinSolverKind::Eigen));
+    1, static_cast<int>(LinSolverKind::EigenLDLT));
   m_panel.comboBox_solver->setItemData(
-    2, static_cast<int>(LinSolverKind::MPI));
+    2, static_cast<int>(LinSolverKind::EigenCG));
+  m_panel.comboBox_solver->setItemData(
+    3, static_cast<int>(LinSolverKind::MPI));
 
 #if defined(SOLVER_MPI)
-  m_panel.comboBox_solver->setCurrentIndex(2);
+  m_panel.comboBox_solver->setCurrentIndex(3);
 #else
   m_panel.comboBox_solver->setCurrentIndex(0);
 #endif
 #if !defined(SOLVER_MPI)
   if (auto* model = qobject_cast<QStandardItemModel*>(
         m_panel.comboBox_solver->model())) {
-    model->item(2)->setEnabled(false);
-    model->item(2)->setToolTip(
+    model->item(3)->setEnabled(false);
+    model->item(3)->setToolTip(
       QObject::tr("Configure with TRYMIX_SFS_USE_MPI=ON to enable MPI"));
   }
 #endif

@@ -3,8 +3,9 @@
 
 enum class LinSolverKind {
   MT,
-  Eigen,
-  MPI
+  EigenLDLT,
+  MPI,
+  EigenCG
 };
 
 class LinSolver {

@@ -95,6 +95,7 @@ class ImagePlane: public EditViewObj{
     QString error;
     qint64 preparationMilliseconds = 0;
     qint64 solverMilliseconds = 0;
+    ShapeFromShadeStatistics processingStatistics;
   };
   using BuildCompleted = std::function<void(BuildResult)>;
   void Build(

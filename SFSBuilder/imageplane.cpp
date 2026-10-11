@@ -1,8 +1,11 @@
 #include "imageplane.h"
 #include <FreeImage.h>
+#include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QFile>
 #include <QFutureWatcher>
 #include <QDebug>
+#include <QTextStream>
 #include <QtConcurrent/QtConcurrentRun>
 #include "apputil/serializerV2.h"
 #include "CommonComponents/ModernOpenGLRenderer.h"
@@ -430,7 +433,7 @@ void ImagePlane::Build(
 
   watcher->setFuture(QtConcurrent::run(
     [sfs = std::move(sfs), sourceImages = std::move(sourceImages),
-     buildWidth, buildHeight]() mutable {
+     buildWidth, buildHeight, solverKind]() mutable {
       BuildResult result;
       QElapsedTimer timer;
       timer.start();
@@ -444,7 +447,7 @@ void ImagePlane::Build(
         }
 
         result.preparationMilliseconds = timer.restart();
-        sfs.build(data, sourcePixels);
+        result.processingStatistics = sfs.build(data, sourcePixels);
         result.solverMilliseconds = timer.elapsed();
         result.output.emplace(BuildOutput{
           std::move(data.albedo), std::move(data.data_attd)});
@@ -452,7 +455,40 @@ void ImagePlane::Build(
         qInfo() << "SFS timing: output allocation"
                 << result.preparationMilliseconds << "ms, solver"
                 << result.solverMilliseconds << "ms, dimensions"
-                << buildWidth << 'x' << buildHeight;
+                << buildWidth << 'x' << buildHeight
+                << "[normals/albedo"
+                << result.processingStatistics.normalAndAlbedoMilliseconds
+                << "ms, matrix assembly"
+                << result.processingStatistics.matrixAssemblyMilliseconds
+                << "ms, linear solve"
+                << result.processingStatistics.linearSolveMilliseconds
+                << "ms, result extraction"
+                << result.processingStatistics.resultExtractionMilliseconds
+                << "ms]";
+        const char* solverName = "Unknown";
+        switch(solverKind) {
+        case LinSolverKind::MT: solverName = "SPOOLES_MT"; break;
+        case LinSolverKind::EigenLDLT: solverName = "Eigen_LDLT"; break;
+        case LinSolverKind::MPI: solverName = "SPOOLES_MPI"; break;
+        case LinSolverKind::EigenCG: solverName = "Eigen_CG"; break;
+        }
+        QFile timingFile(
+          QCoreApplication::applicationDirPath() + "/sfs-timings.log");
+        if(timingFile.open(QIODevice::WriteOnly | QIODevice::Append
+                           | QIODevice::Text)) {
+          QTextStream stream(&timingFile);
+          stream << solverName << ',' << buildWidth << 'x' << buildHeight
+                 << ",allocation=" << result.preparationMilliseconds
+                 << ",normals_albedo="
+                 << result.processingStatistics.normalAndAlbedoMilliseconds
+                 << ",matrix_assembly="
+                 << result.processingStatistics.matrixAssemblyMilliseconds
+                 << ",linear_solve="
+                 << result.processingStatistics.linearSolveMilliseconds
+                 << ",result_extraction="
+                 << result.processingStatistics.resultExtractionMilliseconds
+                 << ",solver_total=" << result.solverMilliseconds << '\n';
+        }
       }
       catch(const std::exception& error) {
         result.error = QString::fromUtf8(error.what());

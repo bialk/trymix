@@ -4,11 +4,13 @@
 #include <stdio.h>
 #include <math.h>
 #include <algorithm>
+#include <chrono>
 #include <map>
 #include <memory>
 #include <stdexcept>
 
 #include "mathlib/mathutl/LinSolverEigen.h"
+#include "mathlib/mathutl/LinSolverEigenCG.h"
 #include "mathlib/mathutl/LinSolverMPI.h"
 #include "mathlib/mathutl/LinSolverMT.h"
 
@@ -18,10 +20,12 @@ std::unique_ptr<LinSolver> makeSolver(LinSolverKind kind)
    switch (kind) {
    case LinSolverKind::MT:
       return std::make_unique<LinSolverMT>();
-   case LinSolverKind::Eigen:
+   case LinSolverKind::EigenLDLT:
       return std::make_unique<LinSolverEigen>();
    case LinSolverKind::MPI:
       return std::make_unique<LinSolverMPI>();
+   case LinSolverKind::EigenCG:
+      return std::make_unique<LinSolverEigenCG>();
    }
    throw std::invalid_argument("Unknown linear solver kind");
 }
@@ -43,10 +47,17 @@ ShapeFromShade::ShapeFromShade(LinSolverKind solverKind)
 {
 }
 
-void ShapeFromShade::build(
+ShapeFromShadeStatistics ShapeFromShade::build(
    DataExchangeBlock& data,
    const std::array<const unsigned char*, 4>& bgraImages)
 {
+   using Clock = std::chrono::steady_clock;
+   const auto elapsedMilliseconds = [](Clock::time_point start) {
+      return std::chrono::duration_cast<std::chrono::milliseconds>(
+         Clock::now() - start).count();
+   };
+   ShapeFromShadeStatistics statistics;
+   auto phaseStart = Clock::now();
    const int w = data.w;
    const int h = data.h;
    float* albedo = data.albedo.data();
@@ -102,9 +113,11 @@ void ShapeFromShade::build(
          }
       }
    }
+   statistics.normalAndAlbedoMilliseconds = elapsedMilliseconds(phaseStart);
 
    // assembling matrices A & B
 
+   phaseStart = Clock::now();
    auto lsvr = makeSolver(solverKind_);
    int sizem = h * w;
    lsvr->MtrxA(sizem, sizem, sizem * 3);
@@ -176,11 +189,15 @@ void ShapeFromShade::build(
    }
    // add boundary condition
    lsvr->A(0, 0, 2.0);
+   statistics.matrixAssemblyMilliseconds = elapsedMilliseconds(phaseStart);
 
    // solving system of linear equations
+   phaseStart = Clock::now();
    lsvr->solve();
+   statistics.linearSolveMilliseconds = elapsedMilliseconds(phaseStart);
 
    // get result back into attitude data set
+   phaseStart = Clock::now();
    for (ix = 0; ix < w; ix++)
       for (iy = 0; iy < h; iy++)
       {
@@ -188,4 +205,6 @@ void ShapeFromShade::build(
          a = lsvr->X(h * ix + iy);
          data_attd[w * iy + ix] = a;
       }
+   statistics.resultExtractionMilliseconds = elapsedMilliseconds(phaseStart);
+   return statistics;
 }
