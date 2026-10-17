@@ -1,6 +1,6 @@
 #include "drawContext.h"
 #include "CentralWidget.h"
-#include "ModernOpenGLRenderer.h"
+#include "OpenGLRenderer.h"
 
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
@@ -49,9 +49,9 @@ const QMatrix4x4& DrawCntx::modelViewMatrix() const
   return m_modelView;
 }
 
-ModernOpenGLRenderer& DrawCntx::modernRenderer()
+OpenGLRenderer& DrawCntx::openGLRenderer()
 {
-  return m_centralWidget->modernRenderer();
+  return m_centralWidget->openGLRenderer();
 }
 
 QOpenGLFunctions& DrawCntx::openGLFunctions()

@@ -1,6 +1,6 @@
 #include "lights.h"
 #include "apputil/serializerV2.h"
-#include "ModernOpenGLRenderer.h"
+#include "OpenGLRenderer.h"
 //#include "apputil/serializer.h"
 
 #include <QMatrix4x4>
@@ -16,7 +16,7 @@ void Icon3DLight::TreeScan(TSOCntx *cntx) {
 void Icon3DLight::Draw(DrawCntx* cntx)
 {
   const float brightness = lights->g == this ? 1.0F : 0.5F;
-  cntx->modernRenderer().drawLightIcon(
+  cntx->openGLRenderer().drawLightIcon(
     cntx->projectionMatrix(), cntx->modelViewMatrix(),
     {brightness, brightness, brightness});
 }
@@ -30,7 +30,7 @@ void Icon3DLight::DrawWithMatrices(
   iconModelView *= QMatrix4x4(rot).transposed();
   iconModelView.rotate(90.0F, 1.0F, 0.0F, 0.0F);
   const float brightness = lights->g == this ? 1.0F : 0.5F;
-  cntx->modernRenderer().drawLightIcon(
+  cntx->openGLRenderer().drawLightIcon(
     projection, iconModelView, {brightness, brightness, brightness});
 }
 
@@ -59,7 +59,7 @@ Lights::Lights(){
 }
 
 void Lights::Draw(DrawCntx *cntx){
-  cntx->modernRenderer().setDirectionalLights(
+  cntx->openGLRenderer().setDirectionalLights(
     {rot1[8], rot1[9], rot1[10]}, show1 != 0,
     {rot2[8], rot2[9], rot2[10]}, show2 != 0);
 }

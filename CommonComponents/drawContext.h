@@ -8,7 +8,7 @@ namespace sV2 { class Serializer; }
 class QOpenGLWidget;
 class CentralWidget;
 class EventContext3D;
-class ModernOpenGLRenderer;
+class OpenGLRenderer;
 class QOpenGLFunctions;
 
 #define SRLZ_LAYOUT   1
@@ -49,7 +49,7 @@ class DrawCntx : public ViewportDispatchContext {
                        const QMatrix4x4& modelView);
   const QMatrix4x4& projectionMatrix() const;
   const QMatrix4x4& modelViewMatrix() const;
-  ModernOpenGLRenderer& modernRenderer();
+  OpenGLRenderer& openGLRenderer();
   QOpenGLFunctions& openGLFunctions();
 
 private:  

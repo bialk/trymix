@@ -1,4 +1,4 @@
-#include "ModernOpenGLMesh.h"
+#include "OpenGLMesh.h"
 
 #include <QDebug>
 #include <QOpenGLContext>
@@ -6,14 +6,14 @@
 
 #include <cstddef>
 
-ModernOpenGLMesh::ModernOpenGLMesh()
+OpenGLMesh::OpenGLMesh()
   : m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
 }
 
-bool ModernOpenGLMesh::initialize(
-    const ModernOpenGLVertex* vertices, int vertexCount,
+bool OpenGLMesh::initialize(
+    const OpenGLVertex* vertices, int vertexCount,
     const unsigned int* indices, int indexCount)
 {
   if(isInitialized())
@@ -24,12 +24,12 @@ bool ModernOpenGLMesh::initialize(
 
   auto* context = QOpenGLContext::currentContext();
   if(!context || !vertices || vertexCount <= 0 || !indices || indexCount <= 0) {
-    qWarning() << "Modern OpenGL mesh initialization has invalid input or no context";
+    qWarning() << "OpenGL mesh initialization has invalid input or no context";
     return false;
   }
 
   if(!m_vao.create() || !m_vertexBuffer.create() || !m_indexBuffer.create()) {
-    qWarning() << "Modern OpenGL mesh buffer creation failed";
+    qWarning() << "OpenGL mesh buffer creation failed";
     destroy();
     return false;
   }
@@ -39,7 +39,7 @@ bool ModernOpenGLMesh::initialize(
     m_vertexBuffer.bind();
     m_vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_vertexBuffer.allocate(
-      vertices, vertexCount * static_cast<int>(sizeof(ModernOpenGLVertex)));
+      vertices, vertexCount * static_cast<int>(sizeof(OpenGLVertex)));
 
     m_indexBuffer.bind();
     m_indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
@@ -49,21 +49,21 @@ bool ModernOpenGLMesh::initialize(
     auto* functions = context->functions();
     functions->glEnableVertexAttribArray(0);
     functions->glVertexAttribPointer(
-      0, 3, GL_FLOAT, GL_FALSE, sizeof(ModernOpenGLVertex),
-      reinterpret_cast<const void*>(offsetof(ModernOpenGLVertex, position)));
+      0, 3, GL_FLOAT, GL_FALSE, sizeof(OpenGLVertex),
+      reinterpret_cast<const void*>(offsetof(OpenGLVertex, position)));
     functions->glEnableVertexAttribArray(1);
     functions->glVertexAttribPointer(
-      1, 3, GL_FLOAT, GL_FALSE, sizeof(ModernOpenGLVertex),
-      reinterpret_cast<const void*>(offsetof(ModernOpenGLVertex, color)));
+      1, 3, GL_FLOAT, GL_FALSE, sizeof(OpenGLVertex),
+      reinterpret_cast<const void*>(offsetof(OpenGLVertex, color)));
     functions->glEnableVertexAttribArray(2);
     functions->glVertexAttribPointer(
-      2, 3, GL_FLOAT, GL_FALSE, sizeof(ModernOpenGLVertex),
-      reinterpret_cast<const void*>(offsetof(ModernOpenGLVertex, normal)));
+      2, 3, GL_FLOAT, GL_FALSE, sizeof(OpenGLVertex),
+      reinterpret_cast<const void*>(offsetof(OpenGLVertex, normal)));
     functions->glEnableVertexAttribArray(3);
     functions->glVertexAttribPointer(
-      3, 2, GL_FLOAT, GL_FALSE, sizeof(ModernOpenGLVertex),
+      3, 2, GL_FLOAT, GL_FALSE, sizeof(OpenGLVertex),
       reinterpret_cast<const void*>(
-        offsetof(ModernOpenGLVertex, textureCoordinate)));
+        offsetof(OpenGLVertex, textureCoordinate)));
   }
 
   m_vertexBuffer.release();
@@ -73,8 +73,8 @@ bool ModernOpenGLMesh::initialize(
   return true;
 }
 
-bool ModernOpenGLMesh::update(
-    const ModernOpenGLVertex* vertices, int vertexCount,
+bool OpenGLMesh::update(
+    const OpenGLVertex* vertices, int vertexCount,
     const unsigned int* indices, int indexCount)
 {
   if(!isInitialized()) {
@@ -87,7 +87,7 @@ bool ModernOpenGLMesh::update(
 
   m_vertexBuffer.bind();
   m_vertexBuffer.allocate(
-    vertices, vertexCount * static_cast<int>(sizeof(ModernOpenGLVertex)));
+    vertices, vertexCount * static_cast<int>(sizeof(OpenGLVertex)));
   m_vertexBuffer.release();
   m_indexBuffer.bind();
   m_indexBuffer.allocate(
@@ -97,7 +97,7 @@ bool ModernOpenGLMesh::update(
   return true;
 }
 
-void ModernOpenGLMesh::destroy()
+void OpenGLMesh::destroy()
 {
   m_vao.destroy();
   m_vertexBuffer.destroy();
@@ -106,23 +106,23 @@ void ModernOpenGLMesh::destroy()
   m_initialized = false;
 }
 
-bool ModernOpenGLMesh::isInitialized() const
+bool OpenGLMesh::isInitialized() const
 {
   return m_initialized && m_vao.isCreated()
     && m_vertexBuffer.isCreated() && m_indexBuffer.isCreated();
 }
 
-void ModernOpenGLMesh::bind()
+void OpenGLMesh::bind()
 {
   m_vao.bind();
 }
 
-void ModernOpenGLMesh::release()
+void OpenGLMesh::release()
 {
   m_vao.release();
 }
 
-int ModernOpenGLMesh::indexCount() const
+int OpenGLMesh::indexCount() const
 {
   return m_indexCount;
 }

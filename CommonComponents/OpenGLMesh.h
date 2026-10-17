@@ -1,10 +1,10 @@
-#ifndef MODERNOPENGLMESH_H
-#define MODERNOPENGLMESH_H
+#ifndef OPENGLMESH_H
+#define OPENGLMESH_H
 
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
 
-struct ModernOpenGLVertex
+struct OpenGLVertex
 {
   float position[3];
   float color[3];
@@ -12,14 +12,14 @@ struct ModernOpenGLVertex
   float textureCoordinate[2];
 };
 
-class ModernOpenGLMesh
+class OpenGLMesh
 {
 public:
-  ModernOpenGLMesh();
+  OpenGLMesh();
 
-  bool initialize(const ModernOpenGLVertex* vertices, int vertexCount,
+  bool initialize(const OpenGLVertex* vertices, int vertexCount,
                   const unsigned int* indices, int indexCount);
-  bool update(const ModernOpenGLVertex* vertices, int vertexCount,
+  bool update(const OpenGLVertex* vertices, int vertexCount,
               const unsigned int* indices, int indexCount);
   void destroy();
   bool isInitialized() const;
@@ -36,4 +36,4 @@ private:
   bool m_initialized = false;
 };
 
-#endif // MODERNOPENGLMESH_H
+#endif // OPENGLMESH_H

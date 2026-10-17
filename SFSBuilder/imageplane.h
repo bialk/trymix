@@ -3,7 +3,7 @@
 
 #include "CommonComponents/drawContext.h"
 #include "CommonComponents/ImageTile.h"
-#include "CommonComponents/ModernOpenGLMesh.h"
+#include "CommonComponents/OpenGLMesh.h"
 #include "shapefromshade.h"
 #include <QString>
 #include <QFuture>
@@ -79,9 +79,9 @@ class ImagePlane: public EditViewObj{
   int shape_mode;
   int edit_mode;
 
-  ModernOpenGLMesh surfaceMesh;
-  ModernOpenGLMesh overlayLineMesh;
-  ModernOpenGLMesh overlayPointMesh;
+  OpenGLMesh surfaceMesh;
+  OpenGLMesh overlayLineMesh;
+  OpenGLMesh overlayPointMesh;
   bool surfaceMeshDirty = true;
 
   int  cache_slot;

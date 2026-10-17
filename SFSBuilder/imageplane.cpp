@@ -7,7 +7,7 @@
 #include <QTextStream>
 #include <QtConcurrent/QtConcurrentRun>
 #include "apputil/serializerV2.h"
-#include "CommonComponents/ModernOpenGLRenderer.h"
+#include "CommonComponents/OpenGLRenderer.h"
 #include "shapefromshade.h"
 
 #include <algorithm>
@@ -228,7 +228,7 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
 
   if(surfaceMeshDirty || !surfaceMesh.isInitialized()) {
     surfaceMesh.destroy();
-    std::vector<ModernOpenGLVertex> vertices(static_cast<std::size_t>(w * h));
+    std::vector<OpenGLVertex> vertices(static_cast<std::size_t>(w * h));
     std::vector<QVector3D> accumulatedNormals(
       static_cast<std::size_t>(w * h), QVector3D{});
     std::vector<unsigned int> indices;
@@ -311,17 +311,17 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
     surfaceMeshDirty = false;
   }
 
-  context->modernRenderer().draw(
+  context->openGLRenderer().draw(
     surfaceMesh, context->projectionMatrix(), context->modelViewMatrix());
 }
 
 void ImagePlane::DrawModernLightControls(DrawCntx* context)
 {
-  std::vector<ModernOpenGLVertex> lineVertices;
+  std::vector<OpenGLVertex> lineVertices;
   std::vector<unsigned int> lineIndices;
-  std::vector<ModernOpenGLVertex> pointVertices;
+  std::vector<OpenGLVertex> pointVertices;
   std::vector<unsigned int> pointIndices;
-  const auto appendVertex = [](std::vector<ModernOpenGLVertex>& vertices,
+  const auto appendVertex = [](std::vector<OpenGLVertex>& vertices,
                                std::vector<unsigned int>& indices,
                                const QVector3D& position,
                                const QVector3D& color) {
@@ -375,13 +375,13 @@ void ImagePlane::DrawModernLightControls(DrawCntx* context)
   if(overlayLineMesh.update(
        lineVertices.data(), static_cast<int>(lineVertices.size()),
        lineIndices.data(), static_cast<int>(lineIndices.size())))
-    context->modernRenderer().drawLines(
+    context->openGLRenderer().drawLines(
       overlayLineMesh, context->projectionMatrix(),
       context->modelViewMatrix(), 3.0F);
   if(overlayPointMesh.update(
        pointVertices.data(), static_cast<int>(pointVertices.size()),
        pointIndices.data(), static_cast<int>(pointIndices.size())))
-    context->modernRenderer().drawPoints(
+    context->openGLRenderer().drawPoints(
       overlayPointMesh, context->projectionMatrix(),
       context->modelViewMatrix(), 6.0F);
 }

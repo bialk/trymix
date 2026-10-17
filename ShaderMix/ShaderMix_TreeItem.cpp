@@ -4,7 +4,7 @@
 #include "CommonComponents/viewctrl.h"
 #include "CommonComponents/EventHandling.h"
 #include "CommonComponents/CentralWidget.h"
-#include "CommonComponents/ModernOpenGLRenderer.h"
+#include "CommonComponents/OpenGLRenderer.h"
 
 #include "QMainWindow"
 #include <QOpenGLWidget>
@@ -129,7 +129,7 @@ ShaderMix_TreeItem::showModel(DrawCntx* cx)
   m_toolsPanel->Draw(cx);
 
   cx->openGLFunctions().glClear(GL_DEPTH_BUFFER_BIT);
-  cx->modernRenderer().drawTestScene(
+  cx->openGLRenderer().drawTestScene(
     cx->projectionMatrix(), cx->modelViewMatrix());
 }
 

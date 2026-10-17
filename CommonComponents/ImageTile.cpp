@@ -1,6 +1,6 @@
 #include "ImageTile.h"
 #include "drawContext.h"
-#include "ModernOpenGLRenderer.h"
+#include "OpenGLRenderer.h"
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLContext>
 #include <QDebug>
@@ -158,7 +158,7 @@ void ImageTile::Draw(DrawCntx* context){
       QMatrix4x4 tileModel;
       tileModel.translate(w0, h0, 0.0F);
       tileModel.scale(tw, th, 1.0F);
-      context->modernRenderer().drawTexturedQuad(
+      context->openGLRenderer().drawTexturedQuad(
         texset.texid[ntilew*i+j], projection, baseModelView * tileModel,
         {1.0F, 1.0F});
 

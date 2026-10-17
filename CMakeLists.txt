@@ -286,8 +286,8 @@ set(PROJECT_SOURCES
     CommonComponents/FileLauncher.h CommonComponents/FileLauncher.cpp
     CommonComponents/PaletteWidgets.h CommonComponents/PaletteWidgets.cpp
     CommonComponents/OpenClDeviceComboBox.h CommonComponents/OpenClDeviceComboBox.cpp
-      CommonComponents/ModernOpenGLMesh.h CommonComponents/ModernOpenGLMesh.cpp
-      CommonComponents/ModernOpenGLRenderer.h CommonComponents/ModernOpenGLRenderer.cpp
+    CommonComponents/OpenGLMesh.h CommonComponents/OpenGLMesh.cpp
+    CommonComponents/OpenGLRenderer.h CommonComponents/OpenGLRenderer.cpp
     CommonComponents/QScintillaEditor.h CommonComponents/QScintillaEditor.cpp
     CommonComponents/ReleaseSelectingMenu.h CommonComponents/ReleaseSelectingMenu.cpp
 

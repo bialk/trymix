@@ -1,4 +1,4 @@
-#include "ModernOpenGLRenderer.h"
+#include "OpenGLRenderer.h"
 
 #include <QDebug>
 #include <QCoreApplication>
@@ -14,18 +14,18 @@
 #include <cmath>
 #include <numbers>
 #include <vector>
-ModernOpenGLRenderer::ModernOpenGLRenderer()
+OpenGLRenderer::OpenGLRenderer()
 {
 }
 
-bool ModernOpenGLRenderer::initialize()
+bool OpenGLRenderer::initialize()
 {
   if(m_initialized)
     return true;
 
   auto* context = QOpenGLContext::currentContext();
   if(!context) {
-    qWarning() << "Modern OpenGL renderer requires a current context";
+    qWarning() << "OpenGL renderer requires a current context";
     return false;
   }
   m_functions = context->functions();
@@ -87,7 +87,7 @@ bool ModernOpenGLRenderer::initialize()
   if(!m_program.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShader)
       || !m_program.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShader)
       || !m_program.link()) {
-    qWarning() << "Modern OpenGL shader setup failed:" << m_program.log();
+    qWarning() << "OpenGL shader setup failed:" << m_program.log();
     return false;
   }
 
@@ -124,7 +124,7 @@ bool ModernOpenGLRenderer::initialize()
       || !m_textureProgram.addShaderFromSourceCode(
         QOpenGLShader::Fragment, textureFragmentShader)
       || !m_textureProgram.link()) {
-    qWarning() << "Modern OpenGL texture shader setup failed:"
+    qWarning() << "OpenGL texture shader setup failed:"
                << m_textureProgram.log();
     m_program.removeAllShaders();
     return false;
@@ -132,7 +132,7 @@ bool ModernOpenGLRenderer::initialize()
 
   // Each face has independent vertices so its solid colour is not
   // interpolated from colours assigned to neighbouring cube corners.
-  constexpr std::array<ModernOpenGLVertex, 24> vertices{{
+  constexpr std::array<OpenGLVertex, 24> vertices{{
     // Top: green.
     {{ 1.0F,  1.0F, -1.0F}, {0.0F, 1.0F, 0.0F}, {0.0F, 1.0F, 0.0F}},
     {{-1.0F,  1.0F, -1.0F}, {0.0F, 1.0F, 0.0F}, {0.0F, 1.0F, 0.0F}},
@@ -182,7 +182,7 @@ bool ModernOpenGLRenderer::initialize()
   }
 
   constexpr int coneSegments = 100;
-  std::vector<ModernOpenGLVertex> coneVertices;
+  std::vector<OpenGLVertex> coneVertices;
   std::vector<unsigned int> coneIndices;
   coneVertices.reserve(2 + coneSegments * 2);
   coneIndices.reserve(coneSegments * 6);
@@ -233,7 +233,7 @@ bool ModernOpenGLRenderer::initialize()
     return false;
   }
 
-  constexpr std::array<ModernOpenGLVertex, 4> imageQuadVertices{{
+  constexpr std::array<OpenGLVertex, 4> imageQuadVertices{{
     {{0.0F, 0.0F, 0.0F}, {1.0F, 1.0F, 1.0F}, {0.0F, 0.0F, 1.0F}, {0.0F, 0.0F}},
     {{1.0F, 0.0F, 0.0F}, {1.0F, 1.0F, 1.0F}, {0.0F, 0.0F, 1.0F}, {1.0F, 0.0F}},
     {{1.0F, 1.0F, 0.0F}, {1.0F, 1.0F, 1.0F}, {0.0F, 0.0F, 1.0F}, {1.0F, 1.0F}},
@@ -266,7 +266,7 @@ bool ModernOpenGLRenderer::initialize()
       sourceVertices.emplace_back(x, y, z);
     }
 
-    std::vector<ModernOpenGLVertex> iconVertices;
+    std::vector<OpenGLVertex> iconVertices;
     std::vector<unsigned int> iconIndices;
     const auto appendTriangle = [&](int first, int second, int third) {
       if(first < 0 || second < 0 || third < 0
@@ -322,7 +322,7 @@ bool ModernOpenGLRenderer::initialize()
   return true;
 }
 
-void ModernOpenGLRenderer::destroy()
+void OpenGLRenderer::destroy()
 {
   m_cubeMesh.destroy();
   m_coneMesh.destroy();
@@ -335,16 +335,16 @@ void ModernOpenGLRenderer::destroy()
   m_initialized = false;
 }
 
-void ModernOpenGLRenderer::draw(
-    ModernOpenGLMesh& mesh, const QMatrix4x4& projection,
+void OpenGLRenderer::draw(
+    OpenGLMesh& mesh, const QMatrix4x4& projection,
     const QMatrix4x4& modelView, const QVector3D& colorMultiplier)
 {
   drawPrimitive(mesh, projection, modelView, colorMultiplier,
                 GL_TRIANGLES, true);
 }
 
-void ModernOpenGLRenderer::drawPrimitive(
-    ModernOpenGLMesh& mesh, const QMatrix4x4& projection,
+void OpenGLRenderer::drawPrimitive(
+    OpenGLMesh& mesh, const QMatrix4x4& projection,
     const QMatrix4x4& modelView, const QVector3D& colorMultiplier,
     unsigned int primitiveType, bool lightingEnabled, bool depthTestEnabled)
 {
@@ -375,8 +375,8 @@ void ModernOpenGLRenderer::drawPrimitive(
     m_functions->glEnable(GL_DEPTH_TEST);
 }
 
-void ModernOpenGLRenderer::drawLines(
-    ModernOpenGLMesh& mesh, const QMatrix4x4& projection,
+void OpenGLRenderer::drawLines(
+    OpenGLMesh& mesh, const QMatrix4x4& projection,
     const QMatrix4x4& modelView, float width)
 {
   if(!m_initialized && !initialize())
@@ -387,8 +387,8 @@ void ModernOpenGLRenderer::drawLines(
   m_functions->glLineWidth(1.0F);
 }
 
-void ModernOpenGLRenderer::drawPoints(
-    ModernOpenGLMesh& mesh, const QMatrix4x4& projection,
+void OpenGLRenderer::drawPoints(
+    OpenGLMesh& mesh, const QMatrix4x4& projection,
     const QMatrix4x4& modelView, float size)
 {
   if(!m_initialized && !initialize())
@@ -399,7 +399,7 @@ void ModernOpenGLRenderer::drawPoints(
   m_coreFunctions->glPointSize(1.0F);
 }
 
-void ModernOpenGLRenderer::drawCube(
+void OpenGLRenderer::drawCube(
     const QMatrix4x4& projection, const QMatrix4x4& modelView)
 {
   if(!m_initialized && !initialize())
@@ -407,7 +407,7 @@ void ModernOpenGLRenderer::drawCube(
   draw(m_cubeMesh, projection, modelView);
 }
 
-void ModernOpenGLRenderer::drawCone(
+void OpenGLRenderer::drawCone(
     const QMatrix4x4& projection, const QMatrix4x4& modelView)
 {
   if(!m_initialized && !initialize())
@@ -415,7 +415,7 @@ void ModernOpenGLRenderer::drawCone(
   draw(m_coneMesh, projection, modelView);
 }
 
-void ModernOpenGLRenderer::drawTestScene(
+void OpenGLRenderer::drawTestScene(
     const QMatrix4x4& projection, const QMatrix4x4& view)
 {
   const auto drawTranslatedCube = [&](const QVector3D& translation, float scale) {
@@ -437,7 +437,7 @@ void ModernOpenGLRenderer::drawTestScene(
   drawTranslatedCone({100.0F, 100.0F, 0.0F}, 30.0F);
 }
 
-void ModernOpenGLRenderer::drawLightIcon(
+void OpenGLRenderer::drawLightIcon(
     const QMatrix4x4& projection, const QMatrix4x4& modelView,
     const QVector3D& colorMultiplier)
 {
@@ -446,7 +446,7 @@ void ModernOpenGLRenderer::drawLightIcon(
   draw(m_lightIconMesh, projection, modelView, colorMultiplier);
 }
 
-void ModernOpenGLRenderer::drawTexturedQuad(
+void OpenGLRenderer::drawTexturedQuad(
     unsigned int textureId, const QMatrix4x4& projection,
     const QMatrix4x4& modelView, const QVector2D& textureScale)
 {
@@ -471,7 +471,7 @@ void ModernOpenGLRenderer::drawTexturedQuad(
   m_functions->glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void ModernOpenGLRenderer::setDirectionalLights(
+void OpenGLRenderer::setDirectionalLights(
     const QVector3D& firstDirection, bool firstEnabled,
     const QVector3D& secondDirection, bool secondEnabled)
 {
@@ -481,7 +481,7 @@ void ModernOpenGLRenderer::setDirectionalLights(
   m_lightEnabled[1] = secondEnabled;
 }
 
-bool ModernOpenGLRenderer::isInitialized() const
+bool OpenGLRenderer::isInitialized() const
 {
   return m_initialized;
 }

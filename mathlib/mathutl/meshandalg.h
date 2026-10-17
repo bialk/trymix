@@ -684,7 +684,7 @@ public:
     // Legacy rendering reference: this callback emitted the wave-front
     // triangle directly through OpenGL immediate mode. A modern migration
     // should instead append these positions and the face normal to a mesh
-    // buffer, then submit that buffer through ModernOpenGLRenderer.
+    // buffer, then submit that buffer through OpenGLRenderer.
     Surf::TVtx vtx1 = surf->vtx[i1];
     Surf::TVtx vtx2 = surf->vtx[i2];
     Surf::TVtx vtx3 = surf->vtx[i3];

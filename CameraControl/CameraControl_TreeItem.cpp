@@ -5,7 +5,7 @@
 #include "CommonComponents/EventHandling.h"
 #include "CommonComponents/CentralWidget.h"
 #include "CommonComponents/mainwindow.h"
-#include "CommonComponents/ModernOpenGLRenderer.h"
+#include "CommonComponents/OpenGLRenderer.h"
 
 #include "QMainWindow"
 #include <QOpenGLWidget>
@@ -219,7 +219,7 @@ CameraControl_TreeItem::showModel(DrawCntx* cx)
   // GLM exposes column-major storage, while this QMatrix4x4 constructor reads
   // the supplied values in row-major order. Transpose after copying so the
   // shader receives the same matrices used by the legacy OpenGL path.
-  cx->modernRenderer().drawTestScene(
+  cx->openGLRenderer().drawTestScene(
     cx->projectionMatrix(), cx->modelViewMatrix());
 }
 

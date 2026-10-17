@@ -1,7 +1,7 @@
-#ifndef MODERNOPENGLRENDERER_H
-#define MODERNOPENGLRENDERER_H
+#ifndef OPENGLRENDERER_H
+#define OPENGLRENDERER_H
 
-#include "ModernOpenGLMesh.h"
+#include "OpenGLMesh.h"
 
 #include <QOpenGLShaderProgram>
 #include <QVector3D>
@@ -11,14 +11,14 @@ class QMatrix4x4;
 class QOpenGLFunctions;
 class QOpenGLFunctions_3_3_Core;
 
-class ModernOpenGLRenderer
+class OpenGLRenderer
 {
 public:
-  ModernOpenGLRenderer();
+  OpenGLRenderer();
 
   bool initialize();
   void destroy();
-  void draw(ModernOpenGLMesh& mesh,
+  void draw(OpenGLMesh& mesh,
             const QMatrix4x4& projection, const QMatrix4x4& modelView,
             const QVector3D& colorMultiplier = {1.0F, 1.0F, 1.0F});
   void drawCube(const QMatrix4x4& projection, const QMatrix4x4& modelView);
@@ -29,16 +29,16 @@ public:
   void drawTexturedQuad(unsigned int textureId, const QMatrix4x4& projection,
                         const QMatrix4x4& modelView,
                         const QVector2D& textureScale);
-  void drawLines(ModernOpenGLMesh& mesh, const QMatrix4x4& projection,
+  void drawLines(OpenGLMesh& mesh, const QMatrix4x4& projection,
                  const QMatrix4x4& modelView, float width);
-  void drawPoints(ModernOpenGLMesh& mesh, const QMatrix4x4& projection,
+  void drawPoints(OpenGLMesh& mesh, const QMatrix4x4& projection,
                   const QMatrix4x4& modelView, float size);
   void setDirectionalLights(const QVector3D& firstDirection, bool firstEnabled,
                             const QVector3D& secondDirection, bool secondEnabled);
   bool isInitialized() const;
 
 private:
-  void drawPrimitive(ModernOpenGLMesh& mesh, const QMatrix4x4& projection,
+  void drawPrimitive(OpenGLMesh& mesh, const QMatrix4x4& projection,
                      const QMatrix4x4& modelView,
                      const QVector3D& colorMultiplier,
                      unsigned int primitiveType, bool lightingEnabled,
@@ -46,10 +46,10 @@ private:
 
   QOpenGLShaderProgram m_program;
   QOpenGLShaderProgram m_textureProgram;
-  ModernOpenGLMesh m_cubeMesh;
-  ModernOpenGLMesh m_coneMesh;
-  ModernOpenGLMesh m_lightIconMesh;
-  ModernOpenGLMesh m_imageQuadMesh;
+  OpenGLMesh m_cubeMesh;
+  OpenGLMesh m_coneMesh;
+  OpenGLMesh m_lightIconMesh;
+  OpenGLMesh m_imageQuadMesh;
   QVector3D m_lightDirections[2]{{0.0F, 0.0F, 1.0F}, {0.0F, 0.0F, 1.0F}};
   bool m_lightEnabled[2]{true, true};
   QOpenGLFunctions* m_functions = nullptr;
@@ -57,4 +57,4 @@ private:
   bool m_initialized = false;
 };
 
-#endif // MODERNOPENGLRENDERER_H
+#endif // OPENGLRENDERER_H

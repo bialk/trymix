@@ -1,5 +1,4 @@
 #include "SFSBuilder_TreeItem.h"
-#include "QMainWindow"
 #include "imageplane.h"
 #include "CommonComponents/lights.h"
 #include "CommonComponents/toolspanel.h"
@@ -11,10 +10,11 @@
 #include "CommonComponents/QScintillaEditor.h"
 #include "CommonComponents/ReleaseSelectingMenu.h"
 #include "CommonComponents/mainwindow.h"
-#include "CommonComponents/ModernOpenGLRenderer.h"
+#include "CommonComponents/OpenGLRenderer.h"
 #include "CommonComponents/MatrixConversions.h"
 #include "CommonComponents/ScreenSpacePicking.h"
 
+#include "QMainWindow"
 #include <QOpenGLWidget>
 #include <QPainter>
 #include <QDebug>
