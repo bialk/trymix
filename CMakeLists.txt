@@ -57,6 +57,8 @@ message(STATUS "found Qt${QT_VERSION_MAJOR}")
 set(QtVer Qt${QT_VERSION_MAJOR})
 
 find_package(${QtVer} REQUIRED COMPONENTS Concurrent OpenGL Widgets OpenGLWidgets LinguistTools)
+find_package(QCoro${QT_VERSION_MAJOR} 0.13 REQUIRED COMPONENTS Core)
+qcoro_enable_coroutines()
 
 if(TRYMIX_ENABLE_VTK)
   find_package(VTK 9.7 REQUIRED COMPONENTS
@@ -503,6 +505,7 @@ if(CMAKE_HOST_WIN32)
 endif()
 
 target_link_libraries(trymix PRIVATE
+    QCoro::Core
     ${QtVer}::Widgets
     ${QtVer}::Concurrent
     ${QtVer}::OpenGL

@@ -6,14 +6,14 @@
 #include "CommonComponents/ModernOpenGLMesh.h"
 #include "shapefromshade.h"
 #include <QString>
+#include <QFuture>
 #include <array>
-#include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace sV2 { class Serializer; }
-class QObject;
 
 class ImagePlane: public EditViewObj{
  public:
@@ -21,14 +21,24 @@ class ImagePlane: public EditViewObj{
   struct ImageData {
     int width = 0;
     int height = 0;
-    std::shared_ptr<const std::vector<unsigned char>> pixels;
+    // Copies external pixels into a new immutable allocation. No mutable
+    // shared_ptr or moved vector can alias the published buffer.
+    static ImageData CopyBGRA(
+      int width, int height, std::span<const unsigned char> pixels);
 
-    bool empty() const { return !pixels || pixels->empty(); }
+    std::span<const unsigned char> pixels() const {
+      return pixels_ ? std::span<const unsigned char>(*pixels_)
+                     : std::span<const unsigned char>{};
+    }
+
+    bool empty() const { return !pixels_ || pixels_->empty(); }
     void clear() {
       width = 0;
       height = 0;
-      pixels.reset();
+      pixels_.reset();
     }
+  private:
+    std::shared_ptr<const std::vector<unsigned char>> pixels_;
   };
 
   // input data 
@@ -97,10 +107,8 @@ class ImagePlane: public EditViewObj{
     qint64 solverMilliseconds = 0;
     ShapeFromShadeStatistics processingStatistics;
   };
-  using BuildCompleted = std::function<void(BuildResult)>;
-  void Build(
-    QObject* callbackContext, LinSolverKind solverKind, int openClDeviceIndex,
-    BuildCompleted completed);
+  // Snapshot inputs on the UI thread and schedule the calculation on a worker.
+  QFuture<BuildResult> Build(LinSolverKind solverKind, int openClDeviceIndex);
   void ApplyBuildResult(BuildOutput output);
 };
 

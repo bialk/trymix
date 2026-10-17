@@ -31,6 +31,8 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QPointer>
+#include <QCoroFuture>
 #include <QSaveFile>
 #include <QSettings>
 #include <QStandardItemModel>
@@ -871,41 +873,56 @@ void SFSBuilder_TreeItem::syncModelConfiguration()
   loadConfiguredImages(true, false, true);
 }
 
-void SFSBuilder_TreeItem::runModel()
+QCoro::Task<> SFSBuilder_TreeItem::runModel()
 {
   if(!loadConfiguredImages(true, true, true)) {
     QMessageBox::warning(
       m_dockWidget.data(), QObject::tr("Run SFS Model"),
       QObject::tr("Four successfully loaded images of the same size are required."));
-    return;
+    co_return;
   }
   m_syncModelAction->setEnabled(false);
   m_runModelAction->setEnabled(false);
   const auto solverKind = static_cast<LinSolverKind>(
     m_panel.comboBox_solver->currentData().toInt());
-  m_imagePlane->Build(
-    m_dockWidget.data(),
-    solverKind,
-    m_panel.comboBox_openClDevice->selectedDeviceIndex(),
-    [this](ImagePlane::BuildResult result) {
-      m_syncModelAction->setEnabled(true);
-      m_runModelAction->setEnabled(true);
+  // The dock is owned by this tree item. Check its lifetime before touching
+  // any members after suspension, since the project may have been closed.
+  const QPointer<QDockWidget> context(m_dockWidget.data());
+  ImagePlane::BuildResult result;
+  try {
+    auto future = m_imagePlane->Build(
+      solverKind, m_panel.comboBox_openClDevice->selectedDeviceIndex());
+    // Wrap the future in a QCoro::Task to allow awaiting it without blocking the UI.
+    auto pending = qCoro(future);
+    // Move the output buffers when the worker finishes, keeping the UI responsive.
+    result = co_await pending.takeResult();
+  }
+  catch(const std::exception& error) {
+    result.error = QString::fromUtf8(error.what());
+  }
+  catch(...) {
+    result.error = QObject::tr("Unknown error while collecting SFS result");
+  }
+  if(!context)
+    co_return;
 
-      if(result.status != ImagePlane::BuildStatus::Succeeded || !result.output) {
-        QMessageBox::critical(
-          m_dockWidget.data(), QObject::tr("SFS Calculation Failed"),
-          result.error.isEmpty()
-            ? QObject::tr("The SFS calculation did not produce a result.")
-            : result.error);
-        return;
-      }
+  m_syncModelAction->setEnabled(true);
+  m_runModelAction->setEnabled(true);
 
-      m_imagePlane->ApplyBuildResult(std::move(*result.output));
-      selectImageSlot(-1);
-      m_panel.radioButton_image_image->setChecked(true);
-      if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))
-        mainWindow->refreshViews();
-    });
+  if(result.status != ImagePlane::BuildStatus::Succeeded || !result.output) {
+    QMessageBox::critical(
+      m_dockWidget.data(), QObject::tr("SFS Calculation Failed"),
+      result.error.isEmpty()
+        ? QObject::tr("The SFS calculation did not produce a result.")
+        : result.error);
+    co_return;
+  }
+
+  m_imagePlane->ApplyBuildResult(std::move(*result.output));
+  selectImageSlot(-1);
+  m_panel.radioButton_image_image->setChecked(true);
+  if(auto* mainWindow = findParentOfType<MainWindow>(m_dockWidget.data()))
+    mainWindow->refreshViews();
 }
 
 SFSBuilder_TreeItem::~SFSBuilder_TreeItem(){}

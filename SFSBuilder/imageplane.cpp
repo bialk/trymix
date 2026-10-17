@@ -3,7 +3,6 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QFile>
-#include <QFutureWatcher>
 #include <QDebug>
 #include <QTextStream>
 #include <QtConcurrent/QtConcurrentRun>
@@ -14,9 +13,28 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 #include <QMatrix4x4>
 #include <QVector3D>
+
+ImagePlane::ImageData ImagePlane::ImageData::CopyBGRA(
+  int width, int height, std::span<const unsigned char> pixels)
+{
+  // Check against the supplied size before multiplying dimensions.
+  if(width <= 0 || height <= 0
+      || static_cast<std::size_t>(width)
+           > pixels.size() / 4 / static_cast<std::size_t>(height)
+      || pixels.size() != static_cast<std::size_t>(width) * height * 4)
+    throw std::invalid_argument("BGRA pixels do not match image dimensions");
+
+  ImageData image;
+  image.width = width;
+  image.height = height;
+  image.pixels_ = std::make_shared<const std::vector<unsigned char>>(
+    pixels.begin(), pixels.end());
+  return image;
+}
 
 ImagePlane::ImagePlane():
   w(0),h(0),
@@ -147,7 +165,6 @@ void ImagePlane::Open(int slot){
     qWarning() << "Image is too large:" << imageWidth << 'x' << imageHeight;
     return;
   }
-  auto loadedPixels = std::make_shared<std::vector<unsigned char>>(4 * pixelCount);
   const BYTE* pixels = FreeImage_GetBits(bitmap.get());
   if(!pixels) {
     qWarning() << "Image contains no pixel data:" << imagefname[slot].c_str();
@@ -163,10 +180,9 @@ void ImagePlane::Open(int slot){
     textura[j*4+3]= pixeles[j*4+3];
   }
   */
-  memcpy(loadedPixels->data(), pixels, loadedPixels->size());
-  image.width = static_cast<int>(imageWidth);
-  image.height = static_cast<int>(imageHeight);
-  image.pixels = std::move(loadedPixels);
+  image = ImageData::CopyBGRA(
+    static_cast<int>(imageWidth), static_cast<int>(imageHeight),
+    std::span<const unsigned char>(pixels, 4 * pixelCount));
   w = image.width;
   h = image.height;
 }
@@ -175,13 +191,13 @@ void ImagePlane::LoadTxt(int slot){
   if(slot < 0 || slot >= 4) return;
   const auto& image = images[slot];
   if(image.empty()) return;
-  if(image.pixels->size()
+  if(image.pixels().size()
       != static_cast<std::size_t>(image.width * image.height * 4)) {
     qWarning() << "Texture data size does not match image dimensions";
     return;    
   }
 
-  image_tile.LoadBGRA(image.pixels->data(), image.width, image.height);
+  image_tile.LoadBGRA(image.pixels().data(), image.width, image.height);
   
 }
 
@@ -252,12 +268,12 @@ void ImagePlane::DrawModernSurface(DrawCntx* context)
     const bool useImage = shape_mode == shape_mode_image && curslot >= 0
       && !images[curslot].empty()
       && images[curslot].width == w && images[curslot].height == h
-      && images[curslot].pixels->size()
+      && images[curslot].pixels().size()
            >= static_cast<std::size_t>(w * h * 4);
     const bool useAlbedo = shape_mode == shape_mode_albedo
       && albedo.size() >= static_cast<std::size_t>(w * h * 3);
     const unsigned char* const imagePixels = useImage
-      ? images[curslot].pixels->data() : nullptr;
+      ? images[curslot].pixels().data() : nullptr;
     const float* const albedoPixels = useAlbedo ? albedo.data() : nullptr;
     for(int index = 0; index < w * h; ++index) {
       const QVector3D point = position(index);
@@ -403,104 +419,103 @@ void ImagePlane::Draw(DrawCntx *cntx){
 };
   
 
-void ImagePlane::Build(
-  QObject* callbackContext, LinSolverKind solverKind, int openClDeviceIndex,
-  BuildCompleted completed){
+namespace {
+
+using BuildResult = ImagePlane::BuildResult;
+using BuildOutput = ImagePlane::BuildOutput;
+using BuildStatus = ImagePlane::BuildStatus;
+
+void logBuildTiming(
+  const BuildResult& result, int buildWidth, int buildHeight,
+  LinSolverKind solverKind)
+{
+  qInfo() << "SFS timing: output allocation"
+          << result.preparationMilliseconds << "ms, solver"
+          << result.solverMilliseconds << "ms, dimensions"
+          << buildWidth << 'x' << buildHeight
+          << "[normals/albedo"
+          << result.processingStatistics.normalAndAlbedoMilliseconds
+          << "ms, matrix assembly"
+          << result.processingStatistics.matrixAssemblyMilliseconds
+          << "ms, linear solve"
+          << result.processingStatistics.linearSolveMilliseconds
+          << "ms, result extraction"
+          << result.processingStatistics.resultExtractionMilliseconds
+          << "ms]";
+  const char* solverName = "Unknown";
+  switch(solverKind) {
+  case LinSolverKind::MT: solverName = "SPOOLES_MT"; break;
+  case LinSolverKind::EigenLDLT: solverName = "Eigen_LDLT"; break;
+  case LinSolverKind::MPI: solverName = "SPOOLES_MPI"; break;
+  case LinSolverKind::EigenCG: solverName = "Eigen_CG"; break;
+  case LinSolverKind::AmgclCG: solverName = "AMGCL_CG"; break;
+  case LinSolverKind::AmgclOpenClCG: solverName = "AMGCL_OpenCL_CG"; break;
+  case LinSolverKind::AmgclOpenClCGFloat: solverName = "AMGCL_OpenCL_FP32_CG"; break;
+  }
+  QFile timingFile(
+    QCoreApplication::applicationDirPath() + "/sfs-timings.log");
+  if(timingFile.open(QIODevice::WriteOnly | QIODevice::Append
+                     | QIODevice::Text)) {
+    QTextStream stream(&timingFile);
+    stream << solverName << ',' << buildWidth << 'x' << buildHeight
+           << ",allocation=" << result.preparationMilliseconds
+           << ",normals_albedo="
+           << result.processingStatistics.normalAndAlbedoMilliseconds
+           << ",matrix_assembly="
+           << result.processingStatistics.matrixAssemblyMilliseconds
+           << ",linear_solve="
+           << result.processingStatistics.linearSolveMilliseconds
+           << ",result_extraction="
+           << result.processingStatistics.resultExtractionMilliseconds
+           << ",solver_total=" << result.solverMilliseconds << '\n';
+  }
+}
+
+BuildResult calculateBuild(
+  ShapeFromShade sfs, std::array<ImagePlane::ImageData, 4> sourceImages,
+  int buildWidth, int buildHeight, LinSolverKind solverKind)
+{
+  BuildResult result;
+  QElapsedTimer timer;
+  timer.start();
+  try {
+    // Large output allocations are intentionally part of the worker so
+    // 4K inputs do not stall the UI thread.
+    DataExchangeBlock data(buildWidth, buildHeight);
+    std::array<const unsigned char*, 4> sourcePixels;
+    for(int slot = 0; slot < 4; ++slot) {
+      sourcePixels[slot] = sourceImages[slot].pixels().data();
+    }
+
+    result.preparationMilliseconds = timer.restart();
+    result.processingStatistics = sfs.build(data, sourcePixels);
+    result.solverMilliseconds = timer.elapsed();
+    result.output.emplace(BuildOutput{
+      std::move(data.albedo), std::move(data.data_attd)});
+    result.status = BuildStatus::Succeeded;
+    logBuildTiming(result, buildWidth, buildHeight, solverKind);
+  }
+  catch(const std::exception& error) {
+    result.error = QString::fromUtf8(error.what());
+  }
+  catch(...) {
+    result.error = QObject::tr("Unknown error during SFS calculation");
+  }
+  return result;
+}
+
+} // namespace
+
+QFuture<ImagePlane::BuildResult> ImagePlane::Build(
+  LinSolverKind solverKind, int openClDeviceIndex)
+{
   ShapeFromShade sfs(solverKind, openClDeviceIndex);
-  memcpy(sfs.s,lights,sizeof(sfs.s));
-  memcpy(sfs.s_alb,lights,sizeof(sfs.s));
-  const int buildWidth = w;
-  const int buildHeight = h;
-  auto sourceImages = images;
-  auto* watcher = new QFutureWatcher<BuildResult>(callbackContext);
-  QObject::connect(
-    watcher, &QFutureWatcher<BuildResult>::finished, callbackContext,
-    [watcher, completed = std::move(completed)]() mutable {
-      BuildResult result;
-      try {
-        auto future = watcher->future();
-        result = future.takeResult();
-      }
-      catch(const std::exception& error) {
-        result.error = QString::fromUtf8(error.what());
-      }
-      catch(...) {
-        result.error = QObject::tr("Unknown error while collecting SFS result");
-      }
-      watcher->deleteLater();
-      completed(std::move(result));
-    });
+  memcpy(sfs.s, lights, sizeof(sfs.s));
+  memcpy(sfs.s_alb, lights, sizeof(sfs.s_alb));
 
-  watcher->setFuture(QtConcurrent::run(
-    [sfs = std::move(sfs), sourceImages = std::move(sourceImages),
-     buildWidth, buildHeight, solverKind]() mutable {
-      BuildResult result;
-      QElapsedTimer timer;
-      timer.start();
-      try {
-        // Large output allocations are intentionally part of the worker so
-        // 4K inputs do not stall the UI thread.
-        DataExchangeBlock data(buildWidth, buildHeight);
-        std::array<const unsigned char*, 4> sourcePixels;
-        for(int slot = 0; slot < 4; ++slot) {
-          sourcePixels[slot] = sourceImages[slot].pixels->data();
-        }
-
-        result.preparationMilliseconds = timer.restart();
-        result.processingStatistics = sfs.build(data, sourcePixels);
-        result.solverMilliseconds = timer.elapsed();
-        result.output.emplace(BuildOutput{
-          std::move(data.albedo), std::move(data.data_attd)});
-        result.status = BuildStatus::Succeeded;
-        qInfo() << "SFS timing: output allocation"
-                << result.preparationMilliseconds << "ms, solver"
-                << result.solverMilliseconds << "ms, dimensions"
-                << buildWidth << 'x' << buildHeight
-                << "[normals/albedo"
-                << result.processingStatistics.normalAndAlbedoMilliseconds
-                << "ms, matrix assembly"
-                << result.processingStatistics.matrixAssemblyMilliseconds
-                << "ms, linear solve"
-                << result.processingStatistics.linearSolveMilliseconds
-                << "ms, result extraction"
-                << result.processingStatistics.resultExtractionMilliseconds
-                << "ms]";
-        const char* solverName = "Unknown";
-        switch(solverKind) {
-        case LinSolverKind::MT: solverName = "SPOOLES_MT"; break;
-        case LinSolverKind::EigenLDLT: solverName = "Eigen_LDLT"; break;
-        case LinSolverKind::MPI: solverName = "SPOOLES_MPI"; break;
-        case LinSolverKind::EigenCG: solverName = "Eigen_CG"; break;
-        case LinSolverKind::AmgclCG: solverName = "AMGCL_CG"; break;
-        case LinSolverKind::AmgclOpenClCG: solverName = "AMGCL_OpenCL_CG"; break;
-        case LinSolverKind::AmgclOpenClCGFloat: solverName = "AMGCL_OpenCL_FP32_CG"; break;
-        }
-        QFile timingFile(
-          QCoreApplication::applicationDirPath() + "/sfs-timings.log");
-        if(timingFile.open(QIODevice::WriteOnly | QIODevice::Append
-                           | QIODevice::Text)) {
-          QTextStream stream(&timingFile);
-          stream << solverName << ',' << buildWidth << 'x' << buildHeight
-                 << ",allocation=" << result.preparationMilliseconds
-                 << ",normals_albedo="
-                 << result.processingStatistics.normalAndAlbedoMilliseconds
-                 << ",matrix_assembly="
-                 << result.processingStatistics.matrixAssemblyMilliseconds
-                 << ",linear_solve="
-                 << result.processingStatistics.linearSolveMilliseconds
-                 << ",result_extraction="
-                 << result.processingStatistics.resultExtractionMilliseconds
-                 << ",solver_total=" << result.solverMilliseconds << '\n';
-        }
-      }
-      catch(const std::exception& error) {
-        result.error = QString::fromUtf8(error.what());
-      }
-      catch(...) {
-        result.error = QObject::tr("Unknown error during SFS calculation");
-      }
-      return result;
-    }));
+  // Copy inputs before scheduling; the worker never accesses ImagePlane.
+  return QtConcurrent::run(
+    calculateBuild, std::move(sfs), images, w, h, solverKind);
 }
 
 void ImagePlane::ApplyBuildResult(BuildOutput output)

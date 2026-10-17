@@ -7,6 +7,7 @@
 
 #include <array>
 #include <QString>
+#include <QCoroTask>
 
 class QDockWidget;
 class QAction;
@@ -47,7 +48,7 @@ private:
   void selectImageSlot(int slot);
   void updateDisplayModes();
   void syncModelConfiguration();
-  void runModel();
+  QCoro::Task<> runModel();
 
   QScopedPointer<QDockWidget> m_dockWidget;
   Ui::SFSBuilder_panel m_panel;

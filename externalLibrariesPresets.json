@@ -45,6 +45,10 @@
           "type": "PATH",
           "value": "C:/Users/Alex/D/zero-devel/yaml-cpp-install/lib/cmake/yaml-cpp"
         },
+        "QCoro6_ROOT": {
+          "type": "PATH",
+          "value": "C:/Users/Alex/D/zero-devel/qcoro-install/install/msvc"
+        },
         "QSCINTILLA_ROOT": {
           "type": "PATH",
           "value": "C:/Users/Alex/D/zero-devel/QScintilla-2.14.1"
