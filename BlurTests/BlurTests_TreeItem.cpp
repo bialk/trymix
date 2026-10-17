@@ -5,6 +5,8 @@
 #include "CommonComponents/EventHandling.h"
 
 #include <QAction>
+#include <QApplication>
+#include <QCoroFuture>
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
 #include <QPainter>
@@ -13,9 +15,29 @@
 #include <QMouseEvent>
 #include <QDateTime>
 #include <QDebug>
+#include <QPointer>
+#include <QScopeGuard>
+#include <QtConcurrentRun>
+#include <exception>
+#include <utility>
 
 
 namespace {
+struct BlurResult {
+  QImage image;
+  int milliseconds = 0;
+};
+
+BlurResult calculateBlur(
+  int width, int height, int radius, int chessBoxSize, bool useOpenCl)
+{
+  BlurResult result;
+  result.milliseconds = blurTest(
+    width, height, radius, chessBoxSize, result.image, useOpenCl);
+  result.image.convertTo(QImage::Format_RGB888);
+  return result;
+}
+
 class ViewCtrl {
 public:
 
@@ -170,36 +192,69 @@ BlurTests_TreeItem::BlurTests_TreeItem()
   m_dockWidget.reset(new QDockWidget);
   m_panel.setupUi(m_dockWidget.data());
 
-  blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
-           m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, false);
-
-
   QObject::connect(m_panel.pushButton_runBlurCPU, &QPushButton::clicked,
-    m_panel.pushButton_runBlurCPU, [&]{
-       QApplication::setOverrideCursor(Qt::WaitCursor);
-       auto msec = blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
-                m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, false);
-       findParentOfType<MainWindow>(treeWidget())->refreshViews();
-       QApplication::restoreOverrideCursor();
-       m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms").arg(msec));
-       m_img.convertTo(QImage::Format_RGB888);
-    });
+    m_dockWidget.data(), [this]{ runBlur(false); });
   QObject::connect(m_panel.pushButton_runBlurOpenCL, &QPushButton::clicked,
-     m_panel.pushButton_runBlurOpenCL, [&]{
-       QApplication::setOverrideCursor(Qt::WaitCursor);
-       auto msec = blurTest(m_panel.spinBox_width->value(), m_panel.spinBox_height->value(),
-                m_panel.spinBox_radius->value(), m_panel.spinBox_chessBox->value(), m_img, true);
-       findParentOfType<MainWindow>(treeWidget())->refreshViews();
-       QApplication::restoreOverrideCursor();
-       m_panel.label_timeIndicator->setText(QString("Processing time: %1 ms").arg(msec));
-       m_img.convertTo(QImage::Format_RGB888);
-    });
+    m_dockWidget.data(), [this]{ runBlur(true); });
 
    auto& vpc = static_cast<EventHandler_PositionController*>(m_vpceh.get())->vpc;
   // initial postioning
   vpc.scaleX = 0.5;
   // vpc.translationXY[0] = 100;
   // vpc.translationXY[1] = 100;
+  runBlur(false);
+}
+
+QCoro::Task<> BlurTests_TreeItem::runBlur(bool useOpenCl)
+{
+  const int width = m_panel.spinBox_width->value();
+  const int height = m_panel.spinBox_height->value();
+  const int radius = m_panel.spinBox_radius->value();
+  const int chessBoxSize = m_panel.spinBox_chessBox->value();
+  const QPointer<QDockWidget> context(m_dockWidget.data());
+
+  m_panel.pushButton_runBlurCPU->setEnabled(false);
+  m_panel.pushButton_runBlurOpenCL->setEnabled(false);
+  m_panel.label_timeIndicator->setText(QObject::tr("Processing..."));
+  QApplication::setOverrideCursor(Qt::WaitCursor);
+  const auto restoreCursor = qScopeGuard([] {
+    QApplication::restoreOverrideCursor();
+  });
+
+  BlurResult result;
+  QString error;
+  try {
+    // Only copied settings enter the worker. It owns the image until completion.
+    auto future = QtConcurrent::run(
+      calculateBlur, width, height, radius, chessBoxSize, useOpenCl);
+    auto pending = qCoro(future);
+    result = co_await pending.takeResult();
+  }
+  catch(const std::exception& exception) {
+    error = QString::fromUtf8(exception.what());
+  }
+  catch(...) {
+    error = QObject::tr("Unknown error during blur calculation");
+  }
+  // The tree item and its dock may have been deleted while suspended.
+  if(!context)
+    co_return;
+
+  m_panel.pushButton_runBlurCPU->setEnabled(true);
+  m_panel.pushButton_runBlurOpenCL->setEnabled(true);
+  if(!error.isEmpty()) {
+    m_panel.label_timeIndicator->setText(QObject::tr("Blur failed: %1").arg(error));
+    qWarning() << "Blur calculation failed:" << error;
+    co_return;
+  }
+
+  m_img = std::move(result.image);
+  m_panel.label_timeIndicator->setText(
+    QObject::tr("Processing time: %1 ms").arg(result.milliseconds));
+  if(auto* tree = treeWidget()) {
+    if(auto* mainWindow = findParentOfType<MainWindow>(tree))
+      mainWindow->refreshViews();
+  }
 }
 
 BlurTests_TreeItem::~BlurTests_TreeItem(){

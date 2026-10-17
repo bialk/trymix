@@ -15,9 +15,10 @@ int blurTest(int width, int height, int radius, int chessBoxSize, QImage& qimg, 
   std::unique_ptr<float[]> testImageIn(new float[pixelCount * 3]);
   fillChessBoard(testImageIn.get(), width, height, width, chessBoxSize);
 
-  static BlurTests::GaussBlurEngine gb;
+  // Independent panels can run on different QtConcurrent workers.
   auto startTime = QDateTime::currentDateTime();
   if(opencl_bool){
+    thread_local BlurTests::GaussBlurEngine gb;
     gb.doBlur(testImageIn.get(), width, height, radius);
     qInfo() << gb.getInfoString();
   }  

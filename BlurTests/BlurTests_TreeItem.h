@@ -3,6 +3,7 @@
 
 #include "CommonComponents/Projects_TreeItem.h"
 #include "ui_BlurTests_panel.h"
+#include <QCoroTask>
 
 class QDockWidget;
 class PolygonTest;
@@ -19,6 +20,8 @@ public:
   void activateProjectTreeItem(QDockWidget* dock, bool activate = true) override;
 
 private:
+  QCoro::Task<> runBlur(bool useOpenCl);
+
   QScopedPointer<QDockWidget> m_dockWidget;
   Ui::BlurTests_panel m_panel;
   QImage m_img;

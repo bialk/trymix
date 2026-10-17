@@ -293,7 +293,7 @@ public:
       std::vector<size_t> bxs = boxesForGauss(float(r), 3);
 
       for(int i:{0,1,2}){
-        if(1){
+        if(1){ // for Debug: if true, we can use the 1D kernel for horizontal blur 
           boxBlurH_4.setArg(0, buffer_A);
           boxBlurH_4.setArg(1, buffer_B);
           boxBlurH_4.setArg(2, (int)w);
@@ -307,7 +307,7 @@ public:
           }
         }
 
-        if(1){
+        if(1){ // for Debug: if true, we can use the 1D kernel for vertical blur
           boxBlurT_4.setArg(0, buffer_B);
           boxBlurT_4.setArg(1, buffer_A);
           boxBlurT_4.setArg(2, (int)w);
